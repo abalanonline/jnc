@@ -16,34 +16,21 @@
 
 package info.ab;
 
-import lombok.SneakyThrows;
+import lombok.Getter;
+import lombok.Setter;
 
-public class Jnc implements Runnable {
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 
-  public Jnc(String[] args) {
-  }
+public class JncWindowAdapter extends WindowAdapter {
 
-  @SneakyThrows
+  @Getter
+  @Setter
+  boolean windowClosing;
+
   @Override
-  public void run() {
-    JncScreen screen = new JncScreen();
-    int x = 3;
-    int y = 0;
-    while (screen.isAvailable()) {
-      screen.putPixel(x, y, false);
-      if (screen.getKeyListener().isLeftPressed()) x--;
-      if (screen.getKeyListener().isRightPressed()) x++;
-      y = y + 1;
-      if (y >= 30) y = 0;
-      screen.putPixel(x, y, true);
-      screen.canvas.repaint();
-      screen.repaint();
-      Thread.sleep(100);
-    }
-  }
-
-  public static void main(String[] args) {
-    new Jnc(args).run();
+  public void windowClosing(WindowEvent e) {
+    setWindowClosing(true);
   }
 
 }
