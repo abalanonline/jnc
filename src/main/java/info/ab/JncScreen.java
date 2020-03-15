@@ -22,73 +22,94 @@ import lombok.SneakyThrows;
 
 import javax.sound.sampled.AudioSystem;
 import javax.sound.sampled.Clip;
+import javax.swing.*;
 import java.awt.*;
+import java.awt.image.BufferedImage;
 import java.io.File;
 
 @Getter @Setter
-public class JncScreen extends Frame {
+public class JncScreen {
 
   Button button;
-  private final JncWindowAdapter windowAdapter;
 
   private final Clip soundfx;
   private final Clip music;
 
-  boolean[][] bitmap = new boolean[40][30];
   JncCanvas canvas;
-  @Getter
   JncKeyListener keyListener;
+  private final BufferedImage imageBitmap;
+  private final JFrame frame;
 
   @SneakyThrows
   public JncScreen() {
+
+    imageBitmap = new BufferedImage(40, 30, BufferedImage.TYPE_INT_RGB);
+    imageBitmap.getGraphics().setColor(Color.MAGENTA);
+    imageBitmap.getGraphics().fillRect(0, 0, 40, 30);
+    for (int x = 0; x < 40; x++) {
+      imageBitmap.setRGB(x, 0, Color.GREEN.getRGB());
+      imageBitmap.setRGB(x, 29, Color.GREEN.getRGB());
+    }
+    for (int y = 0; y < 30; y++) {
+      imageBitmap.setRGB(0, y, Color.GREEN.getRGB());
+      imageBitmap.setRGB(39, y, Color.GREEN.getRGB());
+    }
+    imageBitmap.setRGB(10, 10, Color.BLACK.getRGB());
+    imageBitmap.setRGB(12, 12, Color.BLACK.getRGB());
+
+    canvas = new JncCanvas();
+    canvas.addKeyListener(keyListener);
+    canvas.requestFocus();
+
+    frame = new JFrame();
+    frame.add(canvas);
+    frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+    frame.setSize(640, 480);
+    frame.setVisible(true);
+
     soundfx = AudioSystem.getClip();
     soundfx.open(AudioSystem.getAudioInputStream(new File("sound.wav")));
     music = AudioSystem.getClip();
     music.open(AudioSystem.getAudioInputStream(new File("music.wav")));
     music.loop(Clip.LOOP_CONTINUOUSLY);
     music.start();
+
     keyListener = new JncKeyListener(soundfx, music);
-
-    bitmap[10][10] = true;
-
-    windowAdapter = new JncWindowAdapter();
-    addWindowListener(windowAdapter);
-
-    canvas = new JncCanvas();
+    frame.addKeyListener(keyListener);
     canvas.addKeyListener(keyListener);
-    this.add(canvas);
-    canvas.requestFocus();
-
-    this.setSize(640, 480);
-    this.setLayout(null);
-    this.setVisible(true);
-
-    addKeyListener(keyListener);
   }
 
   void putPixel(int x, int y, boolean enabled) {
-    bitmap[x][y] = enabled;
+    imageBitmap.setRGB(x, y, (enabled ? Color.BLACK : Color.WHITE).getRGB());
   }
 
   public boolean isAvailable() {
-    boolean windowClosing = windowAdapter.isWindowClosing();
-    if (windowClosing) dispose();
-    return !windowClosing;
+    return true;
   }
 
-  class JncCanvas extends Canvas {
+  class JncCanvas extends JButton {
     public JncCanvas() {
-      setSize(640, 480);
+      super(" ");
     }
 
     @Override
-    public void paint(Graphics g) {
-      for (int x = 0; x < 40; x++) {
-        for (int y = 0; y < 30; y++) {
-          g.setColor(bitmap[x][y] ? Color.BLACK : Color.WHITE);
-          g.fillRect(x * 16, y * 16, x * 16 + 16, y * 16 + 16);
-        }
+    protected void paintComponent(Graphics g) {
+      super.paintComponent(g);
+      int sw = imageBitmap.getWidth();
+      int sh = imageBitmap.getHeight();
+      int dw = getWidth();
+      int dh = getHeight();
+      int x = 0;
+      int y = 0;
+      if (dw * sh > dh * sw) {
+        dw = dh * sw / sh;
+        x = (getWidth() - dw) / 2;
+      } else {
+        dh = dw * sh / sw;
+        y = (getHeight() - dh) / 2;
       }
+      Image newImage = imageBitmap.getScaledInstance(dw, dh, Image.SCALE_FAST);
+      g.drawImage(newImage, x, y, null);
     }
   }
 

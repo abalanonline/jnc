@@ -36,8 +36,7 @@ public class Jnc implements Runnable {
       y = y + 1;
       if (y >= 30) y = 0;
       screen.putPixel(x, y, true);
-      screen.canvas.repaint();
-      screen.repaint();
+      screen.getFrame().repaint();
       Thread.sleep(100);
     }
   }
