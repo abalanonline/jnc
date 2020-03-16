@@ -16,6 +16,8 @@
 
 package info.ab;
 
+import javafx.scene.media.Media;
+import javafx.scene.media.MediaPlayer;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.SneakyThrows;
@@ -39,23 +41,27 @@ public class JncScreen {
   JncKeyListener keyListener;
   private final BufferedImage imageBitmap;
   private final JFrame frame;
+  private final ImageIcon imageIcon;
+  private final AnimatedImage imageIcon2;
 
   @SneakyThrows
   public JncScreen() {
+    imageIcon = new ImageIcon(JncScreen.class.getResource("/player2.gif"));
+    JLabel label = new JLabel(imageIcon);
+    imageIcon2 = new AnimatedImage(JncScreen.class.getResource("/player2.gif"));
 
     imageBitmap = new BufferedImage(40, 30, BufferedImage.TYPE_INT_RGB);
-    imageBitmap.getGraphics().setColor(Color.MAGENTA);
-    imageBitmap.getGraphics().fillRect(0, 0, 40, 30);
-    for (int x = 0; x < 40; x++) {
-      imageBitmap.setRGB(x, 0, Color.GREEN.getRGB());
-      imageBitmap.setRGB(x, 29, Color.GREEN.getRGB());
-    }
-    for (int y = 0; y < 30; y++) {
-      imageBitmap.setRGB(0, y, Color.GREEN.getRGB());
-      imageBitmap.setRGB(39, y, Color.GREEN.getRGB());
-    }
-    imageBitmap.setRGB(10, 10, Color.BLACK.getRGB());
-    imageBitmap.setRGB(12, 12, Color.BLACK.getRGB());
+    Graphics2D graphics = imageBitmap.createGraphics();
+    graphics.setColor(Color.MAGENTA);
+    graphics.fillRect(0, 0, 40, 30);
+
+    //imageIcon.getIconWidth();
+    //imageIcon.paintIcon(null, graphics, 0, 0);
+    graphics.setColor(Color.MAGENTA);
+    graphics.drawLine(2,2,8,8);
+    graphics.drawString("AB", 2, 20);
+    boolean b = graphics.drawImage(imageIcon.getImage(), 2, 30, null);
+    graphics.dispose();
 
     canvas = new JncCanvas();
     canvas.addKeyListener(keyListener);
@@ -63,23 +69,31 @@ public class JncScreen {
 
     frame = new JFrame();
     frame.add(canvas);
+    //frame.add(label);
     frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
     frame.setSize(640, 480);
     frame.setVisible(true);
 
     soundfx = AudioSystem.getClip();
-    soundfx.open(AudioSystem.getAudioInputStream(new File("sound.wav")));
+    soundfx.open(AudioSystem.getAudioInputStream(JncScreen.class.getResource("/sound.wav")));
     music = AudioSystem.getClip();
-    music.open(AudioSystem.getAudioInputStream(new File("music.wav")));
-    music.loop(Clip.LOOP_CONTINUOUSLY);
-    music.start();
+    music.open(AudioSystem.getAudioInputStream(JncScreen.class.getResource("/music.wav")));
+    //music.loop(Clip.LOOP_CONTINUOUSLY);
+    //music.start(); // enable later
 
     keyListener = new JncKeyListener(soundfx, music);
     frame.addKeyListener(keyListener);
     canvas.addKeyListener(keyListener);
+
   }
 
   void putPixel(int x, int y, boolean enabled) {
+    if (enabled) {
+      Graphics2D graphics = imageBitmap.createGraphics();
+      graphics.setColor(Color.BLUE);
+      graphics.fillRect(0, 0, 40, 30);
+      imageBitmap.getGraphics().drawImage(imageIcon2.getFrame(x), 6, 0, null);
+    }
     imageBitmap.setRGB(x, y, (enabled ? Color.BLACK : Color.WHITE).getRGB());
   }
 
@@ -94,7 +108,6 @@ public class JncScreen {
 
     @Override
     protected void paintComponent(Graphics g) {
-      super.paintComponent(g);
       int sw = imageBitmap.getWidth();
       int sh = imageBitmap.getHeight();
       int dw = getWidth();
