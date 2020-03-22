@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package info.ab;
+package ab.jnc;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;

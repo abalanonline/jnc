@@ -16,6 +16,7 @@
 
 package ab;
 
+import ab.jnc.JncClip;
 import lombok.SneakyThrows;
 
 import java.io.FileInputStream;

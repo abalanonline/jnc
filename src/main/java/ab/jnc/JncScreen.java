@@ -14,9 +14,8 @@
  * limitations under the License.
  */
 
-package info.ab;
+package ab.jnc;
 
-import ab.jnc.Sprite;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.SneakyThrows;

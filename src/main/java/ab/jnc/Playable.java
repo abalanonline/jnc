@@ -16,8 +16,6 @@
 
 package ab.jnc;
 
-import info.ab.JncScreen;
-
 public interface Playable {
   int getWidth();
   int getHeight();

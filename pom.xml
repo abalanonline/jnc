@@ -22,7 +22,7 @@
 
   <modelVersion>4.0.0</modelVersion>
 
-  <groupId>info.ab</groupId>
+  <groupId>ab</groupId>
   <artifactId>jnc</artifactId>
   <version>0.1.0</version>
 

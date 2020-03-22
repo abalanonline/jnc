@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-package info.ab;
-
-import ab.jnc.Game1;
-import ab.jnc.Playable;
-import lombok.SneakyThrows;
+package ab.jnc;
 
 public class Jnc implements Runnable {
 

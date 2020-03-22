@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package ab;
+package ab.jnc;
 
 import fr.delthas.javamp3.Sound; // MIT License https://github.com/delthas/JavaMP3
 import lombok.Getter;
