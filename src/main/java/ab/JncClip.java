@@ -16,7 +16,7 @@
 
 package ab;
 
-import fr.delthas.javamp3.Sound; // MIT License
+import fr.delthas.javamp3.Sound; // MIT License https://github.com/delthas/JavaMP3
 import lombok.Getter;
 import lombok.SneakyThrows;
 
@@ -51,7 +51,7 @@ public class JncClip {
     int byteCount = 0;
     byte[] buffer = new byte[BUFFER_SIZE];
     int bytesRead;
-    while ((bytesRead = in.read(buffer)) != -1) {
+    while ((bytesRead = sound.read(buffer)) != -1) {
       out.write(buffer, 0, bytesRead);
       byteCount += bytesRead;
     }

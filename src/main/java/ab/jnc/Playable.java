@@ -14,32 +14,14 @@
  * limitations under the License.
  */
 
-package ab;
+package ab.jnc;
 
-import lombok.SneakyThrows;
+import info.ab.JncScreen;
 
-import java.io.FileInputStream;
-
-public class TestAudioSystem implements Runnable {
-
-  public TestAudioSystem(String[] args) {
-  }
-
-  @SneakyThrows
-  @Override
-  public void run() {
-    JncClip clip = new JncClip(new FileInputStream("music.mp3"));
-    clip.getLine().start();
-
-    Thread.sleep(2000);
-
-    new JncClip(new FileInputStream("sound.mp3")).getLine().start();
-
-    Thread.sleep(10000);
-  }
-
-  public static void main(String[] args) {
-    new TestAudioSystem(args).run();
-  }
-
+public interface Playable {
+  int getWidth();
+  int getHeight();
+  void loadResources();
+  void initHardware(JncScreen screen);
+  boolean update();
 }

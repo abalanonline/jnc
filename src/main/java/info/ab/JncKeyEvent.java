@@ -14,32 +14,16 @@
  * limitations under the License.
  */
 
-package ab;
+package info.ab;
 
-import lombok.SneakyThrows;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
 
-import java.io.FileInputStream;
+import java.time.Instant;
 
-public class TestAudioSystem implements Runnable {
-
-  public TestAudioSystem(String[] args) {
-  }
-
-  @SneakyThrows
-  @Override
-  public void run() {
-    JncClip clip = new JncClip(new FileInputStream("music.mp3"));
-    clip.getLine().start();
-
-    Thread.sleep(2000);
-
-    new JncClip(new FileInputStream("sound.mp3")).getLine().start();
-
-    Thread.sleep(10000);
-  }
-
-  public static void main(String[] args) {
-    new TestAudioSystem(args).run();
-  }
-
+@AllArgsConstructor
+@Getter
+public class JncKeyEvent {
+  private Instant instant;
+  private int keyCode;
 }

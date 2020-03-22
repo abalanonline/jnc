@@ -16,28 +16,38 @@
 
 package info.ab;
 
+import ab.jnc.Game1;
+import ab.jnc.Playable;
 import lombok.SneakyThrows;
 
 public class Jnc implements Runnable {
 
   public Jnc(String[] args) {
   }
+//  public BufferedImage flip(BufferedImage bufferedImage) {
+//    BufferedImage flippedImage = new BufferedImage(bufferedImage.getWidth(), bufferedImage.getHeight(), bufferedImage.getTransparency());
+//    Graphics2D g2d = flippedImage.createGraphics();
+//    g2d.setTransform(AffineTransform.getScaleInstance(1, -1));
+//    g2d.drawImage(bufferedImage, 0, -bufferedImage.getHeight(), null);
+//    g2d.dispose();
+//    return flippedImage;
+//  }
 
-  @SneakyThrows
   @Override
   public void run() {
-    JncScreen screen = new JncScreen();
-    int x = 3;
-    int y = 0;
-    while (screen.isAvailable()) {
-      screen.putPixel(x, y, false);
-      if (screen.getKeyListener().isLeftPressed()) x--;
-      if (screen.getKeyListener().isRightPressed()) x++;
-      y = y + 1;
-      if (y >= 30) y = 0;
-      screen.putPixel(x, y, true);
-      screen.getFrame().repaint();
-      Thread.sleep(100);
+    Playable game = new Game1();
+    game.loadResources();
+    JncScreen screen = new JncScreen(game.getWidth(), game.getHeight());
+    try {
+      game.initHardware(screen);
+      while (game.update()) {
+        screen.update();
+        Thread.sleep(10); // smooth
+      }
+    } catch (Exception e) {
+      e.printStackTrace();
+    } finally {
+      screen.close();
     }
   }
 
