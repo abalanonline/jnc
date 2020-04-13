@@ -16,6 +16,13 @@
 
 package ab.jnc;
 
+import ab.jnc.g3.Game3;
+
+import java.awt.event.KeyEvent;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
+
 public class Jnc implements Runnable {
 
   public Jnc(String[] args) {
@@ -31,17 +38,39 @@ public class Jnc implements Runnable {
 
   @Override
   public void run() {
-    Playable game = new Game1();
-    game.loadResources();
-    JncScreen screen = new JncScreen(game.getWidth(), game.getHeight());
+    Playable game = new Game3();
+    game.load();
+    JncScreen screen = new JncScreen();
     try {
-      game.initHardware(screen);
-      while (game.update()) {
+      final int TICK_MS = 20; // 50 Hz
+      Instant startTime = Instant.now();
+      Instant nextTick = startTime;
+      int tick = 0;
+      boolean inTheLoop = true;
+      while (inTheLoop) {
+        while (nextTick.isBefore(Instant.now())) {
+          // keys processing // if key pressed before nextTick
+          List<JncKeyEvent> tickKeyList = new ArrayList<>();
+          JncKeyEvent keyEvent = screen.getKeyEventQueue().peek();
+          while ((keyEvent != null) && (keyEvent.getInstant().isBefore(nextTick))) {
+            JncKeyEvent key = screen.getKeyEventQueue().take();
+            inTheLoop &= key.getKeyCode() != KeyEvent.VK_ESCAPE;
+            tickKeyList.add(key);
+            keyEvent = screen.getKeyEventQueue().peek();
+          }
+          inTheLoop &= game.tick(nextTick, tickKeyList);
+          tick++;
+          nextTick = startTime.plusMillis(tick * TICK_MS);
+        }
+        int activePage = screen.getActivePage() == 0 ? 1 : 0;
+        screen.setActivePage(activePage);
+        game.draw(screen.getGraphics()[activePage]);
+        screen.setVisualPage(activePage);
         screen.update();
         Thread.sleep(10); // smooth
       }
-    } catch (Exception e) {
-      e.printStackTrace();
+    } catch (Throwable t) {
+      t.printStackTrace();
     } finally {
       screen.close();
     }

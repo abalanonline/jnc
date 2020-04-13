@@ -40,6 +40,7 @@ public class JncScreen {
   int visualPage;
 
   BufferedImage[] images = new BufferedImage[3];
+  Graphics2D[] graphics = new Graphics2D[3];
 //  private final List<BufferedImage> imageList = new ArrayList<BufferedImage>();
 //  private final Clip soundfx;
 //  private final Clip music;
@@ -48,7 +49,6 @@ public class JncScreen {
 
   JncCanvas canvas;
   JncKeyListener keyListener;
-  private final BufferedImage hwBitmap;
   //private BufferedImage imageBitmap;
   private final JFrame frame;
 //  private final ImageIcon imageIcon;
@@ -62,8 +62,10 @@ public class JncScreen {
 
   @SneakyThrows
   public JncScreen(int width, int height) {
-    hwBitmap = new BufferedImage(DEFAULT_WIDTH, DEFAULT_HEIGHT, BufferedImage.TYPE_INT_RGB);
-    for (int i = 0; i < 3; i++) images[i] = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+    for (int i = 0; i < 3; i++) {
+      images[i] = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+      graphics[i] = images[i].createGraphics();
+    }
 
 //    imageIcon = new ImageIcon(JncScreen.class.getResource("/player2.gif"));
 //    JLabel label = new JLabel(imageIcon);
@@ -89,7 +91,7 @@ public class JncScreen {
     frame.add(canvas);
     //frame.add(label);
     frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-    frame.setSize(640 + 16, 480 + 39);
+    frame.setSize(640 + 18, 480 + 41);
     frame.setVisible(true);
 
 //    soundfx = AudioSystem.getClip();
@@ -123,8 +125,9 @@ public class JncScreen {
     images[activePage].setRGB(x, y, (enabled ? Color.BLACK : Color.WHITE).getRGB());
   }
 
+  @SneakyThrows
   public Sprite loadSprite(String resource) {
-    return new Sprite(JncScreen.class.getResource(resource));
+    return new Sprite(JncScreen.class.getResource(resource).openStream());
   }
 
   public void putSprite(int x, int y, Sprite sprite) {
@@ -138,35 +141,31 @@ public class JncScreen {
   class JncCanvas extends JButton {
     public JncCanvas() {
       super(" ");
+      setEnabled(false);
     }
 
     @Override
     protected void paintComponent(Graphics g) {
 
-      BufferedImage bufferedImage = images[visualPage];
+      int COMPONENT_BORDER = 1; // not allowed to draw on this
+      // our new dimension is a final one, ok
+      final Dimension viewPortSize = new Dimension(getWidth() - 2 * COMPONENT_BORDER, getHeight() - 2 * COMPONENT_BORDER);
 
-      if (bufferedImage.getWidth() < hwBitmap.getWidth() && bufferedImage.getHeight() < hwBitmap.getHeight()) {
-        int dx = hwBitmap.getWidth() - bufferedImage.getWidth();
-        int dy = hwBitmap.getHeight() - bufferedImage.getHeight();
-        hwBitmap.getGraphics().drawImage(bufferedImage, dx >> 1, dy >> 1, null);
-        bufferedImage = hwBitmap;
-      }
+      BufferedImage bufferedImage = images[visualPage];
 
       int sw = bufferedImage.getWidth();
       int sh = bufferedImage.getHeight();
-      int dw = getWidth();
-      int dh = getHeight();
-      int x = 0;
-      int y = 0;
-      if (dw * sh > dh * sw) {
-        dw = dh * sw / sh;
-        x = (getWidth() - dw) / 2;
-      } else {
-        dh = dw * sh / sw;
-        y = (getHeight() - dh) / 2;
-      }
+      int dw = viewPortSize.width;
+      int dh = viewPortSize.height;
+      double zoom = dw * sh > dh * sw ? (double) dh / sh : (double) dw / sw;
+      zoom = Math.floor(zoom); if (zoom < 1) zoom = 1; // this line asserts quality but it can be commented out
+      dw = (int) (sw * zoom);
+      dh = (int) (sh * zoom);
+      int x = (viewPortSize.width - dw) / 2;
+      int y = (viewPortSize.height - dh) / 2;
+
       Image newImage = bufferedImage.getScaledInstance(dw, dh, Image.SCALE_FAST);
-      g.drawImage(newImage, x, y, null);
+      g.drawImage(newImage, x + COMPONENT_BORDER, y + COMPONENT_BORDER, null);
     }
   }
 

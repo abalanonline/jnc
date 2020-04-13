@@ -36,6 +36,13 @@
 
   <dependencies>
 
+    <!-- zip encryption -->
+    <!-- dependency>
+      <groupId>net.lingala.zip4j</groupId>
+      <artifactId>zip4j</artifactId>
+      <version>2.5.1</version>
+    </dependency -->
+
     <!-- lombok -->
     <dependency>
       <groupId>org.projectlombok</groupId>

@@ -3,7 +3,7 @@
  * https://stackoverflow.com/questions/639977/howto-perform-a-multiply-composite-effect-using-graphics2d
  */
 
-package ab.jnc;
+package com.stackoverflow;
 
 import java.awt.*;
 import java.awt.image.ColorModel;
