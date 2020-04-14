@@ -113,6 +113,7 @@ public class Resource {
 
   // setter for paged object
   public void setObject(String key, Object object, String page) {
+    nameMap.putIfAbsent(key, key); // if it is a new name
     objectMap.put((page != null && page.length() > 0 ? page + "." : "") + nameMap.get(key), object);
   }
 

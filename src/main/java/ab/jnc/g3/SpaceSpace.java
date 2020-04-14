@@ -39,30 +39,33 @@ class SpaceSpace extends Rectangle {
     return Math.min(Math.max(i + nextInt(21) - 10, 0x00), 0xFF);
   }
 
-  public SpaceSpace(Random initRandom, SpaceSpace superSpace) {
-    random = MessageDigest.MD5.newDependentRandom(initRandom);
+  public SpaceSpace(Physics physics, SpaceSpace superSpace) {
+    random = MessageDigest.MD5.newDependentRandom(physics.getRandom());
     color = (superSpace == null) ? Color.MAGENTA : superSpace.color;
     color = new Color(rndB(color.getRed()), rndB(color.getGreen()), rndB(color.getBlue()));
   }
 
-  public void drawBg(Graphics graphics, Point distance) {
+  public void drawBg(Graphics graphics, Point distance, Physics physics) {
     Point translated = getLocation(); // new obj
     translated.translate(distance.x, distance.y);
     graphics.setColor(color);
     graphics.fillRect(translated.x, Game3.WORLD_HEIGHT - height - translated.y, width, height);
-    subSpace.forEach(m -> m.drawBg(graphics, translated));
+    subSpace.forEach(m -> m.drawBg(graphics, translated, physics));
   }
 
-  public void drawFg(Graphics graphics, Point distance) {
+  public void drawFg(Graphics graphics, Point distance, Physics physics) {
     Point translated = getLocation(); // new obj
     translated.translate(distance.x, distance.y);
     for (Sprite sprite : sprites) {
       final Point starLocation = sprite.getLocation();
+      final int starCurrentFrame = sprite.getCurrentFrame();
       sprite.setLocation(sprite.x + translated.x, sprite.y + translated.y);
+      sprite.setCurrentFrame(starCurrentFrame + physics.getCurrentFrame());
       sprite.drawImage();
       sprite.setLocation(starLocation);
+      sprite.setCurrentFrame(starCurrentFrame);
     }
-    subSpace.forEach(m -> m.drawFg(graphics, translated));
+    subSpace.forEach(m -> m.drawFg(graphics, translated, physics));
   }
 
 }

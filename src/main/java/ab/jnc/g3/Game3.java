@@ -36,6 +36,7 @@ import java.util.concurrent.TimeUnit;
 /**
  * Nyan Cat live in pixel world, so the units are pixels and seconds.
  * Its animation have 6 frames with 417 ms period. The speed is about 7 pixels per frame.
+ * Cat size = 46 cm, 26.5 pix. Pixel size = 17 mm
  */
 public class Game3 implements Playable {
 
@@ -44,6 +45,7 @@ public class Game3 implements Playable {
   // Question of the Nyan Cat universe - how many pixels it travels during full loop?
   public static final double CAT_MOVE_SPEED = 7 * CAT_FRAME_RATE; // which is somewhat 100 pixels / sec
   public static final double CAT_BODY_SPEED = CAT_FRAME_RATE / CAT_FRAMES;
+  public static final double PIXEL_SIZE = 0.0173584905660377;
   public static final double CAMERA_SPEED = CAT_MOVE_SPEED * 0.8;
   public static final int WORLD_WIDTH = 320;
   public static final int WORLD_HEIGHT = 240;
@@ -61,7 +63,8 @@ public class Game3 implements Playable {
   private Instant previousTick;
 
   private List<SpaceSpace> space = new ArrayList<>();
-  private List<Physics> spacePhysics = new ArrayList<>();
+  private PhysicsList spacePhysics = new PhysicsList(0);
+  private Physics physics;
 
   private Sprite cat;
   private Sprite spark;
@@ -73,13 +76,18 @@ public class Game3 implements Playable {
   private double cameraZoom = 1;
   private boolean cameraZoomIn = true;
   private Point2D.Double cameraPoint;
-  private Point2D.Double catPoint;
+  private Point2D.Double catPosition;
+  private Point2D.Double catVelocity;
+  private Point2D.Double catAcceleration;
+  private boolean catImpulse;
+
   private boolean isHome = true;
   private String debugText = "debug text:\nThe quick brown fox\njumps over the lazy dog";
 
-  private double tickJitter0;
-  private double tickJitter1;
-  private final Random random = new Random();
+  private double jitterTimeFine;
+  private double jitterTimeCoarse;
+  private final Random random = new Random(0);
+  private boolean isStopped = false;
 
   @Override
   public void load() {
@@ -94,7 +102,7 @@ public class Game3 implements Playable {
     // to make proper camera snapping, start x must be divisible by 7 (cat speed in pixels)
     // since everything in this universe is build with 42, let it be start x = 42
     // and cat's 0,0 is the second paw
-    cat.setTransform(r -> new Rectangle(r.x - CAT_BASELINE_X - worldWindow.x, 240 - r.height - r.y - worldWindow.y, r.width, r.height));
+    cat.setTransform(r -> new Rectangle(r.x - CAT_BASELINE_X, 240 - r.height - r.y, r.width, r.height));
 
     tart = re.getSprite("tart");
     tart.setLocation(50, 120);
@@ -114,29 +122,30 @@ public class Game3 implements Playable {
   }
 
   void resetSpace() {
-    random.setSeed(1);
-    int x = 0;
-    Physics physics = new Physics(random.nextLong());
-    physics.setSpaceTransition(0);
-    physics.setSpaceAction(168);
+    spacePhysics = new PhysicsList(1);
+
+    spacePhysics.add(Physics.ANIMATION());
+    spacePhysics.add(Physics.VANILLA());
     for (int i = 0; i < 1000; i++) {
-      physics.setSpaceStart(x);
-      x = physics.getSpaceStop();
-      spacePhysics.add(physics);
-      physics = new Physics(random.nextLong());
+      spacePhysics.add(new Physics(spacePhysics.getRandom().nextLong()));
+      //spacePhysics.add(Physics.VANILLA());
     }
 
-    catPoint = new Point2D.Double(42, 120);
-    cat.setLocation(toPoint(catPoint));
+    catPosition = new Point2D.Double(42, 120);
+    catVelocity = new Point2D.Double(CAT_MOVE_SPEED, 0);
+    catAcceleration = new Point2D.Double();
+    catImpulse = false;
+    cat.setLocation(toPoint(catPosition));
+
     cameraPoint = new Point2D.Double();
     space.clear();
-    final Random physicsRandom = spacePhysics.get(0).getRandom();
-    space.add(new SpaceAnimation(cat, spark, -84, physicsRandom));
-    space.add(new SpaceAnimation(cat, spark, 0, physicsRandom));
-    space.add(new SpaceAnimation(cat, spark, 84, physicsRandom));
+    space.add(new SpaceAnimation(spacePhysics.getFirst(), cat, spark, -84));
+    space.add(new SpaceAnimation(spacePhysics.getFirst(), cat, spark, 0));
+    space.add(new SpaceAnimation(spacePhysics.getFirst(), cat, spark, 84));
     for (int i = 168; i < 10000; i += 84) {
-      space.add(new Space1x1(physicsRandom, new Rectangle(i, 0, 84, WORLD_HEIGHT), spark, 20));
+      space.add(new Space1x1(spacePhysics.get((double) i), new Rectangle(i, 0, 84, WORLD_HEIGHT), spark, 20));
     }
+    physics = spacePhysics.get(catPosition.x);
   }
 
   void unpark() {
@@ -146,24 +155,54 @@ public class Game3 implements Playable {
 
   @Override
   public boolean tick(Instant instant, List<JncKeyEvent> keys) {
+    if (isStopped) { return true; }
     if (previousTick == null) previousTick = instant;
     double tickDuration = (double) Duration.between(previousTick, instant).toNanos() / TimeUnit.SECONDS.toNanos(1);
+    final Instant tickCurrent = instant;
+    final Instant tickPrevious = previousTick;
     previousTick = instant;
 
+    Duration impulseDuration = Duration.ZERO;
+    Instant impulseStart = catImpulse ? tickPrevious : null;
     for (JncKeyEvent key : keys) {
+      if (key.isReleased()) {
+        switch (key.getKeyCode()) {
+          case KeyEvent.VK_UP:
+            catImpulse = false;
+            if (impulseStart == null) { break; }
+            impulseDuration = impulseDuration.plus(Duration.between(impulseStart, key.getInstant()));
+            impulseStart = null;
+            break;
+        }
+        continue;
+      }
       switch (key.getKeyCode()) {
         case KeyEvent.VK_OPEN_BRACKET: debugTransition -= 0.05; break;
         case KeyEvent.VK_CLOSE_BRACKET: debugTransition += 0.05; break;
         case KeyEvent.VK_T: debugTime++; break;
         case KeyEvent.VK_Y: debugTime--; break;
         case KeyEvent.VK_D: debugWorld++; if (debugWorld >= 4) { debugWorld = 0; } break;
-        case KeyEvent.VK_RIGHT:
+        case KeyEvent.VK_BACK_SLASH:
           if (debugTime == 3) {
             tickDuration = 0.417 / 48;
             break; }
           break;
         case KeyEvent.VK_SPACE: unpark(); break;
       }
+
+      if (cameraZoomIn) { continue; } // disable controls in zoom
+      switch (key.getKeyCode()) {
+        case KeyEvent.VK_UP:
+          catImpulse = true;
+          if (impulseStart != null) { break; }
+          impulseStart = key.getInstant();
+          break;
+        case KeyEvent.VK_LEFT: catVelocity.x -= 10; break;
+        case KeyEvent.VK_RIGHT: catVelocity.x += 10; break;
+      }
+    }
+    if (impulseStart != null) {
+      impulseDuration = impulseDuration.plus(Duration.between(impulseStart, tickCurrent));
     }
 
     debugTime = Math.min(Math.max(debugTime, 0), 3);
@@ -178,30 +217,53 @@ public class Game3 implements Playable {
     debugText = String.format("transition: %.2f   ", debugTransition);
 
     // jittering begin - caution
-    tickJitter0 += tickDuration;
-    int tickJitter2 = ((int) (debugTransition * 10)) + 1;
-    debugText += "jit: " + tickJitter2 + "   ";
-    int tickJitter3 = (int) (tickJitter0 * CAT_FRAME_RATE * tickJitter2);
-    double tickJitter4 = (double) tickJitter3 / (CAT_FRAME_RATE * tickJitter2);
-    // if (tickJitter1 != tickJitter4) { the code is valid for both branches
-    tickDuration = tickJitter4 - tickJitter1;
-    tickJitter1 = tickJitter4;
+    final double tickJitterPhysics = physics.getJitter();
+    jitterTimeFine += tickDuration;
+    double jitterTime = jitterTimeFine;
+    if (tickJitterPhysics > 0) { // nothing to calculate then
+      final int tickJitterStep = 3 - Math.min(Math.max((int) (tickJitterPhysics * 4), 0), 3); // 00112233
+      int tickJitter2 = 1 << tickJitterStep; // 88442211
+      debugText += "jit: " + tickJitter2 + "   ";
+      int tickJitter3 = (int) (jitterTimeFine * CAT_FRAME_RATE * tickJitter2);
+      jitterTime = (double) tickJitter3 / (CAT_FRAME_RATE * tickJitter2);
+    }
+    tickDuration = jitterTime - jitterTimeCoarse;
+    jitterTimeCoarse = jitterTime;
     // jittering end - caution
 
     isHome = cameraZoomIn;
     cameraZoom += (cameraZoomIn ? 1 : -1) * 0.05;
     cameraZoom = Math.min(Math.max(cameraZoom, 0), 1);
 
+    // motion physics
+    double t = tickDuration;
+    catAcceleration.setLocation(0, -physics.getGravity() / PIXEL_SIZE);
+    catVelocity.setLocation(
+        catAcceleration.getX() * t + catVelocity.getX(),
+        catAcceleration.getY() * t + catVelocity.getY()
+            + 400 * (double) impulseDuration.toNanos() / TimeUnit.SECONDS.toNanos(1)
+    );
+    catPosition.setLocation(
+        catVelocity.getX() * t + catPosition.getX(),
+        catVelocity.getY() * t + catPosition.getY());
+    //catPosition.x += CAT_MOVE_SPEED * tickDuration;
+
     catB += CAT_BODY_SPEED * tickDuration;
-    catPoint.x += CAT_MOVE_SPEED * tickDuration;
     cameraPoint.x += CAMERA_SPEED * tickDuration;
-    if (isHome && (catPoint.x >= 126)) { catPoint.x -= 84; cameraPoint.x = 0; }
-    cat.setLocation(toPoint(catPoint));
+    if (isHome && (catPosition.x >= 126)) { catPosition.x -= 84; cameraPoint.x = 0; }
+    cat.setLocation(toPoint(new Point2D.Double(catPosition.x - cameraPoint.x, catPosition.y - cameraPoint.y))); // toPoint(catPoint)
+    physics = spacePhysics.get(catPosition.x);
+
     worldWindow.setLocation(toPoint(cameraPoint));
 
     int spriteFrame = (int) (catB * CAT_FRAMES + 0.1); // constant smoothing the truncation
     //assert spriteFrame % 6 * 7 == cat.x % 42 : "frame drop";
     cat.setCurrentFrame(spriteFrame % CAT_FRAMES);
+    physics.setCurrentFrame(spriteFrame % CAT_FRAMES);
+
+    isStopped |= ((catPosition.getY() < 0) || (catPosition.getY() > 220) ||
+        (catPosition.getX() - cameraPoint.getX() < 16) || (catPosition.getX() - cameraPoint.getX() > 312));
+
     return true;
   }
 
@@ -257,27 +319,28 @@ public class Game3 implements Playable {
         }
       }
       final Font debugFont = re.getFont("debugfont");
-      debugGraphics.setColor(Color.GREEN);
+      debugGraphics.setColor(Color.ORANGE);
       for (Physics p : spacePhysics) {
         if ((p.getSpaceStop() > worldWindow.x - 100) && (p.getSpaceStart() < worldWindow.x + 500)) {
-          int x = p.getSpaceStart() - worldWindow.x;
+          int x = (int) p.getSpaceStart() - worldWindow.x;
           debugGraphics.fillRect(x, 0, 1, worldWindow.height);
-          debugFont.write("tr", new Point(x + 2, 16), debugGraphics);
+          debugFont.write("tr", new Point(x + 2, 2), debugGraphics);
           x += p.getSpaceTransition();
           debugGraphics.fillRect(x, 0, 1, worldWindow.height);
-          debugFont.setAlignRight(true);
-          debugFont.write("tr", new Point(x, 16), debugGraphics);
+          debugFont.setAlignRight(p.getSpaceSustain() <= 0);
+          debugFont.write(p.toString(), new Point(x + 2, 2), debugGraphics);
           debugFont.setAlignRight(false);
-          debugFont.write(p.toString(), new Point(x + 2, 16), debugGraphics);
         }
       }
-      debugGraphics.setColor(Color.ORANGE);
+      debugGraphics.setColor(Color.GREEN);
       for (SpaceSpace p : space) {
         if ((p.x + p.width > worldWindow.x - 100) && (p.x < worldWindow.x + 500)) {
           debugGraphics.fillRect(p.x - worldWindow.x, 0, 1, worldWindow.height);
           debugGraphics.fillRect(p.x - worldWindow.x, WORLD_HEIGHT - 1 - p.y, p.width, 1);
         }
       }
+      debugGraphics.setColor(Color.RED);
+      debugFont.write(physics.toString(), new Point(cat.x, 240 - cat.y), debugGraphics);
       //worldGraphics.setComposite(AlphaComposite.SrcOver.derive(0.5f));
       worldGraphics.drawImage(debugImage, 0, 0, null);
       //worldGraphics.setComposite(AlphaComposite.SrcOver.derive(1.0f));
@@ -293,6 +356,8 @@ public class Game3 implements Playable {
       final int CROP_WIDTH = 25;
       if (camz == 1) {
         // sharp fixed zoom
+        //zoomGraphics.setColor(Color.BLACK);
+        //zoomGraphics.fillRect(0, 0, 70, 70);
         zoomGraphics.drawImage(worldImage, -catLocation.x, -catLocation.y, null);
         graphics.drawImage(zoomImage.getScaledInstance(270, 240, Image.SCALE_FAST), 25, 0, null);
       } else graphics.drawImage(worldImage,
@@ -322,10 +387,10 @@ public class Game3 implements Playable {
     worldGraphics.fillRect(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
     Point worldWindowDistance = new Point(-worldWindow.x, -worldWindow.y);
     for (SpaceSpace wall : space) {
-      wall.drawBg(worldGraphics, worldWindowDistance);
+      wall.drawBg(worldGraphics, worldWindowDistance, physics);
     }
     for (SpaceSpace wall : space) {
-      wall.drawFg(worldGraphics, worldWindowDistance);
+      wall.drawFg(worldGraphics, worldWindowDistance, physics);
     }
     drawDebug1();
     drawImage(cat);

@@ -26,4 +26,5 @@ import java.time.Instant;
 public class JncKeyEvent {
   private Instant instant;
   private int keyCode;
+  private boolean released;
 }

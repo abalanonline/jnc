@@ -174,8 +174,14 @@ public class JncScreen {
 
     @Override
     public void keyPressed(KeyEvent e) {
-      keyEventQueue.add(new JncKeyEvent(Instant.now(), e.getKeyCode()));
+      keyEventQueue.add(new JncKeyEvent(Instant.now(), e.getKeyCode(), false));
+      super.keyPressed(e);
     }
 
+    @Override
+    public void keyReleased(KeyEvent e) {
+      keyEventQueue.add(new JncKeyEvent(Instant.now(), e.getKeyCode(), true));
+      super.keyReleased(e);
+    }
   }
 }

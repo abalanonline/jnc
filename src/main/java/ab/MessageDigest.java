@@ -43,16 +43,16 @@ public class MessageDigest implements Serializable {
     return messageDigest.digest();
   }
 
-  public long applyWithSalt(long l) {
-    return ByteBuffer.wrap(apply(ByteBuffer.allocate(16).putLong(serialVersionUID).putLong(l).array())).getLong();
+  public long apply(long l1, long l2) {
+    return ByteBuffer.wrap(apply(ByteBuffer.allocate(16).putLong(l1).putLong(l2).array())).getLong();
   }
 
-  public Random randomWithSalt(long l) {
-    return new Random(applyWithSalt(l));
+  public Random newRandom(long l1, long l2) {
+    return new Random(apply(l1, l2));
   }
 
   public Random newDependentRandom(Random random) {
-    return randomWithSalt(random.nextLong());
+    return newRandom(random.nextLong(), serialVersionUID);
   }
 
 }

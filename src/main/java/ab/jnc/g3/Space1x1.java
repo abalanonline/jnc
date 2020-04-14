@@ -19,12 +19,11 @@ package ab.jnc.g3;
 import ab.jnc.Sprite;
 
 import java.awt.*;
-import java.util.Random;
 
 public class Space1x1 extends SpaceSpace {
-  public Space1x1(Random initRandom, Rectangle rectangle, Sprite sprite, int spriteCount) {
-    super(initRandom, null);
-    color = new Color(0x00, 0x33, 0x66);
+  public Space1x1(Physics physics, Rectangle rectangle, Sprite sprite, int spriteCount) {
+    super(physics, null);
+    color = physics.getColor();
     setBounds(rectangle);
     for (int i = 0; i < spriteCount; i++) {
       Sprite s = new Sprite(sprite);

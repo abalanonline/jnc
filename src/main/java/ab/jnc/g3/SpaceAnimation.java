@@ -40,34 +40,32 @@ class SpaceAnimation extends SpaceSpace {
       {  1,  1,  1,  0,  0,  0,  0,  0,  0,  1,  1,  1},
       {  0,  4,  2,  0,  4,  2,  0,  4,  2,  0,  4,  4}, // backward with error in the last frame
       {  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0}};
-  private Sprite cat;
   private Sprite star;
 
-  // the world is created by the cat and it keep the connection
-  public SpaceAnimation(Sprite cat, Sprite spark, int x, Random initRandom) {
-    super(initRandom, null);
+  // the world is created by the cat
+  public SpaceAnimation(Physics physics, Sprite cat, Sprite spark, int x) {
+    super(physics, null);
     setBounds(x, cat.y + CAT_BASELINE_Y, 84, Game3.WORLD_HEIGHT);
     color = new Color(0x00, 0x33, 0x66);
     color = new Color(rndB(color.getRed()), rndB(color.getGreen()), rndB(color.getBlue()));
 
     SpaceSpace sm;
     for (int i = 0; i < Game3.WORLD_HEIGHT; i += 12) {
-      subSpace.add(new Space1x1(random, new Rectangle(0, i, 84, 12), spark, i < 36 ? 0 : 1));
-      subSpace.add(new Space1x1(random, new Rectangle(0, -12 - i, 84, 12), spark, i < 36 ? 0 : 1));
+      subSpace.add(new Space1x1(physics, new Rectangle(0, i, 84, 12), spark, i < 36 ? 0 : 1));
+      subSpace.add(new Space1x1(physics, new Rectangle(0, -12 - i, 84, 12), spark, i < 36 ? 0 : 1));
     }
 
-    this.cat = cat;
     this.star = spark;
   }
 
   @Override
-  public void drawFg(Graphics graphics, Point distance) {
-    super.drawFg(graphics, distance);
+  public void drawFg(Graphics graphics, Point distance, Physics physics) {
+    super.drawFg(graphics, distance, physics);
     Sprite star = new Sprite(this.star);
     for (int i = 0; i < 6; i++) {
-      final int catCurrentFrame = cat.getCurrentFrame() % 12;
-      star.setLocation(x + distance.x + SPARK_X[i] + SPARK_DX[i][catCurrentFrame], y + distance.y + SPARK_Y[i]);
-      star.setCurrentFrame((catCurrentFrame + SPARK_F[i] + SPARK_DF[i][catCurrentFrame]));
+      final int currentFrame = physics.getCurrentFrame() % 12;
+      star.setLocation(x + distance.x + SPARK_X[i] + SPARK_DX[i][currentFrame], y + distance.y + SPARK_Y[i]);
+      star.setCurrentFrame((currentFrame + SPARK_F[i] + SPARK_DF[i][currentFrame]));
       star.drawImage();
     }
   }
