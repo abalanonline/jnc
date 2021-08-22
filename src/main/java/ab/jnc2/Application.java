@@ -19,9 +19,12 @@ package ab.jnc2;
 public class Application {
 
   public static void main(String[] args) {
-    Basic basic = new Screen().basic();
-    for (int i = 0; i < 100; i++) {
-      basic.plot(i, i);
+    Basic basic = new Screen(GraphicsMode.CGA_16).basic();
+    for (int y = 0; y < 64; y++) {
+      for (int x = 0; x < 128; x++) {
+        basic.ink(x / 16 + (y < 32 ? 0 : 8));
+        basic.plot(x ,y);
+      }
     }
   }
 

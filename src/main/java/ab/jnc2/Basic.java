@@ -23,7 +23,7 @@ import java.awt.*;
  */
 public class Basic {
   private final Screen screen;
-  private int color = 0;
+  private int color = Color.WHITE.getRGB();
   private int x = 0;
   private int y = 0;
 
@@ -32,7 +32,12 @@ public class Basic {
   }
 
   public void ink(int color) {
-
+    int[] colorMap = screen.mode.colorMap;
+    if (colorMap != null) {
+      color = color % colorMap.length;
+      color = colorMap[color];
+    }
+    this.color = color | 0xFF000000;
   }
 
   public void circle(int x, int y, int r) {
@@ -40,7 +45,7 @@ public class Basic {
   }
 
   public void plot(int x, int y) {
-    screen.image.setRGB(x, y, Color.GREEN.getRGB());
+    screen.image.setRGB(x, y, color);
   }
 
   public void draw(int x, int y) {

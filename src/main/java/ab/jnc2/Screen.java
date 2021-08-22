@@ -19,6 +19,8 @@ package ab.jnc2;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.image.BufferedImage;
+import java.awt.image.DataBuffer;
+import java.awt.image.IndexColorModel;
 
 /**
  * Screen is a physical screen for writing and drawing. Should be available after instantiating.
@@ -27,17 +29,34 @@ public class Screen extends JComponent {
 
   private JFrame jFrame;
   BufferedImage image;
+  GraphicsMode mode;
 
   @Override
   protected void paintComponent(Graphics g) {
-    g.drawImage(image, 0, 0, getWidth(), getHeight(), null);
+    int cw = getWidth(); // component width
+    int ch = getHeight();
+    int aw = ch * mode.aspectRatio.width / mode.aspectRatio.height; // aspect width
+    int ah = cw * mode.aspectRatio.height / mode.aspectRatio.width;
+    aw = Math.min(cw, aw);
+    ah = Math.min(ch, ah);
+    g.drawImage(image, (cw - aw) / 2, (ch - ah) / 2, aw, ah, null);
   }
 
-  public Screen() {
-    int width = 160;
-    int height = 120;
-    setPreferredSize(new Dimension(width, height));
-    image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+  public static BufferedImage createImage(GraphicsMode mode) {
+    if (mode.colorMap == null) {
+      return new BufferedImage(mode.resolution.width, mode.resolution.height, BufferedImage.TYPE_INT_RGB);
+    }
+
+    IndexColorModel colorModel =
+        new IndexColorModel(8, mode.colorMap.length, mode.colorMap, 0, false, -1, DataBuffer.TYPE_BYTE);
+    return new BufferedImage(mode.resolution.width, mode.resolution.height, BufferedImage.TYPE_BYTE_INDEXED,
+        colorModel);
+  }
+
+  public Screen(GraphicsMode mode) {
+    this.mode = mode;
+    setPreferredSize(new Dimension(640, 480));
+    image = createImage(mode);
     jFrame = new JFrame();
     jFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
     jFrame.add(this);
