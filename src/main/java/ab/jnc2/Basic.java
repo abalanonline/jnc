@@ -16,6 +16,8 @@
 
 package ab.jnc2;
 
+import java.awt.*;
+
 /**
  * BASIC language drawing commands. Requires a screen to draw.
  */
@@ -38,7 +40,7 @@ public class Basic {
   }
 
   public void plot(int x, int y) {
-
+    screen.image.setRGB(x, y, Color.GREEN.getRGB());
   }
 
   public void draw(int x, int y) {

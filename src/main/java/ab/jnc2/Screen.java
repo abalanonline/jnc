@@ -16,10 +16,34 @@
 
 package ab.jnc2;
 
+import javax.swing.*;
+import java.awt.*;
+import java.awt.image.BufferedImage;
+
 /**
  * Screen is a physical screen for writing and drawing. Should be available after instantiating.
  */
-public class Screen {
+public class Screen extends JComponent {
+
+  private JFrame jFrame;
+  BufferedImage image;
+
+  @Override
+  protected void paintComponent(Graphics g) {
+    g.drawImage(image, 0, 0, getWidth(), getHeight(), null);
+  }
+
+  public Screen() {
+    int width = 160;
+    int height = 120;
+    setPreferredSize(new Dimension(width, height));
+    image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+    jFrame = new JFrame();
+    jFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+    jFrame.add(this);
+    jFrame.pack();
+    jFrame.setVisible(true);
+  }
 
   public Basic basic() {
     return new Basic(this);
