@@ -16,16 +16,28 @@
 
 package ab.jnc2;
 
+import java.awt.*;
+
 public class Application {
 
-  public static void main(String[] args) {
-    Basic basic = new Screen(GraphicsMode.CGA_16).basic();
+  public static void main(String[] args) throws Exception {
+    Screen screen = new Screen(GraphicsMode.ZX);
+    Basic basic = screen.basic();
     for (int y = 0; y < 64; y++) {
       for (int x = 0; x < 128; x++) {
         basic.ink(x / 16 + (y < 32 ? 0 : 8));
         basic.plot(x ,y);
       }
     }
+    Dimension resolution = screen.mode.resolution;
+    int r = resolution.width / 3;
+    for (int i = 0; i < 16; i++) {
+      basic.ink(i);
+      basic.circle(resolution.width / 2, resolution.height / 2, r - i * 2);
+      basic.plot(resolution.width / 2, resolution.height / 2);
+      basic.draw(0, i * 3);
+    }
+    screen.repaint();
   }
 
 }

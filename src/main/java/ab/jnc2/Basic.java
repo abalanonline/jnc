@@ -17,6 +17,8 @@
 package ab.jnc2;
 
 import java.awt.*;
+import java.awt.geom.Ellipse2D;
+import java.awt.geom.Line2D;
 
 /**
  * BASIC language drawing commands. Requires a screen to draw.
@@ -31,7 +33,11 @@ public class Basic {
     this.screen = screen;
   }
 
-  public void ink(int color) {
+  public void paper(int color) {
+
+  }
+
+  public void ink(int color) { // bright, flash, inverse, over
     int[] colorMap = screen.mode.colorMap;
     if (colorMap != null) {
       color = color % colorMap.length;
@@ -41,15 +47,37 @@ public class Basic {
   }
 
   public void circle(int x, int y, int r) {
-
+    Dimension screen = this.screen.mode.aspectRatio;
+    Dimension resolution = this.screen.mode.resolution;
+    double pixelHeight = ((double) resolution.width / screen.width) / ((double) resolution.height / screen.height);
+    double rx = Math.min(r * pixelHeight, r);
+    double ry = Math.min(r / pixelHeight, r);
+    Graphics2D graphics = this.screen.image.createGraphics();
+    graphics.setColor(new Color(color));
+    graphics.draw(new Ellipse2D.Double(x - rx, y - ry, rx + rx, ry + ry));
   }
 
   public void plot(int x, int y) {
     screen.image.setRGB(x, y, color);
+    this.x = x;
+    this.y = y;
   }
 
   public void draw(int x, int y) {
+    Graphics2D graphics = this.screen.image.createGraphics();
+    graphics.setColor(new Color(color));
+    graphics.draw(new Line2D.Double(this.x, this.y, x, y));
+    this.x = x;
+    this.y = y;
+  }
 
+  public void printAt(int x, int y, String s) {
+  }
+
+  public void border(int color) {
+  }
+
+  public void cls() {
   }
 
 }

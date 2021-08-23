@@ -30,13 +30,16 @@ public class GraphicsMode {
   public static final int[] COLOR_MAP_ZX = {
       0x000000, 0x0000EE, 0xEE0000, 0xEE00EE, 0x00EE00, 0x00EEEE, 0xEEEE00, 0xEEEEEE,
       0x000000, 0x0000FF, 0xFF0000, 0xFF00FF, 0x00FF00, 0x00FFFF, 0xFFFF00, 0xFFFFFF};
+  public static final int[] COLOR_MAP_ZX_GAMMA_025 = {
+      0x000000, 0x0000C0, 0xC00000, 0xC000C0, 0x00C000, 0x00C0C0, 0xC0C000, 0xC0C0C0,
+      0x000000, 0x0000FF, 0xFF0000, 0xFF00FF, 0x00FF00, 0x00FFFF, 0xFFFF00, 0xFFFFFF};
   public static final int[] COLOR_MAP_CGA = {
       0x000000, 0x0000AA, 0x00AA00, 0x00AAAA, 0xAA0000, 0xAA00AA, 0xAA5500, 0xAAAAAA,
       0x555555, 0x5555FF, 0x55FF55, 0x55FFFF, 0xFF5555, 0xFF55FF, 0xFFFF55, 0xFFFFFF};
 
   public static final GraphicsMode CGA_16 = new GraphicsMode(160, 100).withColorMap(COLOR_MAP_CGA);
   public static final GraphicsMode CGA_HIGH = new GraphicsMode(640, 200).withColorMap(COLOR_MAP_BW);
-  public static final GraphicsMode ZX = new GraphicsMode(256, 192).withColorMap(COLOR_MAP_ZX);
+  public static final GraphicsMode ZX = new GraphicsMode(256, 192).withColorMap(COLOR_MAP_ZX_GAMMA_025);
   public static final GraphicsMode DEFAULT = new GraphicsMode(320, 240);
 
   public Dimension aspectRatio = new Dimension(4, 3);

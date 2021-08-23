@@ -64,6 +64,12 @@ public class Screen extends JComponent {
     jFrame.setVisible(true);
   }
 
+  public void reset(GraphicsMode mode) {
+    this.mode = mode;
+    image = createImage(mode);
+    repaint();
+  }
+
   public Basic basic() {
     return new Basic(this);
   }
