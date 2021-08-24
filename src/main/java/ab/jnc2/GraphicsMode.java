@@ -37,14 +37,20 @@ public class GraphicsMode {
       0x000000, 0x0000AA, 0x00AA00, 0x00AAAA, 0xAA0000, 0xAA00AA, 0xAA5500, 0xAAAAAA,
       0x555555, 0x5555FF, 0x55FF55, 0x55FFFF, 0xFF5555, 0xFF55FF, 0xFFFF55, 0xFFFFFF};
 
-  public static final GraphicsMode CGA_16 = new GraphicsMode(160, 100).withColorMap(COLOR_MAP_CGA);
+  public static final GraphicsMode CGA_16 =
+      new GraphicsMode(160, 100).withColorMap(COLOR_MAP_CGA).withDefaultColors(0, 7);
   public static final GraphicsMode CGA_HIGH = new GraphicsMode(640, 200).withColorMap(COLOR_MAP_BW);
-  public static final GraphicsMode ZX = new GraphicsMode(256, 192).withColorMap(COLOR_MAP_ZX_GAMMA_025);
+  public static final GraphicsMode ZX =
+      new GraphicsMode(256, 192).withColorMap(COLOR_MAP_ZX_GAMMA_025).withDefaultColors(7, 0);
+  public static final GraphicsMode C64 =
+      new GraphicsMode(320, 200).withColorMap(COLOR_MAP_VIC2).withDefaultColors(6, 14);
   public static final GraphicsMode DEFAULT = new GraphicsMode(320, 240);
 
   public Dimension aspectRatio = new Dimension(4, 3);
   public Dimension resolution;
   public int[] colorMap;
+  public int bgColor = 0;
+  public int fgColor = 0xFFFFFF;
 
   public GraphicsMode(int width, int height) {
     resolution = new Dimension(width, height);
@@ -52,6 +58,12 @@ public class GraphicsMode {
 
   public GraphicsMode withColorMap(int[] colorMap) {
     this.colorMap = colorMap;
+    return this;
+  }
+
+  public GraphicsMode withDefaultColors(int bg, int fg) {
+    bgColor = bg;
+    fgColor = fg;
     return this;
   }
 

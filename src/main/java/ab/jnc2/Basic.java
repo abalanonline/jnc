@@ -27,7 +27,8 @@ public class Basic {
   private final Screen screen;
   private double pixelHeight;
   private int cy; //constant for cartesian system calculation
-  private int color = Color.WHITE.getRGB();
+  private int paper;
+  private int color;
   private int x = 0;
   private int y = 0;
 
@@ -37,19 +38,25 @@ public class Basic {
     Dimension resolution = screen.mode.resolution;
     pixelHeight = ((double) resolution.width / screenRatio.width) / ((double) resolution.height / screenRatio.height);
     cy = screen.mode.resolution.height - 1;
+    paper(screen.mode.bgColor);
+    ink(screen.mode.fgColor);
   }
 
   public void paper(int color) {
-
+    this.paper = rgbColor(color);
   }
 
   public void ink(int color) { // bright, flash, inverse, over
+    this.color = rgbColor(color);
+  }
+
+  public int rgbColor(int color) {
     int[] colorMap = screen.mode.colorMap;
     if (colorMap != null) {
       color = color % colorMap.length;
       color = colorMap[color];
     }
-    this.color = color | 0xFF000000;
+    return color | 0xFF000000;
   }
 
   public void circle(int x, int y, int r) {
@@ -82,7 +89,7 @@ public class Basic {
 
   public void cls() {
     Graphics2D graphics = this.screen.image.createGraphics();
-    graphics.setBackground(Color.BLACK);
+    graphics.setBackground(new Color(paper));
     graphics.clearRect(0, 0, screen.mode.resolution.width, screen.mode.resolution.height);
   }
 

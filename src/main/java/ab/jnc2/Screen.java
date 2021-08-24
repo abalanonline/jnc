@@ -18,6 +18,7 @@ package ab.jnc2;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.KeyListener;
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBuffer;
 import java.awt.image.IndexColorModel;
@@ -53,14 +54,18 @@ public class Screen extends JComponent {
         colorModel);
   }
 
-  public Screen(GraphicsMode mode) {
+  public Screen(GraphicsMode mode, KeyListener keyListener) {
     this.mode = mode;
     setPreferredSize(new Dimension(640, 480));
     image = createImage(mode);
+    if (keyListener != null) {
+      addKeyListener(keyListener);
+    }
     jFrame = new JFrame();
     jFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
     jFrame.add(this);
     jFrame.pack();
+    requestFocusInWindow();
     jFrame.setVisible(true);
   }
 

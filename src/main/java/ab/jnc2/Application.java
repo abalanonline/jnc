@@ -16,12 +16,27 @@
 
 package ab.jnc2;
 
-public class Application {
+import java.awt.event.KeyEvent;
+import java.awt.event.KeyListener;
+
+public class Application implements Runnable, KeyListener {
+
+  GraphicsMode newMode;
 
   public static void main(String[] args) {
-    Screen screen = new Screen(GraphicsMode.ZX);
+    new Application().run();
+  }
+
+  @Override
+  public void run() {
+    Screen screen = new Screen(GraphicsMode.ZX, this);
     Runnable basicProgram = new BasicClock(screen.basic());
     while (true) {
+      if (newMode != null) {
+        screen.reset(newMode);
+        newMode = null;
+        basicProgram = new BasicClock(screen.basic());
+      }
       basicProgram.run();
       screen.repaint();
       try {
@@ -30,6 +45,26 @@ public class Application {
         break;
       }
     }
+  }
+
+  @Override
+  public void keyTyped(KeyEvent e) {
+    switch (e.getKeyChar()) {
+      case '1': newMode = GraphicsMode.ZX; break;
+      case '2': newMode = GraphicsMode.C64; break;
+      case '3': newMode = GraphicsMode.CGA_16; break;
+      case '4': newMode = GraphicsMode.CGA_HIGH; break;
+      case '0': newMode = GraphicsMode.DEFAULT; break;
+      case KeyEvent.VK_ESCAPE: System.exit(0);
+    }
+  }
+
+  @Override
+  public void keyPressed(KeyEvent e) {
+  }
+
+  @Override
+  public void keyReleased(KeyEvent e) {
   }
 
 }
