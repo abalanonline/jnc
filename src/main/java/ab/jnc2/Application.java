@@ -20,33 +20,16 @@ public class Application {
 
   public static void main(String[] args) {
     Screen screen = new Screen(GraphicsMode.ZX);
-    Basic basic = screen.basic();
-    for (int y = 0; y < 64; y++) {
-      for (int x = 0; x < 128; x++) {
-        basic.ink(x / 16 + (y < 32 ? 0 : 8));
-        basic.plot(x ,y);
+    Runnable basicProgram = new BasicClock(screen.basic());
+    while (true) {
+      basicProgram.run();
+      screen.repaint();
+      try {
+        Thread.sleep(200);
+      } catch (InterruptedException e) {
+        break;
       }
     }
-    int r = basic.getWidth() / 3;
-    double rx = r;
-    double ry = r;
-    if (basic.getPixelHeight() > 1) {
-      ry = ry / basic.getPixelHeight();
-    } else {
-      rx = rx * basic.getPixelHeight();
-    }
-    int centerx = basic.getWidth() / 2;
-    int centery = basic.getHeight() / 2;
-    for (int i = 0; i < 16; i++) {
-      basic.ink(i);
-      basic.circle(centerx, centery, r - i * 2);
-      basic.plot(centerx, centery);
-      basic.draw(0, i * 3);
-      double angle = Math.PI * i / 8;
-      basic.plot(centerx, centery);
-      basic.draw((int) Math.round(Math.cos(angle) * rx + centerx), (int) Math.round(Math.sin(angle) * ry + centery));
-    }
-    screen.repaint();
   }
 
 }

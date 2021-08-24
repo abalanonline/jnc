@@ -81,6 +81,9 @@ public class Basic {
   }
 
   public void cls() {
+    Graphics2D graphics = this.screen.image.createGraphics();
+    graphics.setBackground(Color.BLACK);
+    graphics.clearRect(0, 0, screen.mode.resolution.width, screen.mode.resolution.height);
   }
 
   public int getWidth() {
