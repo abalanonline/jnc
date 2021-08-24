@@ -25,12 +25,18 @@ import java.awt.geom.Line2D;
  */
 public class Basic {
   private final Screen screen;
+  private double pixelHeight;
+  private int cy; //constant for cartesian system calculation
   private int color = Color.WHITE.getRGB();
   private int x = 0;
   private int y = 0;
 
   public Basic(Screen screen) {
     this.screen = screen;
+    Dimension screenRatio = screen.mode.aspectRatio;
+    Dimension resolution = screen.mode.resolution;
+    pixelHeight = ((double) resolution.width / screenRatio.width) / ((double) resolution.height / screenRatio.height);
+    cy = screen.mode.resolution.height - 1;
   }
 
   public void paper(int color) {
@@ -47,18 +53,15 @@ public class Basic {
   }
 
   public void circle(int x, int y, int r) {
-    Dimension screen = this.screen.mode.aspectRatio;
-    Dimension resolution = this.screen.mode.resolution;
-    double pixelHeight = ((double) resolution.width / screen.width) / ((double) resolution.height / screen.height);
     double rx = Math.min(r * pixelHeight, r);
     double ry = Math.min(r / pixelHeight, r);
     Graphics2D graphics = this.screen.image.createGraphics();
     graphics.setColor(new Color(color));
-    graphics.draw(new Ellipse2D.Double(x - rx, y - ry, rx + rx, ry + ry));
+    graphics.draw(new Ellipse2D.Double(x - rx, cy - y - ry, rx + rx, ry + ry));
   }
 
   public void plot(int x, int y) {
-    screen.image.setRGB(x, y, color);
+    screen.image.setRGB(x, cy - y, color);
     this.x = x;
     this.y = y;
   }
@@ -66,7 +69,7 @@ public class Basic {
   public void draw(int x, int y) {
     Graphics2D graphics = this.screen.image.createGraphics();
     graphics.setColor(new Color(color));
-    graphics.draw(new Line2D.Double(this.x, this.y, x, y));
+    graphics.draw(new Line2D.Double(this.x, cy - this.y, x, cy - y));
     this.x = x;
     this.y = y;
   }
@@ -78,6 +81,18 @@ public class Basic {
   }
 
   public void cls() {
+  }
+
+  public int getWidth() {
+    return screen.mode.resolution.width;
+  }
+
+  public int getHeight() {
+    return screen.mode.resolution.height;
+  }
+
+  public double getPixelHeight() {
+    return pixelHeight;
   }
 
 }

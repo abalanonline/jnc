@@ -16,11 +16,9 @@
 
 package ab.jnc2;
 
-import java.awt.*;
-
 public class Application {
 
-  public static void main(String[] args) throws Exception {
+  public static void main(String[] args) {
     Screen screen = new Screen(GraphicsMode.ZX);
     Basic basic = screen.basic();
     for (int y = 0; y < 64; y++) {
@@ -29,13 +27,24 @@ public class Application {
         basic.plot(x ,y);
       }
     }
-    Dimension resolution = screen.mode.resolution;
-    int r = resolution.width / 3;
+    int r = basic.getWidth() / 3;
+    double rx = r;
+    double ry = r;
+    if (basic.getPixelHeight() > 1) {
+      ry = ry / basic.getPixelHeight();
+    } else {
+      rx = rx * basic.getPixelHeight();
+    }
+    int centerx = basic.getWidth() / 2;
+    int centery = basic.getHeight() / 2;
     for (int i = 0; i < 16; i++) {
       basic.ink(i);
-      basic.circle(resolution.width / 2, resolution.height / 2, r - i * 2);
-      basic.plot(resolution.width / 2, resolution.height / 2);
+      basic.circle(centerx, centery, r - i * 2);
+      basic.plot(centerx, centery);
       basic.draw(0, i * 3);
+      double angle = Math.PI * i / 8;
+      basic.plot(centerx, centery);
+      basic.draw((int) Math.round(Math.cos(angle) * rx + centerx), (int) Math.round(Math.sin(angle) * ry + centery));
     }
     screen.repaint();
   }
