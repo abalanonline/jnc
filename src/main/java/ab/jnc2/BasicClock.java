@@ -23,9 +23,9 @@ public class BasicClock implements Runnable {
   Basic basic;
   int centerx;
   int centery;
-  private final double radius;
-  private double rx;
-  private double ry;
+  double radius;
+  double rx;
+  double ry;
 
   public BasicClock(Basic basic) {
     this.basic = basic;
@@ -36,11 +36,22 @@ public class BasicClock implements Runnable {
     ry = Math.min(radius, radius / basic.getPixelHeight());
   }
 
-  void drawHand(int value, double length) {
+  void drawThickLine(int x1, int y1, int x2, int y2, int stroke) {
+    int smin = - ((stroke - 1) / 2);
+    int smax = stroke + smin;
+    for (int y = smin; y < smax; y++) {
+      for (int x = smin; x < smax; x++) {
+        basic.plot(x + x1, y + y1);
+        basic.draw(x + x2, y + y2);
+      }
+    }
+  }
+
+  void drawHand(double value, double length, int stroke) {
     double angle = 2 * Math.PI * value / 60;
-    basic.plot(centerx, centery);
-    basic.draw((int) Math.round(Math.sin(angle) * rx * length + centerx),
-        (int) Math.round(Math.cos(angle) * ry * length + centery));
+    drawThickLine(centerx, centery,
+        (int) Math.round(Math.sin(angle) * rx * length + centerx),
+        (int) Math.round(Math.cos(angle) * ry * length + centery), stroke);
   }
 
   @Override
@@ -48,9 +59,9 @@ public class BasicClock implements Runnable {
     basic.cls();
     basic.circle(centerx, centery, (int) Math.round(radius * 0.95));
     LocalTime now = LocalTime.now();
-    drawHand(now.getHour(), 0.4);
-    drawHand(now.getMinute(), 0.8);
-    drawHand(now.getSecond(), 0.9);
+    drawHand((now.getHour() * 60 + now.getMinute()) / 60.0, 0.4, 2);
+    drawHand((now.getMinute() * 60 + now.getSecond()) / 60.0, 0.8, 2);
+    drawHand(now.getSecond(), 0.9, 1);
   }
 
 }
