@@ -30,17 +30,17 @@ public class Application implements Runnable, KeyListener {
   @Override
   public void run() {
     Screen screen = new Screen(GraphicsMode.ZX, this);
-    Runnable basicProgram = new BasicClock(screen.basic());
+    Runnable basicProgram = new AmigaBall(screen.basic());
     while (true) {
       if (newMode != null) {
         screen.reset(newMode);
         newMode = null;
-        basicProgram = new BasicClock(screen.basic());
+        basicProgram = new AmigaBall(screen.basic());
       }
       basicProgram.run();
       screen.repaint();
       try {
-        Thread.sleep(200);
+        Thread.sleep(10);
       } catch (InterruptedException e) {
         break;
       }
