@@ -18,6 +18,7 @@ package ab.jnc2;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBuffer;
@@ -26,9 +27,12 @@ import java.awt.image.IndexColorModel;
 /**
  * Screen is a physical screen for writing and drawing. Should be available after instantiating.
  */
-public class Screen extends JComponent {
+public class Screen extends JComponent implements KeyListener {
 
   private JFrame jFrame;
+  private Color background;
+  private String title;
+  public KeyListener keyListener;
   public BufferedImage image;
   public GraphicsMode mode;
 
@@ -54,16 +58,19 @@ public class Screen extends JComponent {
         colorModel);
   }
 
-  public Screen(GraphicsMode mode, KeyListener keyListener) {
+  public Color backgroundColor() {
+    return mode.colorMap == null ? new Color(mode.bgColor) : new Color(mode.colorMap[mode.bgColor]);
+  }
+
+  public Screen(GraphicsMode mode) {
     this.mode = mode;
     setPreferredSize(new Dimension(640, 480));
     image = createImage();
-    if (keyListener != null) {
-      addKeyListener(keyListener);
-    }
+    addKeyListener(this);
     jFrame = new JFrame();
     jFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
     jFrame.add(this);
+    setBackground(backgroundColor());
     jFrame.pack();
     requestFocusInWindow();
     jFrame.setVisible(true);
@@ -72,11 +79,38 @@ public class Screen extends JComponent {
   public void reset(GraphicsMode mode) {
     this.mode = mode;
     image = createImage();
+    setBackground(backgroundColor());
     repaint();
   }
 
+  @Override
+  public void keyTyped(KeyEvent e) {
+    if (keyListener != null) keyListener.keyTyped(e);
+  }
+
+  @Override
+  public void keyPressed(KeyEvent e) {
+    if (keyListener != null) keyListener.keyPressed(e);
+    if (e.getKeyCode() == KeyEvent.VK_F11) {
+      return;
+    }
+  }
+
+  @Override
+  public void keyReleased(KeyEvent e) {
+    if (keyListener != null) keyListener.keyReleased(e);
+  }
+
   public void setTitle(String title) {
+    this.title = title;
     jFrame.setTitle(title);
+  }
+
+  @Override
+  public void setBackground(Color bg) {
+    background = bg;
+    super.setBackground(bg);
+    if (getParent() instanceof JComponent) getParent().setBackground(bg);
   }
 
 }

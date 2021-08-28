@@ -34,7 +34,8 @@ public class Application implements Runnable, KeyListener {
 
   @Override
   public void run() {
-    Screen screen = new Screen(GraphicsMode.ZX, this);
+    Screen screen = new Screen(GraphicsMode.ZX);
+    screen.keyListener = this;
     Basic basic = new Basic(screen);
     Runnable basicProgram = new AmigaBall(basic);
     while (true) {
