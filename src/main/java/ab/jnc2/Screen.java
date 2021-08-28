@@ -18,6 +18,7 @@ package ab.jnc2;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.awt.image.BufferedImage;
@@ -30,8 +31,8 @@ import java.awt.image.IndexColorModel;
 public class Screen extends JComponent implements KeyListener {
 
   private JFrame jFrame;
-  private Color background;
   private String title;
+  private boolean fullscreen = true;
   public KeyListener keyListener;
   public BufferedImage image;
   public GraphicsMode mode;
@@ -62,37 +63,62 @@ public class Screen extends JComponent implements KeyListener {
     return mode.colorMap == null ? new Color(mode.bgColor) : new Color(mode.colorMap[mode.bgColor]);
   }
 
-  public Screen(GraphicsMode mode) {
-    this.mode = mode;
-    setPreferredSize(new Dimension(640, 480));
-    image = createImage();
-    addKeyListener(this);
+  private void createJFrame() {
     jFrame = new JFrame();
     jFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+    if (fullscreen) {
+      jFrame.setUndecorated(true);
+      jFrame.setExtendedState(JFrame.MAXIMIZED_BOTH);
+    }
     jFrame.add(this);
-    setBackground(backgroundColor());
+    setBackground(getBackground()); // update parent background
+    jFrame.setTitle(title);
     jFrame.pack();
     requestFocusInWindow();
     jFrame.setVisible(true);
   }
 
-  public void reset(GraphicsMode mode) {
+  private void setMode(GraphicsMode mode) {
     this.mode = mode;
     image = createImage();
     setBackground(backgroundColor());
+  }
+
+  public Screen(GraphicsMode mode) {
+    setPreferredSize(new Dimension(640, 480));
+    setMode(mode);
+    addKeyListener(this);
+    createJFrame();
+  }
+
+  public void reset(GraphicsMode mode) {
+    setMode(mode);
     repaint();
+  }
+
+  public void setFullscreen(boolean b) {
+    fullscreen = b;
+    jFrame.remove(this);
+    jFrame.dispose();
+    createJFrame();
   }
 
   @Override
   public void keyTyped(KeyEvent e) {
     if (keyListener != null) keyListener.keyTyped(e);
+    if ((e.getKeyChar() == KeyEvent.VK_ENTER) && (e.getModifiersEx() == InputEvent.ALT_DOWN_MASK)) {
+      setFullscreen(!fullscreen);
+    }
+    if ((e.getKeyChar() == KeyEvent.VK_ESCAPE) && (e.getModifiersEx() == 0)) {
+      System.exit(0);
+    }
   }
 
   @Override
   public void keyPressed(KeyEvent e) {
     if (keyListener != null) keyListener.keyPressed(e);
     if (e.getKeyCode() == KeyEvent.VK_F11) {
-      return;
+      setFullscreen(!fullscreen);
     }
   }
 
@@ -108,7 +134,6 @@ public class Screen extends JComponent implements KeyListener {
 
   @Override
   public void setBackground(Color bg) {
-    background = bg;
     super.setBackground(bg);
     if (getParent() instanceof JComponent) getParent().setBackground(bg);
   }
