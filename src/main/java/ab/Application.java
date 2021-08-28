@@ -14,7 +14,11 @@
  * limitations under the License.
  */
 
-package ab.jnc2;
+package ab;
+
+import ab.jnc2.AmigaBall;
+import ab.jnc2.GraphicsMode;
+import ab.jnc2.Screen;
 
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
