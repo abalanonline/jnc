@@ -17,6 +17,7 @@
 package ab;
 
 import ab.jnc2.AmigaBall;
+import ab.jnc2.Basic;
 import ab.jnc2.GraphicsMode;
 import ab.jnc2.Screen;
 
@@ -34,14 +35,18 @@ public class Application implements Runnable, KeyListener {
   @Override
   public void run() {
     Screen screen = new Screen(GraphicsMode.ZX, this);
-    Runnable basicProgram = new AmigaBall(screen.basic());
+    Basic basic = new Basic(screen);
+    Runnable basicProgram = new AmigaBall(basic);
     while (true) {
       if (newMode != null) {
         screen.reset(newMode);
         newMode = null;
-        basicProgram = new AmigaBall(screen.basic());
+        basic = new Basic(screen);
+        basicProgram = new AmigaBall(basic);
       }
       basicProgram.run();
+      basic.ink(0);
+      basic.printAt(0, 0, " Boing ");
       screen.repaint();
       try {
         Thread.sleep(10);

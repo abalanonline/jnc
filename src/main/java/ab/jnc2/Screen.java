@@ -29,8 +29,8 @@ import java.awt.image.IndexColorModel;
 public class Screen extends JComponent {
 
   private JFrame jFrame;
-  BufferedImage image;
-  GraphicsMode mode;
+  public BufferedImage image;
+  public GraphicsMode mode;
 
   @Override
   protected void paintComponent(Graphics g) {
@@ -43,7 +43,7 @@ public class Screen extends JComponent {
     g.drawImage(image, (cw - aw) / 2, (ch - ah) / 2, aw, ah, null);
   }
 
-  public static BufferedImage createImage(GraphicsMode mode) {
+  public BufferedImage createImage() {
     if (mode.colorMap == null) {
       return new BufferedImage(mode.resolution.width, mode.resolution.height, BufferedImage.TYPE_INT_RGB);
     }
@@ -57,7 +57,7 @@ public class Screen extends JComponent {
   public Screen(GraphicsMode mode, KeyListener keyListener) {
     this.mode = mode;
     setPreferredSize(new Dimension(640, 480));
-    image = createImage(mode);
+    image = createImage();
     if (keyListener != null) {
       addKeyListener(keyListener);
     }
@@ -71,12 +71,12 @@ public class Screen extends JComponent {
 
   public void reset(GraphicsMode mode) {
     this.mode = mode;
-    image = createImage(mode);
+    image = createImage();
     repaint();
   }
 
-  public Basic basic() {
-    return new Basic(this);
+  public void setTitle(String title) {
+    jFrame.setTitle(title);
   }
 
 }

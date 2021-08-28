@@ -31,6 +31,7 @@ public class Basic {
   private int color;
   private int x = 0;
   private int y = 0;
+  private TextFont textFont;
 
   public Basic(Screen screen) {
     this.screen = screen;
@@ -40,6 +41,7 @@ public class Basic {
     cy = screen.mode.resolution.height - 1;
     paper(screen.mode.bgColor);
     ink(screen.mode.fgColor);
+    textFont = new TextFont("/48.rom", 0x3D00, 0x0300, 0x20, 8, 8);
   }
 
   public void paper(int color) {
@@ -82,6 +84,7 @@ public class Basic {
   }
 
   public void printAt(int x, int y, String s) {
+    textFont.print(screen.image, s, x * 8, cy - 7 - y * 8, color, paper);
   }
 
   public void border(int color) {
