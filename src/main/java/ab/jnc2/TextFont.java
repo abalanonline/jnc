@@ -30,7 +30,15 @@ public class TextFont {
   int height;
   int width;
 
+  public TextFont(byte[] data, int charStart, int width, int height) {
+    font = new byte[height * 0x100];
+    System.arraycopy(data, 0, font, charStart * height, data.length);
+    this.width = width;
+    this.height = height;
+  }
+
   public TextFont(String resource, int byteStart, int byteSize, int charStart, int width, int height) {
+    this(new byte[0], charStart, width, height);
     InputStream input = TextFont.class.getResourceAsStream(resource);
     byte[] buffer = new byte[byteSize];
     try {
@@ -39,13 +47,12 @@ public class TextFont {
     } catch (IOException e) {
       throw new UncheckedIOException(e);
     }
-    font = new byte[height * 0x100];
     System.arraycopy(buffer, 0, font, charStart * height, byteSize);
-    this.width = width;
-    this.height = height;
   }
 
-  private void print(BufferedImage image, String s, int x, int y, int color, int bgColor, boolean withBackground) {
+  private void print(BufferedImage image, String s, int x, int y, int color, int bgColor, boolean withBackground,
+      boolean centered) {
+    if (centered) x -= this.width * s.length() / 2;
     int width = image.getWidth();
     int height = image.getHeight();
     for (int i = 0; i < s.length(); i++) {
@@ -68,11 +75,15 @@ public class TextFont {
   }
 
   public void print(BufferedImage image, String s, int x, int y, int color) {
-    print(image, s, x, y, color, 0, false);
+    print(image, s, x, y, color, 0, false, false);
+  }
+
+  public void printCentered(BufferedImage image, String s, int x, int y, int color) {
+    print(image, s, x, y, color, 0, false, true);
   }
 
   public void print(BufferedImage image, String s, int x, int y, int color, int bgColor) {
-    print(image, s, x, y, color, bgColor, true);
+    print(image, s, x, y, color, bgColor, true, false);
   }
 
   public void preview(BufferedImage image) {
