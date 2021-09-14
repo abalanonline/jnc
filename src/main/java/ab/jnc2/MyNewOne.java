@@ -43,7 +43,7 @@ public class MyNewOne implements Runnable {
   int[] color;
   
   Osc cx = new Osc();
-  Osc wp = new Osc(16);
+  Osc wp = new Osc(16, 4);
   Osc nx = new Osc();
   Osc er = new Osc(0x100);
   Osc ep = new Osc(4);
@@ -107,7 +107,7 @@ public class MyNewOne implements Runnable {
       draw(3, 16, i + 12, 1, 0);
       draw(3, 16, i + 96, 0, 0);
       draw(3, 16, i + 96, 1, 0);
-      draw(5, 18, i + 96 + 43, 1, wp.v / 4);
+      draw(5, 18, i + 96 + 43, 1, wp.get());
     }
     draw(4, 24, 16, 0);
     print("controls:", W/2, 112, 1);
@@ -136,14 +136,22 @@ public class MyNewOne implements Runnable {
     int v; // value
     int s; // speed
     int limit; // bound or limit, exclusive
+    int divisor = 1;
     public Osc() {
     }
     public Osc(int l) {
       limit = l;
       s = 1;
     }
+    public Osc(int dividend, int divisor) {
+      this(dividend);
+      this.divisor = divisor;
+    }
     void inc() {
       v = limit == 0 ? v + s : (v + s) % limit;
+    }
+    int get() {
+      return v / divisor;
     }
   }
 
