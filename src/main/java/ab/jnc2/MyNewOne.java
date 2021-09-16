@@ -37,6 +37,10 @@ public class MyNewOne implements Runnable, KeyListener {
       {208,  72,  24, 16, 1},
       { 23,  22,  24, 88, 4}, // 5
       { 10,  21, 120, 88, 1}, // 6
+      { 19,  26, 213, 88, 1},
+      { 17,  28, 144, 112, 2},
+      { 25,  20, 24, 112, 2},
+      { 16,  31, 80, 112, 4},
   };
   Screen screen;
   Graphics2D graphics;
@@ -50,12 +54,16 @@ public class MyNewOne implements Runnable, KeyListener {
   int state;
   Osc cx = new Osc();
   Osc wp = new Osc(16, 4);
+
   Osc nx = new Osc();
+  Osc ny = new Osc();
+  Osc np = new Osc(8, 4);
+  Rectangle nb;
   Osc er = new Osc(0x100);
   Osc ep = new Osc(4);
   Osc tx = new Osc(0x100);
   Osc tp = new Osc(2);
-  Osc[] oscs = {cx, wp, nx, er, ep, tx, tp};
+  Osc[] oscs = {cx, wp, nx, ny, np, er, ep, tx, tp};
   byte[] tm = new byte[0x100];
 
   public MyNewOne(Screen screen) throws IOException {
@@ -142,6 +150,12 @@ public class MyNewOne implements Runnable, KeyListener {
         cx.v = 0;
         cx.s = 1;
         break;
+      case 4:
+        ThreadLocalRandom r4 = ThreadLocalRandom.current();
+        for (int i = 1; i < 0x100; i++) tm[i] = (byte) r4.nextInt(0x100);
+        cx.v = 0;
+        cx.s = 1;
+        break;
     }
   }
 
@@ -159,6 +173,11 @@ public class MyNewOne implements Runnable, KeyListener {
       case 1:
         drawField();
         drawScore();
+        break;
+      case 4:
+        drawField();
+        drawScore();
+        draw(8, W/2, 16, np.get());
         break;
       case 5:
         print("g a m e    o v e r", W/2, 88, 4);
