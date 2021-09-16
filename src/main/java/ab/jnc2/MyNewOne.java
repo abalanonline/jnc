@@ -18,21 +18,25 @@ package ab.jnc2;
 
 import javax.imageio.ImageIO;
 import java.awt.*;
+import java.awt.event.KeyEvent;
+import java.awt.event.KeyListener;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.time.Instant;
 import java.util.Arrays;
+import java.util.concurrent.ThreadLocalRandom;
 
-public class MyNewOne implements Runnable {
+public class MyNewOne implements Runnable, KeyListener {
   public static final int W = 256;
   public static final int H = 192;
   public static final int[][] PNG_MAP = new int[][]{
       { 16, 180,   0,  0, 1},
       { 16, 180, 240,  0, 1},
-      {128,   9,   0,  1, 1},
-      {  8,  84,  16, 12, 1},
+      {  8,   9,  16,  1, 1},
+      {  4,  59,  16, 24, 1},
       {208,  72,  24, 16, 1},
-      { 23,  22,  24, 88, 4},
+      { 23,  22,  24, 88, 4}, // 5
+      { 10,  21, 120, 88, 1}, // 6
   };
   Screen screen;
   Graphics2D graphics;
@@ -41,7 +45,9 @@ public class MyNewOne implements Runnable {
   BufferedImage png;
   BufferedImage[][] sprite;
   int[] color;
-  
+  Color color0;
+
+  int state;
   Osc cx = new Osc();
   Osc wp = new Osc(16, 4);
   Osc nx = new Osc();
@@ -50,6 +56,7 @@ public class MyNewOne implements Runnable {
   Osc tx = new Osc(0x100);
   Osc tp = new Osc(2);
   Osc[] oscs = {cx, wp, nx, er, ep, tx, tp};
+  byte[] tm = new byte[0x100];
 
   public MyNewOne(Screen screen) throws IOException {
     this.screen = screen;
@@ -59,7 +66,8 @@ public class MyNewOne implements Runnable {
     for (int i = 0; i < color.length; i++) {
       color[i] = png.getRGB(png.getWidth() - i - 1, png.getHeight() - 1);
     }
-    screen.setBackground(new Color(color[0]));
+    color0 = new Color(color[0]);
+    screen.setBackground(color0);
     sprite = new BufferedImage[PNG_MAP.length][];
     for (int i = 0; i < PNG_MAP.length; i++) {
       sprite[i] = new BufferedImage[PNG_MAP[i][4]];
@@ -70,6 +78,8 @@ public class MyNewOne implements Runnable {
     }
     textFont = new TextFont("/48.rom", 0x3D00, 0x0300, 0x20, 8, 8);
     symbols = new TextFont(new byte[]{108, -2, 124, 56, 16}, '1', 8, 5);
+    screen.keyListener = this;
+    graphics.setXORMode(color0);
   }
 
   void draw(int sprite, int x, int y, int p) {
@@ -92,31 +102,92 @@ public class MyNewOne implements Runnable {
     textFont.printCentered(screen.image, s, x, y, this.color[color]);
   }
 
-  @Override
-  public void run() {
-    graphics.setBackground(new Color(color[0]));
-    graphics.clearRect(0, 0, screen.mode.resolution.width, screen.mode.resolution.height);
-    Arrays.stream(oscs).forEach(Osc::inc);
-
-    for (int i = -(cx.v % 180); i < H; i += 180) {
-      draw(0, 0, i, 0, 0);
-      draw(1, 240, i, 0, 0);
-      draw(2, 0, i + 1, 0, 0);
-      draw(2, 0, i + 1, 1, 0);
-      draw(3, 16, i + 12, 0, 0);
-      draw(3, 16, i + 12, 1, 0);
-      draw(3, 16, i + 96, 0, 0);
-      draw(3, 16, i + 96, 1, 0);
-      draw(5, 18, i + 96 + 43, 1, wp.get());
-    }
-    draw(4, 24, 16, 0);
-    print("controls:", W/2, 112, 1);
-    print("< left: o  -  right: p >", W/2, 120, 1);
-    print("space to start", W/2, 144, 1);
+  void drawScore() {
     print("score 000", 97, 3, 2);
     print("hi score 000", 184, 3, 3);
-    print("g a m e    o v e r", W/2, 88, 4);
   }
+
+  void drawField() {
+    graphics.setBackground(color0);
+    graphics.clearRect(0, 0, screen.mode.resolution.width, screen.mode.resolution.height);
+    for (int i = -(cx.v % 180), tmi = cx.v / 180; i < H; i += 180, tmi++) {
+      draw(0, 0, i, 0, 0);
+      draw(1, 240, i, 0, 0);
+      draw(2, 16, i + 1, 0, 0);
+      draw(2, 16, i + 1, 1, 0);
+      draw(3, 16, i + 24, 0, 0);
+      draw(3, 16, i + 24, 1, 0);
+      draw(3, 16, i + 108, 0, 0);
+      draw(3, 16, i + 108, 1, 0);
+      boolean[] b = new boolean[8];
+      for (int j = 0; j < 8; j++) b[j] = ((tm[tmi] >> j) & 1) == 1;
+      if (b[2]) {
+        draw(6, 21, i + (b[0] ? 12 : 96) + 53, (b[1] ? 0 : 1), 0);
+      } else {
+        draw(5, 18, i + (b[0] ? 12 : 96) + 43, (b[1] ? 0 : 1), wp.get());
+      }
+    }
+  }
+
+  void init(int state) {
+    this.state = state;
+    switch (state) {
+      case 0:
+        cx.v = 0;
+        cx.s = 0;
+        break;
+      case 1:
+        ThreadLocalRandom random = ThreadLocalRandom.current();
+        for (int i = 1; i < 0x100; i++) tm[i] = (byte) random.nextInt(0x100);
+        cx.v = 0;
+        cx.s = 1;
+        break;
+    }
+  }
+
+  @Override
+  public void run() {
+    Arrays.stream(oscs).forEach(Osc::inc);
+    switch (state) {
+      case 0:
+        drawField();
+        draw(4, 24, 16, 0);
+        print("controls:", W/2, 112, 1);
+        print("< left: o  -  right: p >", W/2, 120, 1);
+        print("space to start", W/2, 144, 1);
+        break;
+      case 1:
+        drawField();
+        drawScore();
+        break;
+      case 5:
+        print("g a m e    o v e r", W/2, 88, 4);
+        break;
+    }
+
+  }
+
+  @Override
+  public void keyTyped(KeyEvent e) {
+    GraphicsMode newMode;
+    switch (e.getKeyChar()) {
+      case '0':
+      case '1':
+      case '2':
+      case '3':
+      case '4':
+        init(e.getKeyChar() - '0'); break;
+      case 'q': cx.s = 1; break;
+      case 'w': cx.s = 0; break;
+      case 0x20: System.exit(0);
+    }
+  }
+
+  @Override
+  public void keyPressed(KeyEvent e) {}
+
+  @Override
+  public void keyReleased(KeyEvent e) {}
 
   public static void main(String[] args) throws IOException {
     Screen screen = new Screen(GraphicsMode.ZX);
