@@ -16,8 +16,6 @@
 
 package ab.jnc;
 
-import com.sun.imageio.plugins.gif.GIFImageReader;
-import com.sun.imageio.plugins.gif.GIFImageReaderSpi;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.SneakyThrows;
@@ -48,7 +46,9 @@ public class Font {
 
   @SneakyThrows
   public Font(InputStream inputStream, int cw, int ch) {
-    ImageReader gifImageReader = new GIFImageReader(new GIFImageReaderSpi());
+    //ImageReader gifImageReader = new GIFImageReader(new GIFImageReaderSpi());
+    // FIXME: 2021-12-12 gif
+    ImageReader gifImageReader = ImageIO.getImageReadersByFormatName("gif").next();
     gifImageReader.setInput(ImageIO.createImageInputStream(inputStream));
     bitmap = gifImageReader.read(0);
     charDimension = new Dimension(cw, ch);

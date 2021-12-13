@@ -16,8 +16,6 @@
 
 package ab.jnc;
 
-import com.sun.imageio.plugins.gif.GIFImageReader;
-import com.sun.imageio.plugins.gif.GIFImageReaderSpi;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.SneakyThrows;
@@ -69,7 +67,9 @@ public class Sprite extends Rectangle {
   @SneakyThrows
   public Sprite(InputStream inputStream) {
     frames = new ArrayList<>();
-    ImageReader gifImageReader = new GIFImageReader(new GIFImageReaderSpi());
+    //ImageReader gifImageReader = new GIFImageReader(new GIFImageReaderSpi());
+    // FIXME: 2021-12-12 gif
+    ImageReader gifImageReader = ImageIO.getImageReadersByFormatName("gif").next();
     gifImageReader.setInput(ImageIO.createImageInputStream(inputStream));
     for (int i = 0; i < gifImageReader.getNumImages(true); i++) {
       BufferedImage image = gifImageReader.read(i);
