@@ -17,19 +17,20 @@
 package ab;
 
 import java.util.Arrays;
-import java.util.stream.Stream;
 
 public class Nibble {
   private final Nibble[] nodes;
-  private final int size;
+  private final int[] offsets;
+  private final boolean array;
 
   /**
    * External node.
    * @param size in bits
    */
   public Nibble(int size) {
-    this.nodes = null;
-    this.size = size;
+    nodes = null;
+    offsets = new int[]{size};
+    array = false;
   }
 
   /**
@@ -37,8 +38,13 @@ public class Nibble {
    * @param nibbles children nodes
    */
   public Nibble(Nibble... nibbles) {
-    this.nodes = nibbles;
-    this.size = Arrays.stream(nibbles).mapToInt(Nibble::getSize).sum();
+    nodes = nibbles;
+    offsets = new int[nibbles.length + 1];
+    for (int i = 0, o = 0; i < nibbles.length; i++) {
+      o += nibbles[i].getSize();
+      offsets[i + 1] = o;
+    }
+    array = false;
   }
 
   /**
@@ -55,8 +61,9 @@ public class Nibble {
    * @param nibble nibble
    */
   public Nibble(int size, Nibble nibble) {
-    // FIXME: 2021-12-21 do not create an array
-    this(Stream.generate(() -> nibble).limit(size).toArray(Nibble[]::new));
+    array = true;
+    nodes = new Nibble[]{nibble};
+    offsets = new int[]{size, size * nibble.getSize()};
   }
 
   /**
@@ -76,13 +83,13 @@ public class Nibble {
    * @param path node numbers
    * @return nibble unsigned integer
    */
-  int get(byte[] bytes, long offset, int... path) {
+  int get(byte[] bytes, int offset, int... path) {
     assert (path.length == 0) == (nodes == null);
     if (path.length == 0) {
       int result = 0;
-      int h = (int) (offset >> 3);
-      int l = (int) (offset & 0x7);
-      for (int i = size, n; i > 0; i -= n) {
+      int h = offset >> 3;
+      int l = offset & 0x7;
+      for (int i = getSize(), n; i > 0; i -= n) {
         n = 8 - l;
         int b = bytes[h] & ((1 << n) - 1);
         h += 1;
@@ -96,14 +103,13 @@ public class Nibble {
       }
       return result;
     }
-    for (int i = 0; i < path[0]; i++) {
-      offset += nodes[i].getSize();
-    }
-    return nodes[path[0]].get(bytes, offset, Arrays.copyOfRange(path, 1, path.length));
+    return nodes[array ? 0 : path[0]].get(bytes,
+        (array ? path[0] * nodes[0].getSize() : offsets[path[0]]) + offset,
+        Arrays.copyOfRange(path, 1, path.length));
   }
 
   int getSize() {
-    return size;
+    return nodes == null ? offsets[0] : offsets[nodes.length];
   }
 
 }
