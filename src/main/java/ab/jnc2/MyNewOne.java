@@ -16,6 +16,8 @@
 
 package ab.jnc2;
 
+import ab.Nibble;
+
 import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.event.KeyEvent;
@@ -24,7 +26,6 @@ import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.time.Instant;
 import java.util.Arrays;
-import java.util.concurrent.ThreadLocalRandom;
 
 public class MyNewOne implements Runnable, KeyListener {
   public static final int W = 256;
@@ -64,7 +65,7 @@ public class MyNewOne implements Runnable, KeyListener {
   Osc tx = new Osc(0x100);
   Osc tp = new Osc(2);
   Osc[] oscs = {cx, wp, nx, ny, np, er, ep, tx, tp};
-  byte[] tm = new byte[0x100];
+  Nibble.Random tm = new Nibble.Random(new Nibble(0x100, new Nibble(1, 1, 1))).init(0);
 
   public MyNewOne(Screen screen) throws IOException {
     this.screen = screen;
@@ -127,12 +128,10 @@ public class MyNewOne implements Runnable, KeyListener {
       draw(3, 16, i + 24, 1, 0);
       draw(3, 16, i + 108, 0, 0);
       draw(3, 16, i + 108, 1, 0);
-      boolean[] b = new boolean[8];
-      for (int j = 0; j < 8; j++) b[j] = ((tm[tmi] >> j) & 1) == 1;
-      if (b[2]) {
-        draw(6, 21, i + (b[0] ? 12 : 96) + 53, (b[1] ? 0 : 1), 0);
+      if (tm.get(tmi, 2) == 0) {
+        draw(6, 21, tm.get(tmi, 0) * 84 + 65 + i, tm.get(tmi, 1), 0);
       } else {
-        draw(5, 18, i + (b[0] ? 12 : 96) + 43, (b[1] ? 0 : 1), wp.get());
+        draw(5, 18, tm.get(tmi, 0) * 84 + 55 + i, tm.get(tmi, 1), wp.get());
       }
     }
   }
@@ -145,14 +144,10 @@ public class MyNewOne implements Runnable, KeyListener {
         cx.s = 0;
         break;
       case 1:
-        ThreadLocalRandom random = ThreadLocalRandom.current();
-        for (int i = 1; i < 0x100; i++) tm[i] = (byte) random.nextInt(0x100);
         cx.v = 0;
         cx.s = 1;
         break;
       case 4:
-        ThreadLocalRandom r4 = ThreadLocalRandom.current();
-        for (int i = 1; i < 0x100; i++) tm[i] = (byte) r4.nextInt(0x100);
         cx.v = 0;
         cx.s = 1;
         break;

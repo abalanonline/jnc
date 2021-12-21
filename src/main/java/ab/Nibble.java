@@ -17,6 +17,7 @@
 package ab;
 
 import java.util.Arrays;
+import java.util.concurrent.ThreadLocalRandom;
 
 public class Nibble {
   private final Nibble[] nodes;
@@ -112,4 +113,34 @@ public class Nibble {
     return nodes == null ? offsets[0] : offsets[nodes.length];
   }
 
+  public static class Random {
+    private Nibble nibble;
+    private byte[] bytes;
+
+    public Random(Nibble nibble) {
+      this.nibble = nibble;
+    }
+
+    private Random init(java.util.Random random) {
+      bytes = new byte[nibble.getSize() / 8 + 1];
+      random.nextBytes(bytes);
+      return this;
+    }
+
+    public Random init() {
+      return init(ThreadLocalRandom.current());
+    }
+
+    public Random init(long seed) {
+      return init(new java.util.Random(seed));
+    }
+
+    public int get(int... path) {
+      if (bytes == null) {
+        init();
+      }
+      return nibble.get(bytes, 0, path);
+    }
+
+  }
 }
