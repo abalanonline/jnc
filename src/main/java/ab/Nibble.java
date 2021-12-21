@@ -1,0 +1,109 @@
+/*
+ * Copyright 2021 Aleksei Balan
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package ab;
+
+import java.util.Arrays;
+import java.util.stream.Stream;
+
+public class Nibble {
+  private final Nibble[] nodes;
+  private final int size;
+
+  /**
+   * External node.
+   * @param size in bits
+   */
+  public Nibble(int size) {
+    this.nodes = null;
+    this.size = size;
+  }
+
+  /**
+   * Internal node.
+   * @param nibbles children nodes
+   */
+  public Nibble(Nibble... nibbles) {
+    this.nodes = nibbles;
+    this.size = Arrays.stream(nibbles).mapToInt(Nibble::getSize).sum();
+  }
+
+  /**
+   * Default nibble.
+   */
+  public Nibble() {
+    this(4);
+  }
+
+  /**
+   * Construct node with identical leafs.
+   * Easy syntax: new Nibble(3, new Nibble()) = new Nibble(new Nibble(), new Nibble(), new Nibble())
+   * @param size of similar nibbles
+   * @param nibble nibble
+   */
+  public Nibble(int size, Nibble nibble) {
+    // FIXME: 2021-12-21 do not create an array
+    this(Stream.generate(() -> nibble).limit(size).toArray(Nibble[]::new));
+  }
+
+  /**
+   * Construct node with leafs.
+   * Easy syntax: new Nibble(4, 3, 1) = new Nibble(new Nibble(4), new Nibble(3), new Nibble(1))
+   * @param sizes of leafs.
+   */
+  public Nibble(int... sizes) {
+    this(Arrays.stream(sizes).mapToObj(Nibble::new).toArray(Nibble[]::new));
+  }
+
+
+  /**
+   * Get nibble from byte array.
+   * @param bytes byte array
+   * @param offset nibble offset in bits
+   * @param path node numbers
+   * @return nibble unsigned integer
+   */
+  int get(byte[] bytes, long offset, int... path) {
+    assert (path.length == 0) == (nodes == null);
+    if (path.length == 0) {
+      int result = 0;
+      int h = (int) (offset >> 3);
+      int l = (int) (offset & 0x7);
+      for (int i = size, n; i > 0; i -= n) {
+        n = 8 - l;
+        int b = bytes[h] & ((1 << n) - 1);
+        h += 1;
+        l = 0;
+        if (n > i) {
+          b >>= n - i;
+          n = i;
+        }
+        result <<= n;
+        result |= b;
+      }
+      return result;
+    }
+    for (int i = 0; i < path[0]; i++) {
+      offset += nodes[i].getSize();
+    }
+    return nodes[path[0]].get(bytes, offset, Arrays.copyOfRange(path, 1, path.length));
+  }
+
+  int getSize() {
+    return size;
+  }
+
+}

@@ -179,7 +179,7 @@ public class MyNewOne implements Runnable, KeyListener {
         drawScore();
         draw(8, W/2, 16, np.get());
         break;
-      case 5:
+      case 3:
         print("g a m e    o v e r", W/2, 88, 4);
         break;
     }
@@ -233,6 +233,7 @@ public class MyNewOne implements Runnable, KeyListener {
       limit = l;
       s = 1;
     }
+    @Deprecated
     public Osc(int dividend, int divisor) {
       this(dividend);
       this.divisor = divisor;
