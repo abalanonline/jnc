@@ -50,6 +50,7 @@ public class MyNewOne implements Runnable, KeyListener {
       { 25,  20, 24, 112, 2},
       { 16,  31, 80, 112, 4},
       { 29,  18, 32, 144, 4},
+      { 21,  22,130,  88, 2},
   };
   Screen screen;
   Graphics2D graphics;
@@ -159,6 +160,10 @@ public class MyNewOne implements Runnable, KeyListener {
         draw(5, 18, (tmv & 2) / 2 * 84 + 55 + y, tmv & 1, -mm.v >> 2 & 3);
       }
     });
+  }
+
+  void drawLife() {
+    draw(12, 18, 84 + 55 - cx.v, 0, 1);
     tm(ex.v - T2A, T2D + T2S + 32, (y, n) -> {
       if (n < 0) return;
       tb.setLocation(160, y);
@@ -198,12 +203,14 @@ public class MyNewOne implements Runnable, KeyListener {
         cx.s = 0;
         break;
       case 1:
-        cx.s = 1;
-        ctrl = true;
         nx.s = 0;
-        nx.v = 0;
+        nx.v = 140;
         ny.s = 0;
-        ny.v = 0;
+        ny.v = 73;
+        mm.v = 0;
+        cx.v = 68;
+        cx.s = 2;
+        ctrl = true;
         break;
       case 4:
         cx.v = 0;
@@ -229,9 +236,10 @@ public class MyNewOne implements Runnable, KeyListener {
         print("space to start", W/2, 144, 1);
         break;
       case 1:
-        nb.setLocation(W/2 - 8 + nx.v, ny.v);
-        ctrl &= Math.abs(nx.v) < 100;
+        nb.setLocation(nx.v, ny.v);
+        ctrl &= nx.v < 219 && nx.v > 20;
         drawField();
+        drawLife();
         drawScore();
         draw(8, nb, -mm.v >> 2 & 1);
         break;
