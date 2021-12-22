@@ -17,12 +17,15 @@
 package ab;
 
 import java.util.Arrays;
+import java.util.Random;
 import java.util.concurrent.ThreadLocalRandom;
 
 public class Nibble {
   private final Nibble[] nodes;
   private final int[] offsets;
   private final boolean array;
+  private byte[] bytes;
+  private int offset;
 
   /**
    * External node.
@@ -113,34 +116,21 @@ public class Nibble {
     return nodes == null ? offsets[0] : offsets[nodes.length];
   }
 
-  public static class Random {
-    private Nibble nibble;
-    private byte[] bytes;
+  private Nibble random(Random random) {
+    bytes = new byte[getSize() / 8 + 1];
+    random.nextBytes(bytes);
+    return this;
+  }
 
-    public Random(Nibble nibble) {
-      this.nibble = nibble;
-    }
+  public Nibble random() {
+    return random(ThreadLocalRandom.current());
+  }
 
-    private Random init(java.util.Random random) {
-      bytes = new byte[nibble.getSize() / 8 + 1];
-      random.nextBytes(bytes);
-      return this;
-    }
+  public Nibble random(long seed) {
+    return random(new Random(seed));
+  }
 
-    public Random init() {
-      return init(ThreadLocalRandom.current());
-    }
-
-    public Random init(long seed) {
-      return init(new java.util.Random(seed));
-    }
-
-    public int get(int... path) {
-      if (bytes == null) {
-        init();
-      }
-      return nibble.get(bytes, 0, path);
-    }
-
+  public int get(int... path) {
+    return get(bytes, 0, path);
   }
 }

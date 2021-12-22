@@ -26,7 +26,11 @@ import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.time.Instant;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.function.BiConsumer;
+import java.util.stream.Collectors;
 
 public class MyNewOne implements Runnable, KeyListener {
   public static final int W = 256;
@@ -45,6 +49,7 @@ public class MyNewOne implements Runnable, KeyListener {
       { 17,  28, 144, 112, 2},
       { 25,  20, 24, 112, 2},
       { 16,  31, 80, 112, 4},
+      { 29,  18, 32, 144, 4},
   };
   Screen screen;
   Graphics2D graphics;
@@ -62,14 +67,18 @@ public class MyNewOne implements Runnable, KeyListener {
 
   Osc nx = new Osc();
   Osc ny = new Osc();
-  Rectangle nb;
+  Rectangle nb = new Rectangle(17, 28);
+  boolean ctrl;
   Osc er = new Osc(0x100);
   Osc ep = new Osc(4);
+  Rectangle eb = new Rectangle(16, 31);
   Osc tx = new Osc(0x100);
   Osc tp = new Osc(2);
+  Rectangle tb = new Rectangle(25, 20);
   Osc[] oscs = {mm, cx, ex, nx, ny, er, ep, tx, tp};
-  Nibble.Random tm = new Nibble.Random(new Nibble(0x100, new Nibble(3))).init(1);
-  Nibble.Random t2 = new Nibble.Random(new Nibble(0x100, new Nibble(8, 8, 8))).init(0);
+  Nibble tm = new Nibble(0x100, new Nibble(3)).random(1);
+  Nibble t2 = new Nibble(0x100, new Nibble(8, 8, 8)).random(0);
+  Map<Integer, Rectangle> nn = new HashMap<>();
 
   public MyNewOne(Screen screen) throws IOException {
     this.screen = screen;
@@ -90,13 +99,15 @@ public class MyNewOne implements Runnable, KeyListener {
       }
     }
     textFont = new TextFont("/48.rom", 0x3D00, 0x0300, 0x20, 8, 8);
+    textFont = new TextFont("/MyNewOne.fnt", 0, 0x0300, 0x20, 6, 8);
     symbols = new TextFont(new byte[]{108, -2, 124, 56, 16}, '1', 8, 5);
     screen.keyListener = this;
     graphics.setXORMode(color0);
   }
 
-  void draw(int sprite, int x, int y, int p) {
-    draw(sprite, x, y, 0, p);
+  void draw(int sprite, Rectangle r, int p) {
+    //graphics.drawRect(r.x, r.y, r.width - 1, r.height - 1);
+    draw(sprite, r.x, r.y, 0, p);
   }
 
   void draw(int sprite, int x, int y, int mode, int p) {
@@ -118,6 +129,8 @@ public class MyNewOne implements Runnable, KeyListener {
   void drawScore() {
     print("score 000", 97, 3, 2);
     print("hi score 000", 184, 3, 3);
+    int hp = 3;
+    symbols.print(screen.image, String.join("", Collections.nCopies(hp, "1")), 32, 3, this.color[5]);
   }
 
   void tm(int va, int sd, BiConsumer<Integer, Integer> biConsumer) {
@@ -143,13 +156,38 @@ public class MyNewOne implements Runnable, KeyListener {
       if ((tmv & 4) == 0) {
         draw(6, 21, (tmv & 2) / 2 * 84 + 65 + y, tmv & 1, 0);
       } else {
-        draw(5, 18, (tmv & 2) / 2 * 84 + 55 + y, tmv & 1, ((16 - mm.v % 16) % 16) / 4);
+        draw(5, 18, (tmv & 2) / 2 * 84 + 55 + y, tmv & 1, -mm.v >> 2 & 3);
       }
     });
-    tm(ex.v - T2A, T2D + T2S, (y, n) -> {
+    tm(ex.v - T2A, T2D + T2S + 32, (y, n) -> {
       if (n < 0) return;
-      draw(9, 128, y, 0);
+      tb.setLocation(160, y);
+      ctrl &= !tb.intersects(nb);
+      draw(9, tb, 0);
     });
+    tm(ex.v - 50, 31, (y, n) -> {
+      if (n < 0) return;
+      if (nn.containsKey(n)) {
+        Rectangle r = nn.get(n);
+        r.height = mm.v;
+        nn.put(n, r);
+        return;
+      }
+      eb.setLocation(30, y);
+      if (eb.intersects(nb)) {
+        nn.putIfAbsent(n, new Rectangle(eb.x, eb.y + cx.v, mm.v, mm.v));
+      } else {
+        draw(10, eb, 0);
+      }
+    });
+    nn.values().forEach(n -> {
+      int p = (n.width - mm.v) >> 4;
+      if (p < 4) draw(11, n.x, n.y - cx.v, 0, p);
+    });
+    nn = nn.entrySet().stream().filter(e -> {
+      Rectangle n = e.getValue();
+      return Math.min(n.width, n.height) - mm.v < 256;
+    }).collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
   }
 
   void init(int state) {
@@ -161,6 +199,11 @@ public class MyNewOne implements Runnable, KeyListener {
         break;
       case 1:
         cx.s = 1;
+        ctrl = true;
+        nx.s = 0;
+        nx.v = 0;
+        ny.s = 0;
+        ny.v = 0;
         break;
       case 4:
         cx.v = 0;
@@ -180,19 +223,21 @@ public class MyNewOne implements Runnable, KeyListener {
     switch (state) {
       case 0:
         drawField();
-        draw(4, 24, 16, 0);
+        draw(4, 24, 16, 0, 0);
         print("controls:", W/2, 112, 1);
         print("< left: o  -  right: p >", W/2, 120, 1);
         print("space to start", W/2, 144, 1);
         break;
       case 1:
+        nb.setLocation(W/2 - 8 + nx.v, ny.v);
+        ctrl &= Math.abs(nx.v) < 100;
         drawField();
         drawScore();
+        draw(8, nb, -mm.v >> 2 & 1);
         break;
       case 4:
         drawField();
         drawScore();
-        draw(8, W/2, 16, ((8 - mm.v % 8) % 8) / 4);
         break;
       case 3:
         print("g a m e    o v e r", W/2, 88, 4);
@@ -223,10 +268,30 @@ public class MyNewOne implements Runnable, KeyListener {
   }
 
   @Override
-  public void keyPressed(KeyEvent e) {}
+  public void keyPressed(KeyEvent e) {
+    switch (e.getKeyCode()) {
+      case KeyEvent.VK_LEFT:
+        if (ctrl) nx.s = -1; break;
+      case KeyEvent.VK_RIGHT:
+        if (ctrl) nx.s = 1; break;
+      case KeyEvent.VK_UP:
+        if (ctrl) ny.s = -1; break;
+      case KeyEvent.VK_DOWN:
+        if (ctrl) ny.s = 1; break;
+    }
+  }
 
   @Override
-  public void keyReleased(KeyEvent e) {}
+  public void keyReleased(KeyEvent e) {
+    switch (e.getKeyCode()) {
+      case KeyEvent.VK_LEFT:
+      case KeyEvent.VK_RIGHT:
+        if (ctrl) nx.s = 0; break;
+      case KeyEvent.VK_UP:
+      case KeyEvent.VK_DOWN:
+        if (ctrl) ny.s = 0; break;
+    }
+  }
 
   public static void main(String[] args) throws IOException {
     Screen screen = new Screen(GraphicsMode.ZX);
