@@ -26,10 +26,13 @@ import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.time.Instant;
 import java.util.Arrays;
+import java.util.function.BiConsumer;
 
 public class MyNewOne implements Runnable, KeyListener {
   public static final int W = 256;
   public static final int H = 192;
+  public static final int T1A = 180, T1D = 180, T1S = 0, T1R = 0;
+  public static final int T2A = 0, T2D = 20, T2S = 0, T2R = 0;
   public static final int[][] PNG_MAP = new int[][]{
       { 16, 180,   0,  0, 1},
       { 16, 180, 240,  0, 1},
@@ -53,19 +56,20 @@ public class MyNewOne implements Runnable, KeyListener {
   Color color0;
 
   int state;
+  Osc mm = new Osc(-1);
   Osc cx = new Osc();
-  Osc wp = new Osc(16, 4);
+  Osc ex = new Osc();
 
   Osc nx = new Osc();
   Osc ny = new Osc();
-  Osc np = new Osc(8, 4);
   Rectangle nb;
   Osc er = new Osc(0x100);
   Osc ep = new Osc(4);
   Osc tx = new Osc(0x100);
   Osc tp = new Osc(2);
-  Osc[] oscs = {cx, wp, nx, ny, np, er, ep, tx, tp};
-  Nibble.Random tm = new Nibble.Random(new Nibble(0x100, new Nibble(1, 1, 1))).init(0);
+  Osc[] oscs = {mm, cx, ex, nx, ny, er, ep, tx, tp};
+  Nibble.Random tm = new Nibble.Random(new Nibble(0x100, new Nibble(3))).init(1);
+  Nibble.Random t2 = new Nibble.Random(new Nibble(0x100, new Nibble(8, 8, 8))).init(0);
 
   public MyNewOne(Screen screen) throws IOException {
     this.screen = screen;
@@ -116,24 +120,36 @@ public class MyNewOne implements Runnable, KeyListener {
     print("hi score 000", 184, 3, 3);
   }
 
+  void tm(int va, int sd, BiConsumer<Integer, Integer> biConsumer) {
+    int adj = va < 0 ? 1 - va / sd : 0;
+    for (int i = -((va + sd * adj) % sd), n = (va + sd * adj) / sd - adj; i < H; i += sd, n++) {
+      biConsumer.accept(i, n);
+    }
+  }
+
   void drawField() {
     graphics.setBackground(color0);
     graphics.clearRect(0, 0, screen.mode.resolution.width, screen.mode.resolution.height);
-    for (int i = -(cx.v % 180), tmi = cx.v / 180; i < H; i += 180, tmi++) {
-      draw(0, 0, i, 0, 0);
-      draw(1, 240, i, 0, 0);
-      draw(2, 16, i + 1, 0, 0);
-      draw(2, 16, i + 1, 1, 0);
-      draw(3, 16, i + 24, 0, 0);
-      draw(3, 16, i + 24, 1, 0);
-      draw(3, 16, i + 108, 0, 0);
-      draw(3, 16, i + 108, 1, 0);
-      if (tm.get(tmi, 2) == 0) {
-        draw(6, 21, tm.get(tmi, 0) * 84 + 65 + i, tm.get(tmi, 1), 0);
+    tm(cx.v - T1A, T1D + T1S, (y, n) -> {
+      draw(0, 0, y, 0, 0);
+      draw(1, 240, y, 0, 0);
+      draw(2, 16, y + 1, 0, 0);
+      draw(2, 16, y + 1, 1, 0);
+      draw(3, 16, y + 24, 0, 0);
+      draw(3, 16, y + 24, 1, 0);
+      draw(3, 16, y + 108, 0, 0);
+      draw(3, 16, y + 108, 1, 0);
+      int tmv = n < 0 ? 7 : tm.get(n);
+      if ((tmv & 4) == 0) {
+        draw(6, 21, (tmv & 2) / 2 * 84 + 65 + y, tmv & 1, 0);
       } else {
-        draw(5, 18, tm.get(tmi, 0) * 84 + 55 + i, tm.get(tmi, 1), wp.get());
+        draw(5, 18, (tmv & 2) / 2 * 84 + 55 + y, tmv & 1, ((16 - mm.v % 16) % 16) / 4);
       }
-    }
+    });
+    tm(ex.v - T2A, T2D + T2S, (y, n) -> {
+      if (n < 0) return;
+      draw(9, 128, y, 0);
+    });
   }
 
   void init(int state) {
@@ -144,12 +160,16 @@ public class MyNewOne implements Runnable, KeyListener {
         cx.s = 0;
         break;
       case 1:
-        cx.v = 0;
         cx.s = 1;
         break;
       case 4:
         cx.v = 0;
         cx.s = 1;
+        break;
+      case 9:
+        cx.v = -200;
+        cx.s = 0;
+        this.state = 0;
         break;
     }
   }
@@ -172,7 +192,7 @@ public class MyNewOne implements Runnable, KeyListener {
       case 4:
         drawField();
         drawScore();
-        draw(8, W/2, 16, np.get());
+        draw(8, W/2, 16, ((8 - mm.v % 8) % 8) / 4);
         break;
       case 3:
         print("g a m e    o v e r", W/2, 88, 4);
@@ -190,6 +210,11 @@ public class MyNewOne implements Runnable, KeyListener {
       case '2':
       case '3':
       case '4':
+      case '5':
+      case '6':
+      case '7':
+      case '8':
+      case '9':
         init(e.getKeyChar() - '0'); break;
       case 'q': cx.s = 1; break;
       case 'w': cx.s = 0; break;
@@ -221,23 +246,28 @@ public class MyNewOne implements Runnable, KeyListener {
     int v; // value
     int s; // speed
     int limit; // bound or limit, exclusive
-    int divisor = 1;
+
     public Osc() {
     }
+
+    /**
+     * Osc(0) forward 0, 1, 2, 3, 4
+     * Osc(3) forward with limit 0, 1, 2, 0, 1
+     * Osc(-3) backward 3, 2, 1, 0, -1
+     * @param l
+     */
     public Osc(int l) {
-      limit = l;
-      s = 1;
+      if (l >= 0) {
+        s = 1;
+        limit = l;
+      } else {
+        s = -1;
+        v = -l;
+      }
     }
-    @Deprecated
-    public Osc(int dividend, int divisor) {
-      this(dividend);
-      this.divisor = divisor;
-    }
+
     void inc() {
       v = limit == 0 ? v + s : (v + s) % limit;
-    }
-    int get() {
-      return v / divisor;
     }
   }
 
