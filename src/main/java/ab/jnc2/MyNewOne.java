@@ -25,10 +25,8 @@ import java.awt.event.KeyListener;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.time.Instant;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
 
@@ -54,10 +52,12 @@ public class MyNewOne implements Runnable, KeyListener {
   };
   Screen screen;
   Graphics2D graphics;
+  Graphics2D graphics0;
   TextFont textFont;
   TextFont symbols;
   BufferedImage png;
   BufferedImage[][] sprite;
+  BufferedImage[][] sprite0;
   int[] color;
   Color color0;
 
@@ -80,6 +80,9 @@ public class MyNewOne implements Runnable, KeyListener {
   Nibble tm = new Nibble(0x100, new Nibble(3)).random(1);
   Nibble t2 = new Nibble(0x100, new Nibble(8, 8, 8)).random(0);
   Map<Integer, Rectangle> nn = new HashMap<>();
+  BufferedImage image0;
+  byte[] attribute;
+  boolean test0, test1;
 
   public MyNewOne(Screen screen) throws IOException {
     this.screen = screen;
@@ -104,6 +107,25 @@ public class MyNewOne implements Runnable, KeyListener {
     symbols = new TextFont(new byte[]{108, -2, 124, 56, 16}, '1', 8, 5);
     screen.keyListener = this;
     graphics.setXORMode(color0);
+
+    image0 = new BufferedImage(W, H, BufferedImage.TYPE_BYTE_BINARY);
+    attribute = new byte[W * H / 64];
+    graphics0 = image0.createGraphics();
+    graphics0.setXORMode(color0);
+    sprite0 = new BufferedImage[PNG_MAP.length][];
+    for (int i = 0; i < PNG_MAP.length; i++) {
+      sprite0[i] = new BufferedImage[PNG_MAP[i][4]];
+      for (int j = 0; j < sprite0[i].length; j++) {
+        BufferedImage i0 = new BufferedImage(PNG_MAP[i][0], PNG_MAP[i][1], BufferedImage.TYPE_BYTE_BINARY);
+        sprite0[i][j] = i0;
+        BufferedImage i1 = sprite[i][j];
+        for (int y = 0, mx = PNG_MAP[i][0], my = PNG_MAP[i][1]; y < my; y++) {
+          for (int x = 0; x < mx; x++) {
+            i0.setRGB(x, y, (i1.getRGB(x, y) & 0xFFFFFF) == 0 ? 0 : -1);
+          }
+        }
+      }
+    }
   }
 
   void draw(int sprite, Rectangle r, int p) {
@@ -113,18 +135,30 @@ public class MyNewOne implements Runnable, KeyListener {
 
   void draw(int sprite, int x, int y, int mode, int p) {
     BufferedImage image = this.sprite[sprite][p];
+    BufferedImage image0 = this.sprite0[sprite][p];
     switch (mode) {
       case 0:
         graphics.drawImage(image, x, y, null);
+        graphics0.drawImage(image0, x, y, null);
         break;
       case 1:
         graphics.drawImage(image, W - x, y, -image.getWidth(), image.getHeight(), null);
+        graphics0.drawImage(image0, W - x, y, -image.getWidth(), image.getHeight(), null);
         break;
+    }
+  }
+
+  void drawAttr(int x, int y, int width, int height, int color) {
+    for (int iy = y; iy < y + height; iy++) {
+      for (int ix = x; ix < x + width; ix++) {
+        attribute[(iy << 5) + ix] = (byte) color;
+      }
     }
   }
 
   public void print(String s, int x, int y, int color) {
     textFont.printCentered(screen.image, s, x, y, this.color[color]);
+    textFont.printCentered(image0, s, x, y, -1);
   }
 
   void drawScore() {
@@ -132,6 +166,7 @@ public class MyNewOne implements Runnable, KeyListener {
     print("hi score 000", 184, 3, 3);
     int hp = 3;
     symbols.print(screen.image, String.join("", Collections.nCopies(hp, "1")), 32, 3, this.color[5]);
+    symbols.print(image0, String.join("", Collections.nCopies(hp, "1")), 32, 3, -1);
   }
 
   void tm(int va, int sd, BiConsumer<Integer, Integer> biConsumer) {
@@ -144,6 +179,9 @@ public class MyNewOne implements Runnable, KeyListener {
   void drawField() {
     graphics.setBackground(color0);
     graphics.clearRect(0, 0, screen.mode.resolution.width, screen.mode.resolution.height);
+    graphics0.setBackground(color0);
+    graphics0.clearRect(0, 0, screen.mode.resolution.width, screen.mode.resolution.height);
+    Arrays.fill(attribute, (byte)8);
     tm(cx.v - T1A, T1D + T1S, (y, n) -> {
       draw(0, 0, y, 0, 0);
       draw(1, 240, y, 0, 0);
@@ -153,6 +191,10 @@ public class MyNewOne implements Runnable, KeyListener {
       draw(3, 16, y + 24, 1, 0);
       draw(3, 16, y + 108, 0, 0);
       draw(3, 16, y + 108, 1, 0);
+      drawAttr(0, 0, 2, 24, 2);
+      drawAttr(2, 0, 1, 24, 6);
+      drawAttr(29, 0, 1, 24, 6);
+      drawAttr(30, 0, 2, 24, 2);
       int tmv = n < 0 ? 7 : tm.get(n);
       if ((tmv & 4) == 0) {
         draw(6, 21, (tmv & 2) / 2 * 84 + 65 + y, tmv & 1, 0);
@@ -208,6 +250,7 @@ public class MyNewOne implements Runnable, KeyListener {
         ny.s = 0;
         ny.v = 73;
         mm.v = 0;
+        nn.clear();
         cx.v = 68;
         cx.s = 2;
         ctrl = true;
@@ -251,7 +294,33 @@ public class MyNewOne implements Runnable, KeyListener {
         print("g a m e    o v e r", W/2, 88, 4);
         break;
     }
-
+    if (test1) return;
+    for (int y8 = 0; y8 < H; y8 += 8) {
+      for (int x8 = 0; x8 < W; x8 += 8) {
+        int a = attribute[(y8 >> 3) * (W >> 3) + (x8 >> 3)];
+        if (a == 8) {
+          Map<Integer, AtomicInteger> h = new HashMap<>();
+          for (int y1 = 0; y1 < 8; y1++) {
+            for (int x1 = 0; x1 < 8; x1++) {
+              h.computeIfAbsent(screen.image.getRGB(x8 + x1, y8 + y1) & 0xFFFFFF, k -> new AtomicInteger())
+                  .incrementAndGet();
+            }
+          }
+          Optional.ofNullable(h.get(0)).ifPresent(atomicInteger -> atomicInteger.set(0));
+          int rgb = h.entrySet().stream().sorted(Comparator.comparingInt(v -> -v.getValue().get()))
+              .map(Map.Entry::getKey).findFirst().orElse(0);
+          for (int i = 0; i < screen.mode.colorMap.length; i++) {
+            if (screen.mode.colorMap[i] == rgb) a = i;
+          }
+        }
+        int c = screen.mode.colorMap[a];
+        for (int y1 = 0; y1 < 8; y1++) {
+          for (int x1 = 0; x1 < 8; x1++) {
+            screen.image.setRGB(x8 + x1, y8 + y1, (image0.getRGB(x8 + x1, y8 + y1) & 0xFFFFFF) == 0 ? 0 : c);
+          }
+        }
+      }
+    }
   }
 
   @Override
@@ -269,8 +338,9 @@ public class MyNewOne implements Runnable, KeyListener {
       case '8':
       case '9':
         init(e.getKeyChar() - '0'); break;
-      case 'q': cx.s = 1; break;
-      case 'w': cx.s = 0; break;
+      case 'q': test0 = false; cx.s = 1; break;
+      case 'w': test0 = true; cx.s = 0; break;
+      case 'e': test1 = !test1; break;
       case 0x20: System.exit(0);
     }
   }
