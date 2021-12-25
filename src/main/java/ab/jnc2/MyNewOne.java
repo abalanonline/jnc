@@ -26,7 +26,6 @@ import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.time.Instant;
 import java.util.*;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
 
@@ -52,7 +51,6 @@ public class MyNewOne implements Runnable, KeyListener {
   };
   Screen screen;
   Graphics2D graphics;
-  Graphics2D graphics0;
   TextFont textFont;
   TextFont symbols;
   BufferedImage png;
@@ -80,9 +78,8 @@ public class MyNewOne implements Runnable, KeyListener {
   Nibble tm = new Nibble(0x100, new Nibble(3)).random(1);
   Nibble t2 = new Nibble(0x100, new Nibble(8, 8, 8)).random(0);
   Map<Integer, Rectangle> nn = new HashMap<>();
-  BufferedImage image0;
-  byte[] attribute;
   boolean test0, test1;
+  GraphicsModeZx zxm;
 
   public MyNewOne(Screen screen) throws IOException {
     this.screen = screen;
@@ -108,10 +105,8 @@ public class MyNewOne implements Runnable, KeyListener {
     screen.keyListener = this;
     graphics.setXORMode(color0);
 
-    image0 = new BufferedImage(W, H, BufferedImage.TYPE_BYTE_BINARY);
-    attribute = new byte[W * H / 64];
-    graphics0 = image0.createGraphics();
-    graphics0.setXORMode(color0);
+    zxm = new GraphicsModeZx();
+    zxm.pg.setXORMode(color0);
     sprite0 = new BufferedImage[PNG_MAP.length][];
     for (int i = 0; i < PNG_MAP.length; i++) {
       sprite0[i] = new BufferedImage[PNG_MAP[i][4]];
@@ -139,26 +134,23 @@ public class MyNewOne implements Runnable, KeyListener {
     switch (mode) {
       case 0:
         graphics.drawImage(image, x, y, null);
-        graphics0.drawImage(image0, x, y, null);
+        zxm.pg.drawImage(image0, x, y, null);
         break;
       case 1:
         graphics.drawImage(image, W - x, y, -image.getWidth(), image.getHeight(), null);
-        graphics0.drawImage(image0, W - x, y, -image.getWidth(), image.getHeight(), null);
+        zxm.pg.drawImage(image0, W - x, y, -image.getWidth(), image.getHeight(), null);
         break;
     }
   }
 
   void drawAttr(int x, int y, int width, int height, int color) {
-    for (int iy = y; iy < y + height; iy++) {
-      for (int ix = x; ix < x + width; ix++) {
-        attribute[(iy << 5) + ix] = (byte) color;
-      }
-    }
+    zxm.fg1.setBackground(new Color(screen.mode.colorMap[color]));
+    zxm.fg1.clearRect(x, y, width, height);
   }
 
   public void print(String s, int x, int y, int color) {
     textFont.printCentered(screen.image, s, x, y, this.color[color]);
-    textFont.printCentered(image0, s, x, y, -1);
+    textFont.printCentered(zxm.pixel, s, x, y, -1);
   }
 
   void drawScore() {
@@ -166,7 +158,7 @@ public class MyNewOne implements Runnable, KeyListener {
     print("hi score 000", 184, 3, 3);
     int hp = 3;
     symbols.print(screen.image, String.join("", Collections.nCopies(hp, "1")), 32, 3, this.color[5]);
-    symbols.print(image0, String.join("", Collections.nCopies(hp, "1")), 32, 3, -1);
+    symbols.print(zxm.pixel, String.join("", Collections.nCopies(hp, "1")), 32, 3, -1);
   }
 
   void tm(int va, int sd, BiConsumer<Integer, Integer> biConsumer) {
@@ -179,22 +171,22 @@ public class MyNewOne implements Runnable, KeyListener {
   void drawField() {
     graphics.setBackground(color0);
     graphics.clearRect(0, 0, screen.mode.resolution.width, screen.mode.resolution.height);
-    graphics0.setBackground(color0);
-    graphics0.clearRect(0, 0, screen.mode.resolution.width, screen.mode.resolution.height);
-    Arrays.fill(attribute, (byte)8);
+    zxm.cls();
+    drawAttr(0, 0, 2, 24, 10);
+    drawAttr(2, 0, 1, 24, 6);
+    drawAttr(29, 0, 1, 24, 6);
+    drawAttr(30, 0, 2, 24, 11);
     tm(cx.v - T1A, T1D + T1S, (y, n) -> {
       draw(0, 0, y, 0, 0);
       draw(1, 240, y, 0, 0);
       draw(2, 16, y + 1, 0, 0);
       draw(2, 16, y + 1, 1, 0);
+      drawAttr(0, (y + 1) >> 3, 2, 2, 6);
+      drawAttr(30, (y + 1) >> 3, 2, 2, 6);
       draw(3, 16, y + 24, 0, 0);
       draw(3, 16, y + 24, 1, 0);
       draw(3, 16, y + 108, 0, 0);
       draw(3, 16, y + 108, 1, 0);
-      drawAttr(0, 0, 2, 24, 2);
-      drawAttr(2, 0, 1, 24, 6);
-      drawAttr(29, 0, 1, 24, 6);
-      drawAttr(30, 0, 2, 24, 2);
       int tmv = n < 0 ? 7 : tm.get(n);
       if ((tmv & 4) == 0) {
         draw(6, 21, (tmv & 2) / 2 * 84 + 65 + y, tmv & 1, 0);
@@ -295,32 +287,9 @@ public class MyNewOne implements Runnable, KeyListener {
         break;
     }
     if (test1) return;
-    for (int y8 = 0; y8 < H; y8 += 8) {
-      for (int x8 = 0; x8 < W; x8 += 8) {
-        int a = attribute[(y8 >> 3) * (W >> 3) + (x8 >> 3)];
-        if (a == 8) {
-          Map<Integer, AtomicInteger> h = new HashMap<>();
-          for (int y1 = 0; y1 < 8; y1++) {
-            for (int x1 = 0; x1 < 8; x1++) {
-              h.computeIfAbsent(screen.image.getRGB(x8 + x1, y8 + y1) & 0xFFFFFF, k -> new AtomicInteger())
-                  .incrementAndGet();
-            }
-          }
-          Optional.ofNullable(h.get(0)).ifPresent(atomicInteger -> atomicInteger.set(0));
-          int rgb = h.entrySet().stream().sorted(Comparator.comparingInt(v -> -v.getValue().get()))
-              .map(Map.Entry::getKey).findFirst().orElse(0);
-          for (int i = 0; i < screen.mode.colorMap.length; i++) {
-            if (screen.mode.colorMap[i] == rgb) a = i;
-          }
-        }
-        int c = screen.mode.colorMap[a];
-        for (int y1 = 0; y1 < 8; y1++) {
-          for (int x1 = 0; x1 < 8; x1++) {
-            screen.image.setRGB(x8 + x1, y8 + y1, (image0.getRGB(x8 + x1, y8 + y1) & 0xFFFFFF) == 0 ? 0 : c);
-          }
-        }
-      }
-    }
+    zxm.guessInkColor(screen.image);
+    zxm.fg.drawImage(zxm.ink1, 0,0, null);
+    zxm.draw(screen.image);
   }
 
   @Override
@@ -397,7 +366,6 @@ public class MyNewOne implements Runnable, KeyListener {
      * Osc(0) forward 0, 1, 2, 3, 4
      * Osc(3) forward with limit 0, 1, 2, 0, 1
      * Osc(-3) backward 3, 2, 1, 0, -1
-     * @param l
      */
     public Osc(int l) {
       if (l >= 0) {
