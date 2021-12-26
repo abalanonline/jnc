@@ -34,46 +34,40 @@ public class GraphicsModeZx {
   public static final int AW = 32;
   public static final int AH = 24;
 
-  private final int[] colorMap;
-
-  public final BufferedImage ink;
-  public final BufferedImage ink1;
-  public final BufferedImage paper;
   public final BufferedImage pixel;
-
-  public Graphics2D fg;
-  public Graphics2D fg1;
-  public Graphics2D bg;
+  public final BufferedImage ink;
+  public final BufferedImage paper;
   public Graphics2D pg;
 
   public GraphicsModeZx() {
-    colorMap = GraphicsMode.ZX.colorMap;
+    int[] colorMap = GraphicsMode.ZX.colorMap;
     IndexColorModel colorModel = new IndexColorModel(8, colorMap.length, colorMap, 0, false, -1, DataBuffer.TYPE_BYTE);
 
     pixel = new BufferedImage(WIDTH, HEIGHT, BufferedImage.TYPE_BYTE_BINARY);
     ink = new BufferedImage(AW, AH, BufferedImage.TYPE_BYTE_INDEXED, colorModel);
-    ink1 = new BufferedImage(AW, AH, BufferedImage.TYPE_BYTE_INDEXED,
-        // transparent bright black
-        new IndexColorModel(8, colorMap.length, colorMap, 0, false, 8, DataBuffer.TYPE_BYTE));
     paper = new BufferedImage(AW, AH, BufferedImage.TYPE_BYTE_INDEXED, colorModel);
-
-    // create graphics for convenience
     pg = pixel.createGraphics();
-    fg = ink.createGraphics();
-    fg1 = ink1.createGraphics();
-    bg = paper.createGraphics();
+
     cls();
   }
 
+  /**
+   * Fills the rectangle with the indexed color.
+   */
+  public void clearRect(int x, int y, int width, int height, BufferedImage i, int color) {
+    byte[] buffer = new byte[]{(byte) color};
+    Rectangle r = new Rectangle(x, y, width, height).intersection(new Rectangle(0, 0, AW, AH));
+    for (int yy = y; yy < y + height; yy++) {
+      for (int xx = x; xx < x + width; xx++) {
+        i.getRaster().setDataElements(xx, yy, buffer);
+      }
+    }
+  }
+
   public void cls(int ink, int paper) {
-    pg.setBackground(new Color(colorMap[0]));
-    pg.clearRect(0, 0, WIDTH, HEIGHT);
-    fg.setBackground(new Color(colorMap[ink]));
-    fg.clearRect(0, 0, AW, AH);
-    fg1.setBackground(new Color(0, true));
-    fg1.clearRect(0, 0, AW, AH);
-    bg.setBackground(new Color(colorMap[paper]));
-    bg.clearRect(0, 0, AW, AH);
+    clearRect(0, 0, WIDTH, HEIGHT, pixel, 0);
+    clearRect(0, 0, AW, AH, this.ink, ink);
+    clearRect(0, 0, AW, AH, this.paper, paper);
   }
 
   public void cls() {
@@ -98,11 +92,22 @@ public class GraphicsModeZx {
     }
   }
 
-  public void guessInkColor(BufferedImage sourceImage) {
+  /**
+   * Calculate the most suitable ink color from source.
+   * @param sourceImage to pick colors from
+   * @param useTransparent pixel 8 will be replaced, full image otherwise
+   */
+  public void guessInkColorFrom(BufferedImage sourceImage, boolean useTransparent) {
     byte[] buffer = new byte[1];
     int[] hst = new int[16];
     for (int y8 = 0; y8 < HEIGHT; y8 += 8) {
       for (int x8 = 0; x8 < WIDTH; x8 += 8) {
+        if (useTransparent) {
+          ink.getRaster().getDataElements(x8 >> 3, y8 >> 3, buffer);
+          if (buffer[0] != 8) {
+            continue;
+          }
+        }
         Arrays.fill(hst, 0);
         for (int y1 = y8; y1 < y8 + 8; y1++) {
           for (int x1 = x8; x1 < x8 + 8; x1++) {

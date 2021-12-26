@@ -49,13 +49,14 @@ public class MyNewOne implements Runnable, KeyListener {
       { 29,  18, 32, 144, 4},
       { 21,  22,130,  88, 2},
   };
+  BufferedImage image;
   Screen screen;
   Graphics2D graphics;
   TextFont textFont;
   TextFont symbols;
   BufferedImage png;
-  BufferedImage[][] sprite;
-  BufferedImage[][] sprite0;
+  BufferedImage[][] spriteCol;
+  BufferedImage[][] spriteBw;
   int[] color;
   Color color0;
 
@@ -83,7 +84,8 @@ public class MyNewOne implements Runnable, KeyListener {
 
   public MyNewOne(Screen screen) throws IOException {
     this.screen = screen;
-    graphics = screen.image.createGraphics();
+    image = screen.createImage();
+    graphics = image.createGraphics();
     png = ImageIO.read(Object.class.getResourceAsStream("/MyNewOne.png"));
     color = new int[10];
     for (int i = 0; i < color.length; i++) {
@@ -91,12 +93,12 @@ public class MyNewOne implements Runnable, KeyListener {
     }
     color0 = new Color(color[0]);
     screen.setBackground(color0);
-    sprite = new BufferedImage[PNG_MAP.length][];
+    spriteCol = new BufferedImage[PNG_MAP.length][];
     for (int i = 0; i < PNG_MAP.length; i++) {
-      sprite[i] = new BufferedImage[PNG_MAP[i][4]];
-      for (int j = 0; j < sprite[i].length; j++) {
-        sprite[i][j] = new BufferedImage(PNG_MAP[i][0], PNG_MAP[i][1], BufferedImage.TYPE_INT_RGB);
-        sprite[i][j].createGraphics().drawImage(png, -PNG_MAP[i][2] - j * PNG_MAP[i][0], -PNG_MAP[i][3], null);
+      spriteCol[i] = new BufferedImage[PNG_MAP[i][4]];
+      for (int j = 0; j < spriteCol[i].length; j++) {
+        spriteCol[i][j] = new BufferedImage(PNG_MAP[i][0], PNG_MAP[i][1], BufferedImage.TYPE_INT_RGB);
+        spriteCol[i][j].createGraphics().drawImage(png, -PNG_MAP[i][2] - j * PNG_MAP[i][0], -PNG_MAP[i][3], null);
       }
     }
     textFont = new TextFont("/48.rom", 0x3D00, 0x0300, 0x20, 8, 8);
@@ -107,13 +109,13 @@ public class MyNewOne implements Runnable, KeyListener {
 
     zxm = new GraphicsModeZx();
     zxm.pg.setXORMode(color0);
-    sprite0 = new BufferedImage[PNG_MAP.length][];
+    spriteBw = new BufferedImage[PNG_MAP.length][];
     for (int i = 0; i < PNG_MAP.length; i++) {
-      sprite0[i] = new BufferedImage[PNG_MAP[i][4]];
-      for (int j = 0; j < sprite0[i].length; j++) {
+      spriteBw[i] = new BufferedImage[PNG_MAP[i][4]];
+      for (int j = 0; j < spriteBw[i].length; j++) {
         BufferedImage i0 = new BufferedImage(PNG_MAP[i][0], PNG_MAP[i][1], BufferedImage.TYPE_BYTE_BINARY);
-        sprite0[i][j] = i0;
-        BufferedImage i1 = sprite[i][j];
+        spriteBw[i][j] = i0;
+        BufferedImage i1 = spriteCol[i][j];
         for (int y = 0, mx = PNG_MAP[i][0], my = PNG_MAP[i][1]; y < my; y++) {
           for (int x = 0; x < mx; x++) {
             i0.setRGB(x, y, (i1.getRGB(x, y) & 0xFFFFFF) == 0 ? 0 : -1);
@@ -129,27 +131,26 @@ public class MyNewOne implements Runnable, KeyListener {
   }
 
   void draw(int sprite, int x, int y, int mode, int p) {
-    BufferedImage image = this.sprite[sprite][p];
-    BufferedImage image0 = this.sprite0[sprite][p];
+    BufferedImage imageCol = this.spriteCol[sprite][p];
+    BufferedImage imageBw = this.spriteBw[sprite][p];
     switch (mode) {
       case 0:
-        graphics.drawImage(image, x, y, null);
-        zxm.pg.drawImage(image0, x, y, null);
+        graphics.drawImage(imageCol, x, y, null);
+        zxm.pg.drawImage(imageBw, x, y, null);
         break;
       case 1:
-        graphics.drawImage(image, W - x, y, -image.getWidth(), image.getHeight(), null);
-        zxm.pg.drawImage(image0, W - x, y, -image.getWidth(), image.getHeight(), null);
+        graphics.drawImage(imageCol, W - x, y, -imageCol.getWidth(), imageCol.getHeight(), null);
+        zxm.pg.drawImage(imageBw, W - x, y, -imageCol.getWidth(), imageCol.getHeight(), null);
         break;
     }
   }
 
   void drawAttr(int x, int y, int width, int height, int color) {
-    zxm.fg1.setBackground(new Color(screen.mode.colorMap[color]));
-    zxm.fg1.clearRect(x, y, width, height);
+    zxm.clearRect(x, y, width, height, zxm.ink, color);
   }
 
   public void print(String s, int x, int y, int color) {
-    textFont.printCentered(screen.image, s, x, y, this.color[color]);
+    textFont.printCentered(image, s, x, y, this.color[color]);
     textFont.printCentered(zxm.pixel, s, x, y, -1);
   }
 
@@ -157,7 +158,7 @@ public class MyNewOne implements Runnable, KeyListener {
     print("score 000", 97, 3, 2);
     print("hi score 000", 184, 3, 3);
     int hp = 3;
-    symbols.print(screen.image, String.join("", Collections.nCopies(hp, "1")), 32, 3, this.color[5]);
+    symbols.print(image, String.join("", Collections.nCopies(hp, "1")), 32, 3, this.color[5]);
     symbols.print(zxm.pixel, String.join("", Collections.nCopies(hp, "1")), 32, 3, -1);
   }
 
@@ -266,6 +267,7 @@ public class MyNewOne implements Runnable, KeyListener {
       case 0:
         drawField();
         draw(4, 24, 16, 0, 0);
+        zxm.clearRect(4, 2, 25, 9, zxm.ink, 8);
         print("controls:", W/2, 112, 1);
         print("< left: o  -  right: p >", W/2, 120, 1);
         print("space to start", W/2, 144, 1);
@@ -286,9 +288,11 @@ public class MyNewOne implements Runnable, KeyListener {
         print("g a m e    o v e r", W/2, 88, 4);
         break;
     }
-    if (test1) return;
-    zxm.guessInkColor(screen.image);
-    zxm.fg.drawImage(zxm.ink1, 0,0, null);
+    if (test1) {
+      screen.image.createGraphics().drawImage(image, 0, 0, null);
+      return;
+    }
+    zxm.guessInkColorFrom(image, true);
     zxm.draw(screen.image);
   }
 
