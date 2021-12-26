@@ -55,8 +55,7 @@ public class MyNewOne implements Runnable, KeyListener {
   TextFont textFont;
   TextFont symbols;
   BufferedImage png;
-  BufferedImage[][] spriteCol;
-  BufferedImage[][] spriteBw;
+  BufferedImage[][][] sprite;
   int[] color;
   Color color0;
 
@@ -93,12 +92,13 @@ public class MyNewOne implements Runnable, KeyListener {
     }
     color0 = new Color(color[0]);
     screen.setBackground(color0);
-    spriteCol = new BufferedImage[PNG_MAP.length][];
+    sprite = new BufferedImage[4][][];
+    sprite[0] = new BufferedImage[PNG_MAP.length][];
     for (int i = 0; i < PNG_MAP.length; i++) {
-      spriteCol[i] = new BufferedImage[PNG_MAP[i][4]];
-      for (int j = 0; j < spriteCol[i].length; j++) {
-        spriteCol[i][j] = new BufferedImage(PNG_MAP[i][0], PNG_MAP[i][1], BufferedImage.TYPE_INT_RGB);
-        spriteCol[i][j].createGraphics().drawImage(png, -PNG_MAP[i][2] - j * PNG_MAP[i][0], -PNG_MAP[i][3], null);
+      sprite[0][i] = new BufferedImage[PNG_MAP[i][4]];
+      for (int j = 0; j < sprite[0][i].length; j++) {
+        sprite[0][i][j] = new BufferedImage(PNG_MAP[i][0], PNG_MAP[i][1], BufferedImage.TYPE_INT_RGB);
+        sprite[0][i][j].createGraphics().drawImage(png, -PNG_MAP[i][2] - j * PNG_MAP[i][0], -PNG_MAP[i][3], null);
       }
     }
     textFont = new TextFont("/48.rom", 0x3D00, 0x0300, 0x20, 8, 8);
@@ -109,13 +109,13 @@ public class MyNewOne implements Runnable, KeyListener {
 
     zxm = new GraphicsModeZx();
     zxm.pg.setXORMode(color0);
-    spriteBw = new BufferedImage[PNG_MAP.length][];
+    sprite[1] = new BufferedImage[PNG_MAP.length][];
     for (int i = 0; i < PNG_MAP.length; i++) {
-      spriteBw[i] = new BufferedImage[PNG_MAP[i][4]];
-      for (int j = 0; j < spriteBw[i].length; j++) {
+      sprite[1][i] = new BufferedImage[PNG_MAP[i][4]];
+      for (int j = 0; j < sprite[1][i].length; j++) {
         BufferedImage i0 = new BufferedImage(PNG_MAP[i][0], PNG_MAP[i][1], BufferedImage.TYPE_BYTE_BINARY);
-        spriteBw[i][j] = i0;
-        BufferedImage i1 = spriteCol[i][j];
+        sprite[1][i][j] = i0;
+        BufferedImage i1 = sprite[0][i][j];
         for (int y = 0, mx = PNG_MAP[i][0], my = PNG_MAP[i][1]; y < my; y++) {
           for (int x = 0; x < mx; x++) {
             i0.setRGB(x, y, (i1.getRGB(x, y) & 0xFFFFFF) == 0 ? 0 : -1);
@@ -130,18 +130,17 @@ public class MyNewOne implements Runnable, KeyListener {
     draw(sprite, r.x, r.y, 0, p);
   }
 
-  void draw(int sprite, int x, int y, int mode, int p) {
-    BufferedImage imageCol = this.spriteCol[sprite][p];
-    BufferedImage imageBw = this.spriteBw[sprite][p];
+  void draw(int sprite, int xCoord, int yCoord, int mode, int p) {
+    int x = xCoord, y = yCoord, w = this.sprite[0][sprite][p].getWidth(), h = this.sprite[0][sprite][p].getHeight();
     switch (mode) {
-      case 0:
-        graphics.drawImage(imageCol, x, y, null);
-        zxm.pg.drawImage(imageBw, x, y, null);
-        break;
-      case 1:
-        graphics.drawImage(imageCol, W - x, y, -imageCol.getWidth(), imageCol.getHeight(), null);
-        zxm.pg.drawImage(imageBw, W - x, y, -imageCol.getWidth(), imageCol.getHeight(), null);
-        break;
+      case 0: break;
+      case 1: x = W - xCoord; w = -w; break;
+      default: throw new IllegalStateException();
+    }
+
+    Graphics2D[] graphics = new Graphics2D[]{this.graphics, zxm.pg};
+    for (int i = 0; i < 2; i++) {
+      graphics[i].drawImage(this.sprite[i][sprite][p], x, y, w, h, null);
     }
   }
 
