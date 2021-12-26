@@ -170,9 +170,6 @@ public class MyNewOne implements Runnable, KeyListener {
   }
 
   void drawField() {
-    graphics.setBackground(color0);
-    graphics.clearRect(0, 0, screen.mode.resolution.width, screen.mode.resolution.height);
-    zxm.cls();
     drawAttr(0, 0, 2, 24, 10);
     drawAttr(2, 0, 1, 24, 6);
     drawAttr(29, 0, 1, 24, 6);
@@ -260,17 +257,25 @@ public class MyNewOne implements Runnable, KeyListener {
     }
   }
 
+  private void cls() {
+    zxm.cls();
+    graphics.setBackground(color0);
+    graphics.clearRect(0, 0, screen.mode.resolution.width, screen.mode.resolution.height);
+  }
+
   @Override
   public void run() {
     Arrays.stream(oscs).forEach(Osc::inc);
+    cls();
     switch (state) {
       case 0:
         drawField();
         draw(4, 24, 16, 0, 0);
-        zxm.clearRect(4, 2, 25, 9, zxm.ink, 8);
+        drawAttr(4, 2, 25, 9, 8);
         print("controls:", W/2, 112, 1);
         print("< left: o  -  right: p >", W/2, 120, 1);
         print("space to start", W/2, 144, 1);
+        zxm.guessInkColorFrom(image, true);
         break;
       case 1:
         nb.setLocation(nx.v, ny.v);
@@ -292,7 +297,6 @@ public class MyNewOne implements Runnable, KeyListener {
       screen.image.createGraphics().drawImage(image, 0, 0, null);
       return;
     }
-    zxm.guessInkColorFrom(image, true);
     zxm.draw(screen.image);
   }
 

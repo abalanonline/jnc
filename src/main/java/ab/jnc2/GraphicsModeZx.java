@@ -56,18 +56,24 @@ public class GraphicsModeZx {
    */
   public void clearRect(int x, int y, int width, int height, BufferedImage i, int color) {
     byte[] buffer = new byte[]{(byte) color};
-    Rectangle r = new Rectangle(x, y, width, height).intersection(new Rectangle(0, 0, AW, AH));
-    for (int yy = y; yy < y + height; yy++) {
-      for (int xx = x; xx < x + width; xx++) {
+    Rectangle r = new Rectangle(x, y, width, height).intersection(new Rectangle(0, 0, i.getWidth(), i.getHeight()));
+    if (r.width < 0 || r.height < 0) {
+      return;
+    }
+    for (int yy = r.y; yy < r.y + r.height; yy++) {
+      for (int xx = r.x; xx < r.x + r.width; xx++) {
         i.getRaster().setDataElements(xx, yy, buffer);
       }
     }
   }
 
   public void cls(int ink, int paper) {
-    clearRect(0, 0, WIDTH, HEIGHT, pixel, 0);
     clearRect(0, 0, AW, AH, this.ink, ink);
     clearRect(0, 0, AW, AH, this.paper, paper);
+    //clearRect(0, 0, WIDTH, HEIGHT, pixel, 0);
+    // use native method, it probably work faster with 1-bit color model
+    pg.setBackground(Color.BLACK);
+    pg.clearRect(0, 0, WIDTH, HEIGHT);
   }
 
   public void cls() {
