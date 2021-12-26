@@ -125,7 +125,7 @@ public class MyNewOne implements Runnable, KeyListener {
     }
   }
 
-  void draw(int sprite, Rectangle r, int p) {
+  void draw(Rectangle r, int sprite, int p) {
     //graphics.drawRect(r.x, r.y, r.width - 1, r.height - 1);
     draw(sprite, r.x, r.y, 0, p);
   }
@@ -144,8 +144,13 @@ public class MyNewOne implements Runnable, KeyListener {
     }
   }
 
+  void drawAttr(Rectangle r, int color) {
+    drawAttr(r.x, r.y, r.width, r.height, color);
+  }
+
   void drawAttr(int x, int y, int width, int height, int color) {
-    zxm.clearRect(x, y, width, height, zxm.ink, color);
+    int x1 = x >> 3, y1 = y >> 3, x2 = (x + width + 7) >> 3, y2 = (y + height + 7) >> 3;
+    zxm.clearRect(x1, y1, x2 - x1, y2 - y1, zxm.ink, color);
   }
 
   public void print(String s, int x, int y, int color) {
@@ -169,17 +174,17 @@ public class MyNewOne implements Runnable, KeyListener {
   }
 
   void drawField() {
-    drawAttr(0, 0, 2, 24, 10);
-    drawAttr(2, 0, 1, 24, 6);
-    drawAttr(29, 0, 1, 24, 6);
-    drawAttr(30, 0, 2, 24, 11);
+    drawAttr(0, 0, 16, 192, 10);
+    drawAttr(16, 0, 8, 192, 6);
+    drawAttr(232, 0, 8, 192, 6);
+    drawAttr(240, 0, 16, 192, 11);
     tm(cx.v - T1A, T1D + T1S, (y, n) -> {
       draw(0, 0, y, 0, 0);
       draw(1, 240, y, 0, 0);
       draw(2, 16, y + 1, 0, 0);
       draw(2, 16, y + 1, 1, 0);
-      drawAttr(0, (y + 1) >> 3, 2, 2, 6);
-      drawAttr(30, (y + 1) >> 3, 2, 2, 6);
+      drawAttr(0, (y + 1) & 0xFF8, 16, 16, 6);
+      drawAttr(240, (y + 1) & 0xFF8, 16, 16, 6);
       draw(3, 16, y + 24, 0, 0);
       draw(3, 16, y + 24, 1, 0);
       draw(3, 16, y + 108, 0, 0);
@@ -199,7 +204,7 @@ public class MyNewOne implements Runnable, KeyListener {
       if (n < 0) return;
       tb.setLocation(160, y);
       ctrl &= !tb.intersects(nb);
-      draw(9, tb, 0);
+      draw(tb, 9, 0);
     });
     tm(ex.v - 50, 31, (y, n) -> {
       if (n < 0) return;
@@ -213,7 +218,7 @@ public class MyNewOne implements Runnable, KeyListener {
       if (eb.intersects(nb)) {
         nn.putIfAbsent(n, new Rectangle(eb.x, eb.y + cx.v, mm.v, mm.v));
       } else {
-        draw(10, eb, 0);
+        draw(eb, 10, 0);
       }
     });
     nn.values().forEach(n -> {
@@ -270,7 +275,7 @@ public class MyNewOne implements Runnable, KeyListener {
       case 0:
         drawField();
         draw(4, 24, 16, 0, 0);
-        drawAttr(4, 2, 25, 9, 8);
+        drawAttr(4 << 3, 2 << 3, 25 << 3, 9 << 3, 8);
         print("controls:", W/2, 112, 1);
         print("< left: o  -  right: p >", W/2, 120, 1);
         print("space to start", W/2, 144, 1);
@@ -282,7 +287,7 @@ public class MyNewOne implements Runnable, KeyListener {
         drawField();
         drawLife();
         drawScore();
-        draw(8, nb, -mm.v >> 2 & 1);
+        draw(nb, 8, -mm.v >> 2 & 1);
         break;
       case 4:
         drawField();
@@ -350,14 +355,20 @@ public class MyNewOne implements Runnable, KeyListener {
   public static void main(String[] args) throws IOException {
     Screen screen = new Screen(GraphicsMode.ZX);
     Runnable basicProgram = new MyNewOne(screen);
+    int nano = Instant.now().getNano();
     while (true) {
       basicProgram.run();
       screen.repaint();
-      try {
-        Thread.sleep(20 - Instant.now().getNano() / 1_000_000 % 20 + 2); // nano sync
-      } catch (InterruptedException e) {
-        break;
+      int now = Instant.now().getNano();
+      if (now - nano < 20_000_000) { // don't sync if late
+        try {
+          Thread.sleep(20 - now / 1_000_000 % 20); // nano sync 1 - 20
+          now = ((now / 20_000_000) + 1) * 20_000_000; // Instant.now().getNano();
+        } catch (InterruptedException e) {
+          break;
+        }
       }
+      nano = now;
     }
   }
 
