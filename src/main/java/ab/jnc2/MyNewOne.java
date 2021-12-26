@@ -187,7 +187,7 @@ public class MyNewOne implements Runnable, KeyListener {
       draw(3, 16, y + 24, 1, 0);
       draw(3, 16, y + 108, 0, 0);
       draw(3, 16, y + 108, 1, 0);
-      int tmv = n < 0 ? 7 : tm.get(n);
+      int tmv = n < 0 ? 7 : tm.get(n & 0xFF);
       if ((tmv & 4) == 0) {
         draw(6, 21, (tmv & 2) / 2 * 84 + 65 + y, tmv & 1, 0);
       } else {

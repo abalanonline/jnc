@@ -20,10 +20,7 @@ import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBuffer;
 import java.awt.image.IndexColorModel;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -83,7 +80,7 @@ public class GraphicsModeZx {
     cls(7, 0);
   }
 
-  public void guessInkColor(BufferedImage sourceImage) {
+  public void guessInkColorSlow(BufferedImage sourceImage) {
     for (int y8 = 0; y8 < HEIGHT; y8 += 8) {
       for (int x8 = 0; x8 < WIDTH; x8 += 8) {
         Map<Integer, AtomicInteger> h = new HashMap<>();
@@ -101,7 +98,31 @@ public class GraphicsModeZx {
     }
   }
 
-  public void draw(BufferedImage targetImage) {
+  public void guessInkColor(BufferedImage sourceImage) {
+    byte[] buffer = new byte[1];
+    int[] hst = new int[16];
+    for (int y8 = 0; y8 < HEIGHT; y8 += 8) {
+      for (int x8 = 0; x8 < WIDTH; x8 += 8) {
+        Arrays.fill(hst, 0);
+        for (int y1 = y8; y1 < y8 + 8; y1++) {
+          for (int x1 = x8; x1 < x8 + 8; x1++) {
+            sourceImage.getRaster().getDataElements(x1, y1, buffer);
+            hst[buffer[0]]++;
+          }
+        }
+        buffer[0] = 0;
+        for (int i = 1, v = 0; i < 16; i++) {
+          if (hst[i] > v) {
+            v = hst[i];
+            buffer[0] = (byte) i;
+          }
+        }
+        ink.getRaster().setDataElements(x8 >> 3, y8 >> 3, buffer);
+      }
+    }
+  }
+
+  public void drawSlow(BufferedImage targetImage) {
     for (int y8 = 0; y8 < HEIGHT; y8 += 8) {
       for (int x8 = 0; x8 < WIDTH; x8 += 8) {
         int f = ink.getRGB(x8 >> 3, y8 >> 3);
@@ -109,6 +130,24 @@ public class GraphicsModeZx {
         for (int y1 = 0; y1 < 8; y1++) {
           for (int x1 = 0; x1 < 8; x1++) {
             targetImage.setRGB(x8 + x1, y8 + y1, (pixel.getRGB(x8 + x1, y8 + y1) & 0xFFFFFF) == 0 ? b : f);
+          }
+        }
+      }
+    }
+  }
+
+  public void draw(BufferedImage targetImage) {
+    byte[] f = new byte[1];
+    byte[] b = new byte[1];
+    byte[] p = new byte[1];
+    for (int y8 = 0; y8 < HEIGHT; y8 += 8) {
+      for (int x8 = 0; x8 < WIDTH; x8 += 8) {
+        ink.getRaster().getDataElements(x8 >> 3, y8 >> 3, f);
+        paper.getRaster().getDataElements(x8 >> 3, y8 >> 3, b);
+        for (int y1 = y8; y1 < y8 + 8; y1++) {
+          for (int x1 = x8; x1 < x8 + 8; x1++) {
+            pixel.getRaster().getDataElements(x1, y1, p);
+            targetImage.getRaster().setDataElements(x1, y1, p[0] == 0 ? b : f);
           }
         }
       }
