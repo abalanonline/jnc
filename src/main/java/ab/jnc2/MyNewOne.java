@@ -34,7 +34,7 @@ public class MyNewOne implements Runnable, KeyListener {
   public static final int W = 256;
   public static final int H = 192;
   public static final int T1A = 180, T1D = 180, T1S = 0, T1R = 0;
-  public static final int T2A = 0, T2D = 20, T2S = 0, T2R = 200;
+  public static final int T2A = 180 + 90, T2D = 32, T2S = H, T2R = 200;
   public static final int[][] PNG_MAP = new int[][]{
       { 16, 180,   0,  0, 1},
       { 16, 180, 240,  0, 1},
@@ -50,6 +50,8 @@ public class MyNewOne implements Runnable, KeyListener {
       { 29,  18, 32, 144, 4},
       { 21,  22,130,  88, 2},
   };
+  public static int throttling;
+
   BufferedImage image;
   Screen screen;
   Graphics2D graphics;
@@ -58,31 +60,30 @@ public class MyNewOne implements Runnable, KeyListener {
   BufferedImage png;
   BufferedImage[][][] sprite;
   int[] color;
+  int[] indexedColor;
   Color color0;
 
   int state;
   Osc mm = new Osc(-1);
   Osc cx = new Osc();
-  Osc ex = new Osc();
+  Osc tx = new Osc();
 
   Osc nx = new Osc();
   Osc ny = new Osc();
   Rectangle nb = new Rectangle(17, 28);
   boolean ctrl;
-  Osc er = new Osc(0x100);
-  Osc ep = new Osc(4);
   Rectangle eb = new Rectangle(16, 31);
-  Osc tx = new Osc(0x100);
-  Osc tp = new Osc(2);
   Rectangle tb = new Rectangle(25, 20);
-  Osc[] oscs = {mm, cx, ex, nx, ny, er, ep, tx, tp};
+  Osc[] oscs = {mm, cx, tx, nx, ny};
   Nibble tm = new Nibble(0x1000, new Nibble(3, 1)).random(0);
-  Nibble tme = new Nibble(0x1000, new Nibble(2, 7, 7)).random('e');
-  Nibble tmt = new Nibble(0x1000, new Nibble(2, 8)).random('t');
+  Nibble tme = new Nibble(0x1000, new Nibble(2, 7, 6, 7)).random('e');
+  Nibble tmt = new Nibble(0x1000, new Nibble(2, 8, 6)).random('t');
   Map<Integer, Rectangle> nn = new HashMap<>();
+  Set<Integer> vt = new HashSet<>();
   boolean test0, test1, debugx = true, debugy;
   GraphicsModeZx zxm;
   int[] sin32 = IntStream.range(0, 128).map(i -> (int) (Math.sin(Math.PI * i / 64) * 32)).toArray();
+  int hp, score, hiscore;
 
   public MyNewOne(Screen screen) throws IOException {
     this.screen = screen;
@@ -90,8 +91,12 @@ public class MyNewOne implements Runnable, KeyListener {
     graphics = image.createGraphics();
     png = ImageIO.read(Object.class.getResourceAsStream("/MyNewOne.png"));
     color = new int[10];
+    byte[] buffer = new byte[1];
+    indexedColor = new int[color.length];
     for (int i = 0; i < color.length; i++) {
       color[i] = png.getRGB(png.getWidth() - i - 1, png.getHeight() - 1);
+      image.getColorModel().getDataElements(color[i], buffer);
+      indexedColor[i] = buffer[0];
     }
     color0 = new Color(color[0]);
     screen.setBackground(color0);
@@ -159,14 +164,17 @@ public class MyNewOne implements Runnable, KeyListener {
   public void print(String s, int x, int y, int color) {
     textFont.printCentered(image, s, x, y, this.color[color]);
     textFont.printCentered(zxm.pixel, s, x, y, -1);
+    int w = textFont.width * s.length();
+    drawAttr(x - w/2, y, w, textFont.height, indexedColor[color]);
   }
 
   void drawScore() {
-    print("score 000", 97, 3, 2);
-    print("hi score 000", 184, 3, 3);
-    int hp = 3;
+    print(String.format("score %04d0", score), 97, 3, 2);
+    print(String.format("hi score %04d0", hiscore), 184, 3, 3);
     symbols.print(image, String.join("", Collections.nCopies(hp, "1")), 32, 3, this.color[5]);
     symbols.print(zxm.pixel, String.join("", Collections.nCopies(hp, "1")), 32, 3, -1);
+    drawAttr(32, 3, symbols.width * 3, symbols.height, indexedColor[5]);
+    //print(String.join("", Collections.nCopies(throttling | 1, "-")), 128, 9, 3);
   }
 
   void tm(int va, int sd, BiConsumer<Integer, Integer> biConsumer) {
@@ -194,9 +202,13 @@ public class MyNewOne implements Runnable, KeyListener {
       draw(3, 16, y + 108, 1, 0);
       int tmv = n < 0 ? 7 : tm.get(n & 0xFFF, 0);
       if ((tmv & 4) == 0) {
-        draw(6, 21, (tmv & 2) / 2 * 84 + 65 + y, tmv & 1, 0);
+        int yy = (tmv & 2) / 2 * 84 + 65 + y;
+        draw(6, 21, yy, tmv & 1, 0);
+        drawAttr((tmv & 1) == 0 ? 24 : 224, yy, 8, 21, 6);
       } else {
-        draw(5, 18, (tmv & 2) / 2 * 84 + 55 + y, tmv & 1, -mm.v >> 2 & 3);
+        int yy = (tmv & 2) / 2 * 84 + 55 + y;
+        draw(5, 18, yy, tmv & 1, -mm.v >> 2 & 3);
+        drawAttr((tmv & 1) == 0 ? 24 : 208, yy, 24, 22, 5);
       }
     });
   }
@@ -205,42 +217,53 @@ public class MyNewOne implements Runnable, KeyListener {
     if (cx.v < T1A) {
       draw(12, 18, 84 + 55 - cx.v, 0, 1);
     }
-    tm(ex.v - T2A, T2D + T2S + 32, (y, n) -> {
+    if (ctrl && state == 1) vt.clear();
+    tm(tx.v - T2A, T2D + T2S, (y, n) -> {
       if (n < 0) return;
+      if (ctrl && state == 1) {
+        vt.add(n);
+      } else {
+        if (!vt.contains(n)) return;
+      }
+      y += tmt.get(n & 0xFFF, 2);
       int p = tmt.get(n & 0xFFF, 1);
       int pm = ((p * T2R >> 8) - mm.v) % T2R;
       int x = Math.abs((T2R >> 1) - pm) << 1;
       if (debugx) x = 160;
       tb.setLocation(24 + x - 8, y);
-      if (tb.intersects(nb)) {
+      if (ctrl && tb.intersects(nb)) {
         ctrl = false;
-        nn.putIfAbsent(-1, new Rectangle(nb.x - 6, nb.y + cx.v + 10, mm.v, mm.v)); // 17,28 -> 29,18
+        nn.putIfAbsent(-1, new Rectangle(nb.x - 6, nb.y + 10, mm.v, 0)); // 17,28 -> 29,18
       }
       draw(tb, 9, (p - mm.v) >> 2 & 1);
       drawAttr(tb, 10 + tmt.get(n & 0xFFF, 0));
     });
-    tm(ex.v - 50, 31, (y, n) -> {
+    tm(cx.v - 270, H + 32, (y, n) -> {
       if (n < 0) return;
+      y += tme.get(n & 0xFFF, 2);
       if (nn.containsKey(n)) {
         Rectangle r = nn.get(n);
-        r.height = mm.v;
+        r.height = mm.v; // access
         nn.put(n, r);
         return;
       }
       int p = (tme.get(n & 0xFFF, 1) - mm.v) & 0x7F;
-      int x = 64 + tme.get(n & 0xFFF, 2) + sin32[p];
+      int x = 64 + tme.get(n & 0xFFF, 3) + sin32[p];
       if (debugx) x = 64;
       eb.setLocation(x - 8, y);
       if (eb.intersects(nb)) {
-        nn.putIfAbsent(n, new Rectangle(eb.x - 6, eb.y + cx.v + 6, mm.v, mm.v)); // 16,31 -> 29,18
+        if (nn.get(n) == null) {
+          score++;
+          nn.put(n, new Rectangle(eb.x - 6, eb.y + cx.v + 6, mm.v, mm.v)); // 16,31 -> 29,18
+        }
       } else {
         draw(eb, 10, p >> 2 & 3);
         drawAttr(eb, 11 + tme.get(n & 0xFFF, 0));
       }
     });
     nn.values().forEach(n -> {
-      int p = (n.width - mm.v) >> 4;
-      if (p < 4) draw(11, n.x, n.y - cx.v, 0, p);
+      int p = (n.width - mm.v) >> 2;
+      if (p < 4) draw(11, n.x, n.y - (n.height == 0 ? 0 : cx.v), 0, p);
     });
     nn = nn.entrySet().stream().filter(e -> {
       Rectangle n = e.getValue();
@@ -264,7 +287,22 @@ public class MyNewOne implements Runnable, KeyListener {
         nn.clear();
         cx.v = 68;
         cx.s = 2;
+        tx.v = 0;
+        tx.s = 3;
         ctrl = true;
+        if (hp <= 0) {
+          hp = 3;
+          if (hiscore < score) { hiscore = score; }
+          score = 0;
+        }
+        break;
+      case 2:
+        nn.clear();
+        cx.s = 0;
+        tx.s = 1;
+        if (hp > 0) { hp--; }
+        break;
+      case 3:
         break;
       case 4:
         cx.v = 0;
@@ -301,20 +339,35 @@ public class MyNewOne implements Runnable, KeyListener {
       case 1:
         nb.setLocation(nx.v, ny.v);
         drawAttr(nb, 15);
-        ctrl &= nx.v < 219 && nx.v > 20;
+        if (ctrl && !(nx.v < 219 && nx.v > 20)) {
+          ctrl = false;
+          nn.putIfAbsent(-1, new Rectangle(nb.x - 6, nb.y + 10, mm.v, 0));
+        }
         drawField();
-        drawLife();
         drawScore();
+        drawLife();
         if (ctrl) {
           draw(nb, 8, -mm.v >> 2 & 1);
+        } else {
+          int i = nn.get(-1).width - mm.v;
+          if (i > 32) init(2);
         }
+        break;
+      case 2:
+        drawField();
+        if (hp == 0) {
+          print("g a m e    o v e r", W / 2, 88, 4);
+        }
+        drawScore();
+        drawLife();
+        break;
+      case 3:
+        drawField();
+        drawScore();
         break;
       case 4:
         drawField();
         drawScore();
-        break;
-      case 3:
-        print("g a m e    o v e r", W/2, 88, 4);
         break;
     }
     if (test1) {
@@ -342,7 +395,7 @@ public class MyNewOne implements Runnable, KeyListener {
       case 'q': test0 = false; cx.s = 1; break;
       case 'w': test0 = true; cx.s = 0; break;
       case 'e': test1 = !test1; break;
-      case 0x20: System.exit(0);
+      case 0x20: if ((state | 2) == 2) { init(3); }
     }
   }
 
@@ -382,11 +435,14 @@ public class MyNewOne implements Runnable, KeyListener {
       int now = Instant.now().getNano();
       if (now - nano < 20_000_000) { // don't sync if late
         try {
-          Thread.sleep(20 - now / 1_000_000 % 20); // nano sync 1 - 20
+          throttling = 20 - now / 1_000_000 % 20;
+          Thread.sleep(throttling); // nano sync 1 - 20
           now = ((now / 20_000_000) + 1) * 20_000_000; // Instant.now().getNano();
         } catch (InterruptedException e) {
           break;
         }
+      } else {
+        throttling = 0;
       }
       nano = now;
     }
