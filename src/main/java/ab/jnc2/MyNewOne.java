@@ -28,12 +28,13 @@ import java.time.Instant;
 import java.util.*;
 import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 public class MyNewOne implements Runnable, KeyListener {
   public static final int W = 256;
   public static final int H = 192;
   public static final int T1A = 180, T1D = 180, T1S = 0, T1R = 0;
-  public static final int T2A = 0, T2D = 20, T2S = 0, T2R = 0;
+  public static final int T2A = 0, T2D = 20, T2S = 0, T2R = 200;
   public static final int[][] PNG_MAP = new int[][]{
       { 16, 180,   0,  0, 1},
       { 16, 180, 240,  0, 1},
@@ -75,11 +76,13 @@ public class MyNewOne implements Runnable, KeyListener {
   Osc tp = new Osc(2);
   Rectangle tb = new Rectangle(25, 20);
   Osc[] oscs = {mm, cx, ex, nx, ny, er, ep, tx, tp};
-  Nibble tm = new Nibble(0x100, new Nibble(3)).random(1);
-  Nibble t2 = new Nibble(0x100, new Nibble(8, 8, 8)).random(0);
+  Nibble tm = new Nibble(0x1000, new Nibble(3, 1)).random(0);
+  Nibble tme = new Nibble(0x1000, new Nibble(2, 7, 7)).random('e');
+  Nibble tmt = new Nibble(0x1000, new Nibble(2, 8)).random('t');
   Map<Integer, Rectangle> nn = new HashMap<>();
-  boolean test0, test1;
+  boolean test0, test1, debugx = true, debugy;
   GraphicsModeZx zxm;
+  int[] sin32 = IntStream.range(0, 128).map(i -> (int) (Math.sin(Math.PI * i / 64) * 32)).toArray();
 
   public MyNewOne(Screen screen) throws IOException {
     this.screen = screen;
@@ -189,7 +192,7 @@ public class MyNewOne implements Runnable, KeyListener {
       draw(3, 16, y + 24, 1, 0);
       draw(3, 16, y + 108, 0, 0);
       draw(3, 16, y + 108, 1, 0);
-      int tmv = n < 0 ? 7 : tm.get(n & 0xFF);
+      int tmv = n < 0 ? 7 : tm.get(n & 0xFFF, 0);
       if ((tmv & 4) == 0) {
         draw(6, 21, (tmv & 2) / 2 * 84 + 65 + y, tmv & 1, 0);
       } else {
@@ -199,12 +202,22 @@ public class MyNewOne implements Runnable, KeyListener {
   }
 
   void drawLife() {
-    draw(12, 18, 84 + 55 - cx.v, 0, 1);
+    if (cx.v < T1A) {
+      draw(12, 18, 84 + 55 - cx.v, 0, 1);
+    }
     tm(ex.v - T2A, T2D + T2S + 32, (y, n) -> {
       if (n < 0) return;
-      tb.setLocation(160, y);
-      ctrl &= !tb.intersects(nb);
-      draw(tb, 9, 0);
+      int p = tmt.get(n & 0xFFF, 1);
+      int pm = ((p * T2R >> 8) - mm.v) % T2R;
+      int x = Math.abs((T2R >> 1) - pm) << 1;
+      if (debugx) x = 160;
+      tb.setLocation(24 + x - 8, y);
+      if (tb.intersects(nb)) {
+        ctrl = false;
+        nn.putIfAbsent(-1, new Rectangle(nb.x - 6, nb.y + cx.v + 10, mm.v, mm.v)); // 17,28 -> 29,18
+      }
+      draw(tb, 9, (p - mm.v) >> 2 & 1);
+      drawAttr(tb, 10 + tmt.get(n & 0xFFF, 0));
     });
     tm(ex.v - 50, 31, (y, n) -> {
       if (n < 0) return;
@@ -214,11 +227,15 @@ public class MyNewOne implements Runnable, KeyListener {
         nn.put(n, r);
         return;
       }
-      eb.setLocation(30, y);
+      int p = (tme.get(n & 0xFFF, 1) - mm.v) & 0x7F;
+      int x = 64 + tme.get(n & 0xFFF, 2) + sin32[p];
+      if (debugx) x = 64;
+      eb.setLocation(x - 8, y);
       if (eb.intersects(nb)) {
-        nn.putIfAbsent(n, new Rectangle(eb.x, eb.y + cx.v, mm.v, mm.v));
+        nn.putIfAbsent(n, new Rectangle(eb.x - 6, eb.y + cx.v + 6, mm.v, mm.v)); // 16,31 -> 29,18
       } else {
-        draw(eb, 10, 0);
+        draw(eb, 10, p >> 2 & 3);
+        drawAttr(eb, 11 + tme.get(n & 0xFFF, 0));
       }
     });
     nn.values().forEach(n -> {
@@ -275,7 +292,7 @@ public class MyNewOne implements Runnable, KeyListener {
       case 0:
         drawField();
         draw(4, 24, 16, 0, 0);
-        drawAttr(4 << 3, 2 << 3, 25 << 3, 9 << 3, 8);
+        drawAttr(32, 16, 200, 72, 8);
         print("controls:", W/2, 112, 1);
         print("< left: o  -  right: p >", W/2, 120, 1);
         print("space to start", W/2, 144, 1);
@@ -283,11 +300,14 @@ public class MyNewOne implements Runnable, KeyListener {
         break;
       case 1:
         nb.setLocation(nx.v, ny.v);
+        drawAttr(nb, 15);
         ctrl &= nx.v < 219 && nx.v > 20;
         drawField();
         drawLife();
         drawScore();
-        draw(nb, 8, -mm.v >> 2 & 1);
+        if (ctrl) {
+          draw(nb, 8, -mm.v >> 2 & 1);
+        }
         break;
       case 4:
         drawField();
