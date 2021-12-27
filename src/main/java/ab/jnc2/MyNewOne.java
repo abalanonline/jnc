@@ -36,19 +36,20 @@ public class MyNewOne implements Runnable, KeyListener {
   public static final int T1A = 180, T1D = 180, T1S = 0, T1R = 0;
   public static final int T2A = 180 + 90, T2D = 32, T2S = H, T2R = 200;
   public static final int[][] PNG_MAP = new int[][]{
-      { 16, 180,   0,  0, 1},
-      { 16, 180, 240,  0, 1},
-      {  8,   9,  16,  1, 1},
-      {  4,  59,  16, 24, 1},
-      {208,  72,  24, 16, 1},
-      { 23,  22,  24, 88, 4}, // 5
-      { 10,  21, 120, 88, 1}, // 6
-      { 19,  26, 213, 88, 1},
+      { 16, 180,   0,   0, 1},
+      { 16, 180, 240,   0, 1},
+      {  8,   9,  16,   1, 1},
+      {  4,  59,  16,  24, 1},
+      {208,  72,  24,  16, 1},
+      { 23,  22,  24,  88, 4}, // 5
+      { 10,  21, 120,  88, 1}, // 6
+      { 19,  26, 213,  88, 1},
       { 17,  28, 144, 112, 2},
-      { 25,  20, 24, 112, 2},
-      { 16,  31, 80, 112, 4},
-      { 29,  18, 32, 144, 4},
-      { 21,  22,130,  88, 2},
+      { 25,  20,  24, 112, 2},
+      { 16,  31,  80, 112, 4},
+      { 29,  18,  32, 144, 4},
+      { 21,  22, 130,  88, 2},
+      { 31,  15, 176,  88, 1},
   };
   public static int throttling;
 
@@ -80,7 +81,7 @@ public class MyNewOne implements Runnable, KeyListener {
   Nibble tmt = new Nibble(0x1000, new Nibble(2, 8, 6)).random('t');
   Map<Integer, Rectangle> nn = new HashMap<>();
   Set<Integer> vt = new HashSet<>();
-  boolean test0, test1, debugx = true, debugy;
+  boolean test0, test1, debugx, debugy, debugt;
   GraphicsModeZx zxm;
   int[] sin32 = IntStream.range(0, 128).map(i -> (int) (Math.sin(Math.PI * i / 64) * 32)).toArray();
   int hp, score, hiscore;
@@ -194,8 +195,8 @@ public class MyNewOne implements Runnable, KeyListener {
       draw(1, 240, y, 0, 0);
       draw(2, 16, y + 1, 0, 0);
       draw(2, 16, y + 1, 1, 0);
-      drawAttr(0, (y + 1) & 0xFF8, 16, 16, 6);
-      drawAttr(240, (y + 1) & 0xFF8, 16, 16, 6);
+      drawAttr(0, y + 1, 16, 9, 6);
+      drawAttr(240, y + 1, 16, 9, 6);
       draw(3, 16, y + 24, 0, 0);
       draw(3, 16, y + 24, 1, 0);
       draw(3, 16, y + 108, 0, 0);
@@ -216,6 +217,7 @@ public class MyNewOne implements Runnable, KeyListener {
   void drawLife() {
     if (cx.v < T1A) {
       draw(12, 18, 84 + 55 - cx.v, 0, 1);
+      drawAttr(24, 139 - cx.v, 16, 22, 6);
     }
     if (ctrl && state == 1) vt.clear();
     tm(tx.v - T2A, T2D + T2S, (y, n) -> {
@@ -290,28 +292,22 @@ public class MyNewOne implements Runnable, KeyListener {
         tx.v = 0;
         tx.s = 3;
         ctrl = true;
-        if (hp <= 0) {
-          hp = 3;
-          if (hiscore < score) { hiscore = score; }
-          score = 0;
-        }
         break;
       case 2:
-        nn.clear();
         cx.s = 0;
         tx.s = 1;
         if (hp > 0) { hp--; }
         break;
       case 3:
-        break;
-      case 4:
         cx.v = 0;
         cx.s = 1;
+        mm.v = 68;
         break;
-      case 9:
-        cx.v = -200;
-        cx.s = 0;
-        this.state = 0;
+      case 4:
+        hp = 3;
+        if (hiscore < score) { hiscore = score; }
+        score = 0;
+        mm.v = 16;
         break;
     }
   }
@@ -324,7 +320,9 @@ public class MyNewOne implements Runnable, KeyListener {
 
   @Override
   public void run() {
-    Arrays.stream(oscs).forEach(Osc::inc);
+    if (!debugt) {
+      Arrays.stream(oscs).forEach(Osc::inc);
+    }
     cls();
     switch (state) {
       case 0:
@@ -343,8 +341,8 @@ public class MyNewOne implements Runnable, KeyListener {
           ctrl = false;
           nn.putIfAbsent(-1, new Rectangle(nb.x - 6, nb.y + 10, mm.v, 0));
         }
-        drawField();
         drawScore();
+        drawField();
         drawLife();
         if (ctrl) {
           draw(nb, 8, -mm.v >> 2 & 1);
@@ -354,20 +352,47 @@ public class MyNewOne implements Runnable, KeyListener {
         }
         break;
       case 2:
+        drawScore();
         drawField();
         if (hp == 0) {
           print("g a m e    o v e r", W / 2, 88, 4);
         }
-        drawScore();
         drawLife();
         break;
       case 3:
-        drawField();
         drawScore();
+        drawField();
+        if (mm.v < 59) {
+          draw(12, 18, 139 - cx.v, 0, mm.v < 49 ? 1 : 0);
+        }
+        if (mm.v < 42) {
+          draw(7, 143 - 3 * mm.v, 76 + mm.v - (mm.v / 10), 0, 0);
+        }
+        if (mm.v < 28) {
+          draw(13, 100 - 3 * mm.v, 76 + mm.v - (mm.v / 10), 0, 0);
+        }
+        drawAttr(40, 139 - cx.v, 128, 31, 15);
+        drawAttr(24, 139 - cx.v, 16, 22, 6);
+        if (mm.v <= 0) {
+          init(1);
+        }
         break;
       case 4:
         drawField();
-        drawScore();
+        draw(4, 24, 16, 0, 0);
+        drawAttr(32, 16, 200, 72, 8);
+        for (int i = 0; i < (17 - mm.v) >> 1; i++) {
+          for (int y = 16; y < 16 + 72; y++) {
+            for (int x = 32 + i - (y & 7), j = 0; j < 200; x += 8, j += 8) {
+              image.setRGB(x, y, 0);
+              zxm.pixel.setRGB(x, y, 0);
+            }
+          }
+        }
+        zxm.guessInkColorFrom(image, true);
+        if (mm.v <= 0) {
+          init(3);
+        }
         break;
     }
     if (test1) {
@@ -395,13 +420,23 @@ public class MyNewOne implements Runnable, KeyListener {
       case 'q': test0 = false; cx.s = 1; break;
       case 'w': test0 = true; cx.s = 0; break;
       case 'e': test1 = !test1; break;
-      case 0x20: if ((state | 2) == 2) { init(3); }
+      case 'x': debugx = !debugx; break;
+      case '-': debugt = !debugt; break;
+      case '=': Arrays.stream(oscs).forEach(Osc::inc); break;
+      case 0x20:
+        if (state == 0) { init(4); }
+        if (state == 2) { init(hp > 0 ? 3 : 0); }
+        break;
     }
   }
 
   @Override
   public void keyPressed(KeyEvent e) {
     switch (e.getKeyCode()) {
+      case KeyEvent.VK_O:
+        if (ctrl && nx.s != 4) nx.s = -4; break;
+      case KeyEvent.VK_P:
+        if (ctrl && nx.s != -4) nx.s = 4; break;
       case KeyEvent.VK_LEFT:
         if (ctrl) nx.s = -1; break;
       case KeyEvent.VK_RIGHT:
@@ -416,6 +451,10 @@ public class MyNewOne implements Runnable, KeyListener {
   @Override
   public void keyReleased(KeyEvent e) {
     switch (e.getKeyCode()) {
+      case KeyEvent.VK_O:
+        if (ctrl && nx.s == -4) nx.s = -2; break;
+      case KeyEvent.VK_P:
+        if (ctrl && nx.s == 4) nx.s = 2; break;
       case KeyEvent.VK_LEFT:
       case KeyEvent.VK_RIGHT:
         if (ctrl) nx.s = 0; break;
