@@ -65,6 +65,7 @@ public class MyNewOne implements Runnable, KeyListener {
   Color color0;
 
   int state;
+  int gotoState;
   Osc mm = new Osc(-1);
   Osc cx = new Osc();
   Osc tx = new Osc();
@@ -240,7 +241,7 @@ public class MyNewOne implements Runnable, KeyListener {
       tb.setLocation(24 + x - 8, y);
       if (ctrl && tb.intersects(nb)) {
         ctrl = false;
-        nn.putIfAbsent(-1, new Rectangle(nb.x - 6, nb.y + 10, mm.v, 0)); // 17,28 -> 29,18
+        nn.put(-1, new Rectangle(nb.x - 6, nb.y + 10, mm.v, 0)); // 17,28 -> 29,18
       }
       draw(tb, 9, (p - mm.v) >> 2 & 1);
       drawAttr(tb, 10 + tmt.get(n & 0xFFF, 0));
@@ -258,7 +259,7 @@ public class MyNewOne implements Runnable, KeyListener {
       int x = 64 + tme.get(n & 0xFFF, 3) + sin32[p];
       if (debugx) x = 64;
       eb.setLocation(x - 8, y);
-      if (eb.intersects(nb)) {
+      if (ctrl && eb.intersects(nb)) {
         if (nn.get(n) == null) {
           score++;
           nn.put(n, new Rectangle(eb.x - 6, eb.y + cx.v + 6, mm.v, mm.v)); // 16,31 -> 29,18
@@ -330,6 +331,7 @@ public class MyNewOne implements Runnable, KeyListener {
 
   @Override
   public void run() {
+    if (gotoState >= 0) { init(gotoState); gotoState = -1; }
     if (!debugt) {
       Arrays.stream(oscs).forEach(Osc::inc);
     }
@@ -349,7 +351,7 @@ public class MyNewOne implements Runnable, KeyListener {
         drawAttr(nb, 15);
         if (ctrl && !(nx.v < 219 && nx.v > 20)) {
           ctrl = false;
-          nn.putIfAbsent(-1, new Rectangle(nb.x - 6, nb.y + 10, mm.v, 0));
+          nn.put(-1, new Rectangle(nb.x - 6, nb.y + 10, mm.v, 0));
         }
         drawScore();
         drawField();
@@ -358,7 +360,7 @@ public class MyNewOne implements Runnable, KeyListener {
           draw(nb, 8, -mm.v >> 2 & 1);
         } else {
           int i = nn.get(-1).width - mm.v;
-          if (i > 32) init(2);
+          if (i > 32) gotoState = 2;
         }
         break;
       case 2:
@@ -384,7 +386,7 @@ public class MyNewOne implements Runnable, KeyListener {
         drawAttr(40, 139 - cx.v, 128, 31, 15);
         drawAttr(24, 139 - cx.v, 16, 22, 6);
         if (mm.v <= 0) {
-          init(1);
+          gotoState = 1;
         }
         break;
       case 4:
@@ -401,7 +403,7 @@ public class MyNewOne implements Runnable, KeyListener {
         }
         zxm.guessInkColorFrom(image, true);
         if (mm.v <= 0) {
-          init(3);
+          gotoState = 3;
         }
         break;
       case 9:
@@ -434,7 +436,7 @@ public class MyNewOne implements Runnable, KeyListener {
       case '7':
       case '8':
       case '9':
-        init(e.getKeyChar() - '0'); break;
+        gotoState = e.getKeyChar() - '0'; break;
       case 'q': test0 = false; cx.s = 1; break;
       case 'w': test0 = true; cx.s = 0; break;
       case 'e': test1 = !test1; break;
@@ -444,8 +446,8 @@ public class MyNewOne implements Runnable, KeyListener {
       case '[': tx.s--; break;
       case ']': tx.s++; break;
       case 0x20:
-        if (state == 0) { init(4); }
-        if (state == 2) { init(hp > 0 ? 3 : 0); }
+        if (state == 0) { gotoState = 4; }
+        if (state == 2) { gotoState = hp > 0 ? 3 : 0; }
         break;
     }
   }
