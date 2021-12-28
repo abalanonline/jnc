@@ -50,6 +50,9 @@ public class MyNewOne implements Runnable, KeyListener {
       { 29,  18,  32, 144, 4},
       { 21,  22, 130,  88, 2},
       { 31,  15, 176,  88, 1},
+      {208,   9,  24,   1, 1}, // 14
+      { 32,  31, 200, 161, 1},
+      { 16,  22, 136, 168, 4},
   };
   public static int throttling;
 
@@ -77,7 +80,7 @@ public class MyNewOne implements Runnable, KeyListener {
   Rectangle eb = new Rectangle(16, 31);
   Rectangle tb = new Rectangle(25, 20);
   Osc[] oscs = {mm, cx, tx, nx, ny};
-  Nibble tm = new Nibble(0x1000, new Nibble(3, 1)).random(0);
+  Nibble tm = new Nibble(0x1000, new Nibble(3, 3)).random(0);
   Nibble tme = new Nibble(0x1000, new Nibble(2, 7, 6, 7)).random('e');
   Nibble tmt = new Nibble(0x1000, new Nibble(2, 8, 6)).random('t');
   Map<Integer, Rectangle> nn = new HashMap<>();
@@ -216,6 +219,49 @@ public class MyNewOne implements Runnable, KeyListener {
         draw(5, 18, yy, tmv & 1, -mm.v >> 2 & 3);
         drawAttr((tmv & 1) == 0 ? 24 : 208, yy, 24, 22, 5);
       }
+      tmv = n < 1 ? 4 : tm.get(n & 0xFFF, 1);
+      if (tmv < 4) {
+        draw(14, 24, y + 1, 0, 0);
+        drawAttr(24, y + 1, 208, 9, 1);
+      }
+      switch (tmv) {
+        case 0:
+          draw(16, 40, y + 8, 0, 0);
+          draw(16, 144, y + 12, 0, 2);
+          draw(16, 168, y + 11, 0, 3);
+          draw(15, 184, y + 8, 0, 0);
+          drawAttr(40, y + 8, 16, 22, 4);
+          drawAttr(144, y + 12, 16, 21, 4);
+          drawAttr(168, y + 11, 8, 11, 5);
+          drawAttr(184, y + 8, 32, 31, 5);
+          break;
+        case 1:
+          draw(16, 64, y + 10, 0, 1);
+          draw(16, 168, y + 11, 0, 3);
+          draw(16, 184, y + 9, 0, 2);
+          drawAttr(64, y + 10, 16, 8, 7);
+          drawAttr(168, y + 11, 8, 11, 2);
+          drawAttr(184, y + 9, 16, 21, 2);
+          break;
+        case 2: // mirrored 0
+          draw(16, 40, y + 8, 1, 0);
+          draw(16, 144, y + 12, 1, 2);
+          draw(16, 168, y + 11, 1, 3);
+          draw(15, 184, y + 8, 1, 0);
+          drawAttr(200, y + 8, 16, 22, 4);
+          drawAttr(96, y + 12, 16, 21, 3);
+          drawAttr(80, y + 11, 8, 11, 3);
+          drawAttr(40, y + 8, 32, 31, 3);
+          break;
+        case 3:
+          draw(16, 40, y + 8, 0, 0);
+          draw(16, 64, y + 10, 0, 1);
+          draw(16, 184, y + 9, 0, 2);
+          drawAttr(40, y + 8, 16, 22, 2);
+          drawAttr(64, y + 10, 16, 8, 7);
+          drawAttr(184, y + 9, 16, 21, 6);
+          break;
+      }
     });
   }
 
@@ -226,7 +272,8 @@ public class MyNewOne implements Runnable, KeyListener {
     }
     if (ctrl && state == 1) vt.clear();
     //tm(tx.v - T2A, T2D + T2S, (y, n) -> {
-    tm((tx.v - T2A + H/2) * 16, (T2D + T2S) * 16, -H / 2 * 16, H / 2 * 16, (y, n) -> { y /= 16; y += H/2;
+    //tm((tx.v - T2A + H/2) * 16, (T2D + T2S) * 16, -H / 2 * 16, H / 2 * 16, (y, n) -> { y /= 16; y += H/2;
+    tm(tx.v + cx.v * 16 - 68*16 - T2A * 16 + H/2 * 16, (T2D + T2S) * 16, -H / 2 * tx.s, H / 2 * tx.s, (y, n) -> { y /= tx.s; y += H/2;
       if (n < 0) return;
       if (ctrl && state == 1) {
         vt.add(n);
@@ -246,7 +293,8 @@ public class MyNewOne implements Runnable, KeyListener {
       draw(tb, 9, (p - mm.v) >> 2 & 1);
       drawAttr(tb, 10 + tmt.get(n & 0xFFF, 0));
     });
-    tm(cx.v - 270, H + 32, (y, n) -> {
+    //tm(cx.v - 270, H + 32, (y, n) -> {
+    tm((cx.v - 270 + H/2) * 16, (H + 32) * 16, -H / 2 * 16, H / 2 * 16, (y, n) -> { y /= 16; y += H/2;
       if (n < 0) return;
       y += tme.get(n & 0xFFF, 2);
       if (nn.containsKey(n)) {
@@ -262,6 +310,7 @@ public class MyNewOne implements Runnable, KeyListener {
       if (ctrl && eb.intersects(nb)) {
         if (nn.get(n) == null) {
           score++;
+          tx.s++;
           nn.put(n, new Rectangle(eb.x - 6, eb.y + cx.v + 6, mm.v, mm.v)); // 16,31 -> 29,18
         }
       } else {
@@ -296,12 +345,11 @@ public class MyNewOne implements Runnable, KeyListener {
         cx.v = 68;
         cx.s = 2;
         tx.v = 0;
-        tx.s = 3;
+        tx.s = 16;
         ctrl = true;
         break;
       case 2:
         cx.s = 0;
-        tx.s = 1;
         if (hp > 0) { hp--; }
         break;
       case 3:
