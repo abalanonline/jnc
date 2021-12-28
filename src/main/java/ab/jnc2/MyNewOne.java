@@ -178,11 +178,15 @@ public class MyNewOne implements Runnable, KeyListener {
     //print(String.join("", Collections.nCopies(throttling | 1, "-")), 128, 9, 3);
   }
 
-  void tm(int va, int sd, BiConsumer<Integer, Integer> biConsumer) {
-    int adj = va < 0 ? 1 - va / sd : 0;
-    for (int i = -((va + sd * adj) % sd), n = (va + sd * adj) / sd - adj; i < H; i += sd, n++) {
-      biConsumer.accept(i, n);
+  void tm(int a, int s, int f, int t, BiConsumer<Integer, Integer> consumer) {
+    int adj = a + f < 0 ? 1 - (a + f) / s : 0;
+    for (int x = f - ((a + f + s * adj) % s), n = (a + f + s * adj) / s - adj; x < t; x += s, n++) {
+      consumer.accept(x, n);
     }
+  }
+
+  void tm(int a, int s, BiConsumer<Integer, Integer> consumer) {
+    tm(a, s, 0, H, consumer);
   }
 
   void drawField() {
@@ -220,7 +224,8 @@ public class MyNewOne implements Runnable, KeyListener {
       drawAttr(24, 139 - cx.v, 16, 22, 6);
     }
     if (ctrl && state == 1) vt.clear();
-    tm(tx.v - T2A, T2D + T2S, (y, n) -> {
+    //tm(tx.v - T2A, T2D + T2S, (y, n) -> {
+    tm((tx.v - T2A + H/2) * 16, (T2D + T2S) * 16, -H / 2 * 16, H / 2 * 16, (y, n) -> { y /= 16; y += H/2;
       if (n < 0) return;
       if (ctrl && state == 1) {
         vt.add(n);
@@ -309,6 +314,11 @@ public class MyNewOne implements Runnable, KeyListener {
         score = 0;
         mm.v = 16;
         break;
+      case 9:
+        tx.v = 0;
+        tx.s = 16;
+        debugt = true;
+        break;
     }
   }
 
@@ -394,6 +404,14 @@ public class MyNewOne implements Runnable, KeyListener {
           init(3);
         }
         break;
+      case 9:
+        drawField();
+        int m = 30;
+        print("0", 118, 64, 3);
+        tm(tx.v, 16 * 16, -24 * tx.s, 24 * tx.s + 1, (y, n) -> {
+          print(String.format("%04d", n), 132, 64 + y / tx.s, 2);
+        });
+        break;
     }
     if (test1) {
       screen.image.createGraphics().drawImage(image, 0, 0, null);
@@ -423,6 +441,8 @@ public class MyNewOne implements Runnable, KeyListener {
       case 'x': debugx = !debugx; break;
       case '-': debugt = !debugt; break;
       case '=': Arrays.stream(oscs).forEach(Osc::inc); break;
+      case '[': tx.s--; break;
+      case ']': tx.s++; break;
       case 0x20:
         if (state == 0) { init(4); }
         if (state == 2) { init(hp > 0 ? 3 : 0); }
