@@ -25,13 +25,14 @@ import java.awt.*;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.awt.image.BufferedImage;
+import java.io.BufferedInputStream;
 import java.time.Instant;
 import java.util.*;
 import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-public class MyNewOne implements Runnable, KeyListener {
+public class NohzDyve implements Runnable, KeyListener {
   public static final int W = 256;
   public static final int H = 192;
   public static final int T1A = 180, T1D = 180, T1S = 0, T1R = 0;
@@ -92,14 +93,14 @@ public class MyNewOne implements Runnable, KeyListener {
   private final Clip music;
   private final Clip sound;
 
-  public MyNewOne(Screen screen) throws Exception {
+  public NohzDyve(Screen screen) throws Exception {
     screen.setPreferredSize(new Dimension(screen.mode.resolution.width * 2, screen.mode.resolution.height * 2));
     screen.setTitle(this.getClass().getSimpleName() + ".java");
     this.screen = screen;
     image = screen.createImage();
     graphics = image.createGraphics();
     String resName = "/" + this.getClass().getSimpleName() + ".";
-    png = ImageIO.read(Object.class.getResourceAsStream(resName + "png"));
+    png = ImageIO.read(getClass().getResourceAsStream(resName + "png"));
     color = new int[10];
     byte[] buffer = new byte[1];
     indexedColor = new int[color.length];
@@ -142,10 +143,12 @@ public class MyNewOne implements Runnable, KeyListener {
     }
 
     music = AudioSystem.getClip();
-    music.open(AudioSystem.getAudioInputStream(Object.class.getResourceAsStream(resName + "wav")));
+    music.open(AudioSystem.getAudioInputStream(
+        new BufferedInputStream(getClass().getResourceAsStream(resName + "wav"))));
     music.setLoopPoints(18000, 18000 + 56357);
     sound = AudioSystem.getClip();
-    sound.open(AudioSystem.getAudioInputStream(Object.class.getResourceAsStream(resName + "wav")));
+    sound.open(AudioSystem.getAudioInputStream(
+        new BufferedInputStream(getClass().getResourceAsStream(resName + "wav"))));
     sound.setLoopPoints(87800, 88400);
   }
 
@@ -526,7 +529,7 @@ public class MyNewOne implements Runnable, KeyListener {
 
   public static void main(String[] args) throws Exception {
     Screen screen = new Screen(GraphicsMode.ZX);
-    Runnable basicProgram = new MyNewOne(screen);
+    Runnable basicProgram = new NohzDyve(screen);
     int nano = Instant.now().getNano();
     while (true) {
       basicProgram.run();

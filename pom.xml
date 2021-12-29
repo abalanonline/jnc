@@ -32,7 +32,7 @@
     <maven.compiler.target>${java.version}</maven.compiler.target>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-    <exec.mainClass>ab.jnc2.AmigaBall</exec.mainClass>
+    <exec.mainClass>ab.jnc2.NohzDyve</exec.mainClass>
   </properties>
 
   <dependencies>
