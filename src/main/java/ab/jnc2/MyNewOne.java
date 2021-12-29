@@ -81,19 +81,19 @@ public class MyNewOne implements Runnable, KeyListener {
   Rectangle eb = new Rectangle(16, 31);
   Rectangle tb = new Rectangle(25, 20);
   Osc[] oscs = {mm, cx, tx, nx, ny};
-  Nibble tm = new Nibble(0x1000, new Nibble(3, 3)).random(4);
+  Nibble tm = new Nibble(0x1000, new Nibble(3, 3)).random(6);
   Nibble tme = new Nibble(0x1000, new Nibble(2, 7, 6, 7)).random(6);
   Nibble tmt = new Nibble(0x1000, new Nibble(2, 8, 6)).random(0);
   Map<Integer, Rectangle> nn = new HashMap<>();
   Set<Integer> vt = new HashSet<>();
-  boolean test0, test1, debugx, debugy, debugt;
   GraphicsModeZx zxm;
-  int[] sin32 = IntStream.range(0, 128).map(i -> (int) (Math.sin(Math.PI * i / 64) * 32)).toArray();
+  int[] sin32 = IntStream.range(0, 128).map(i -> (int) (Math.sin(Math.PI * i / 64) * 16)).toArray();
   int hp, score, hiscore;
   private final Clip music;
   private final Clip sound;
 
   public MyNewOne(Screen screen) throws Exception {
+    screen.setPreferredSize(new Dimension(screen.mode.resolution.width * 2, screen.mode.resolution.height * 2));
     screen.setTitle(this.getClass().getSimpleName() + ".java");
     this.screen = screen;
     image = screen.createImage();
@@ -318,7 +318,6 @@ public class MyNewOne implements Runnable, KeyListener {
       int p = tmt.get(n & 0xFFF, 1);
       int pm = ((p * T2R >> 8) - mm.v) % T2R;
       int x = Math.abs((T2R >> 1) - pm) << 1;
-      if (debugx) x = 160;
       tb.setLocation(24 + x - 8, y);
       if (ctrl && tb.intersects(nb)) {
         ctrl = false;
@@ -340,7 +339,6 @@ public class MyNewOne implements Runnable, KeyListener {
       }
       int p = (tme.get(n & 0xFFF, 1) - mm.v) & 0x7F;
       int x = 64 + tme.get(n & 0xFFF, 3) + sin32[p];
-      if (debugx) x = 64;
       eb.setLocation(x - 8, y);
       if (ctrl && eb.intersects(nb)) {
         if (nn.get(n) == null) {
@@ -405,11 +403,6 @@ public class MyNewOne implements Runnable, KeyListener {
         score = 0;
         mm.v = 16;
         break;
-      case 9:
-        tx.v = 0;
-        tx.s = 16;
-        debugt = true;
-        break;
     }
   }
 
@@ -422,9 +415,7 @@ public class MyNewOne implements Runnable, KeyListener {
   @Override
   public void run() {
     if (gotoState >= 0) { init(gotoState); gotoState = -1; }
-    if (!debugt) {
-      Arrays.stream(oscs).forEach(Osc::inc);
-    }
+    Arrays.stream(oscs).forEach(Osc::inc);
     cls();
     switch (state) {
       case 0:
@@ -432,12 +423,12 @@ public class MyNewOne implements Runnable, KeyListener {
         draw(4, 24, 16, 0, 0);
         drawAttr(32, 16, 200, 72, 8);
         print("controls:", W/2, 112, 1);
-        print("< left: o  -  right: p >", W/2, 120, 1);
+        print("{ left: o  -  right: p }", W/2, 120, 1);
         print("space to start", W/2, 144, 1);
         zxm.guessInkColorFrom(image, true);
         break;
       case 1:
-        nb.setLocation(nx.v, ny.v);
+        nb.setLocation(nx.v, 72 - sin32[(-mm.v) & 0x7F]);
         drawAttr(nb, 15);
         if (ctrl && !(nx.v < 219 && nx.v > 20)) {
           ctrl = false;
@@ -497,19 +488,8 @@ public class MyNewOne implements Runnable, KeyListener {
           gotoState = 3;
         }
         break;
-      case 9:
-        drawField();
-        int m = 30;
-        print("0", 118, 64, 3);
-        tm(tx.v, 16 * 16, -24 * tx.s, 24 * tx.s + 1, (y, n) -> {
-          print(String.format("%04d", n), 132, 64 + y / tx.s, 2);
-        });
-        break;
     }
-    if (test1) {
-      screen.image.createGraphics().drawImage(image, 0, 0, null);
-      return;
-    }
+    //screen.image.createGraphics().drawImage(image, 0, 0, null);
     zxm.draw(screen.image);
   }
 
@@ -517,25 +497,6 @@ public class MyNewOne implements Runnable, KeyListener {
   public void keyTyped(KeyEvent e) {
     GraphicsMode newMode;
     switch (e.getKeyChar()) {
-      case '0':
-      case '1':
-      case '2':
-      case '3':
-      case '4':
-      case '5':
-      case '6':
-      case '7':
-      case '8':
-      case '9':
-        gotoState = e.getKeyChar() - '0'; break;
-      case 'q': test0 = false; cx.s = 1; break;
-      case 'w': test0 = true; cx.s = 0; break;
-      case 'e': test1 = !test1; break;
-      case 'x': debugx = !debugx; break;
-      case '-': debugt = !debugt; break;
-      case '=': Arrays.stream(oscs).forEach(Osc::inc); break;
-      case '[': tx.s--; break;
-      case ']': tx.s++; break;
       case 0x20:
         if (state == 0) { gotoState = 4; }
         if (state == 2) { gotoState = hp > 0 ? 3 : 0; }
@@ -550,14 +511,6 @@ public class MyNewOne implements Runnable, KeyListener {
         if (ctrl && nx.s != 4) nx.s = -4; break;
       case KeyEvent.VK_P:
         if (ctrl && nx.s != -4) nx.s = 4; break;
-      case KeyEvent.VK_LEFT:
-        if (ctrl) nx.s = -1; break;
-      case KeyEvent.VK_RIGHT:
-        if (ctrl) nx.s = 1; break;
-      case KeyEvent.VK_UP:
-        if (ctrl) ny.s = -1; break;
-      case KeyEvent.VK_DOWN:
-        if (ctrl) ny.s = 1; break;
     }
   }
 
@@ -568,12 +521,6 @@ public class MyNewOne implements Runnable, KeyListener {
         if (ctrl && nx.s == -4) nx.s = -2; break;
       case KeyEvent.VK_P:
         if (ctrl && nx.s == 4) nx.s = 2; break;
-      case KeyEvent.VK_LEFT:
-      case KeyEvent.VK_RIGHT:
-        if (ctrl) nx.s = 0; break;
-      case KeyEvent.VK_UP:
-      case KeyEvent.VK_DOWN:
-        if (ctrl) ny.s = 0; break;
     }
   }
 
