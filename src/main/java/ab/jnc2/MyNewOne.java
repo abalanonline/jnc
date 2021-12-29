@@ -19,11 +19,12 @@ package ab.jnc2;
 import ab.Nibble;
 
 import javax.imageio.ImageIO;
+import javax.sound.sampled.AudioSystem;
+import javax.sound.sampled.Clip;
 import java.awt.*;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.awt.image.BufferedImage;
-import java.io.IOException;
 import java.time.Instant;
 import java.util.*;
 import java.util.function.BiConsumer;
@@ -80,21 +81,25 @@ public class MyNewOne implements Runnable, KeyListener {
   Rectangle eb = new Rectangle(16, 31);
   Rectangle tb = new Rectangle(25, 20);
   Osc[] oscs = {mm, cx, tx, nx, ny};
-  Nibble tm = new Nibble(0x1000, new Nibble(3, 3)).random(0);
-  Nibble tme = new Nibble(0x1000, new Nibble(2, 7, 6, 7)).random('e');
-  Nibble tmt = new Nibble(0x1000, new Nibble(2, 8, 6)).random('t');
+  Nibble tm = new Nibble(0x1000, new Nibble(3, 3)).random(4);
+  Nibble tme = new Nibble(0x1000, new Nibble(2, 7, 6, 7)).random(6);
+  Nibble tmt = new Nibble(0x1000, new Nibble(2, 8, 6)).random(0);
   Map<Integer, Rectangle> nn = new HashMap<>();
   Set<Integer> vt = new HashSet<>();
   boolean test0, test1, debugx, debugy, debugt;
   GraphicsModeZx zxm;
   int[] sin32 = IntStream.range(0, 128).map(i -> (int) (Math.sin(Math.PI * i / 64) * 32)).toArray();
   int hp, score, hiscore;
+  private final Clip music;
+  private final Clip sound;
 
-  public MyNewOne(Screen screen) throws IOException {
+  public MyNewOne(Screen screen) throws Exception {
+    screen.setTitle(this.getClass().getSimpleName() + ".java");
     this.screen = screen;
     image = screen.createImage();
     graphics = image.createGraphics();
-    png = ImageIO.read(Object.class.getResourceAsStream("/MyNewOne.png"));
+    String resName = "/" + this.getClass().getSimpleName() + ".";
+    png = ImageIO.read(Object.class.getResourceAsStream(resName + "png"));
     color = new int[10];
     byte[] buffer = new byte[1];
     indexedColor = new int[color.length];
@@ -114,8 +119,7 @@ public class MyNewOne implements Runnable, KeyListener {
         sprite[0][i][j].createGraphics().drawImage(png, -PNG_MAP[i][2] - j * PNG_MAP[i][0], -PNG_MAP[i][3], null);
       }
     }
-    textFont = new TextFont("/48.rom", 0x3D00, 0x0300, 0x20, 8, 8);
-    textFont = new TextFont("/MyNewOne.fnt", 0, 0x0300, 0x20, 6, 8);
+    textFont = new TextFont(resName + "fnt", 0, 0x0300, 0x20, 6, 8);
     symbols = new TextFont(new byte[]{108, -2, 124, 56, 16}, '1', 8, 5);
     screen.keyListener = this;
     graphics.setXORMode(color0);
@@ -135,6 +139,36 @@ public class MyNewOne implements Runnable, KeyListener {
           }
         }
       }
+    }
+
+    music = AudioSystem.getClip();
+    music.open(AudioSystem.getAudioInputStream(Object.class.getResourceAsStream(resName + "wav")));
+    music.setLoopPoints(18000, 18000 + 56357);
+    sound = AudioSystem.getClip();
+    sound.open(AudioSystem.getAudioInputStream(Object.class.getResourceAsStream(resName + "wav")));
+    sound.setLoopPoints(87800, 88400);
+  }
+
+  void sound(int sample) {
+    switch (sample) {
+      case 0:
+        music.stop();
+        music.flush();
+        music.setFramePosition(0);
+        music.loop(Clip.LOOP_CONTINUOUSLY);
+        break;
+      case 1:
+        sound.stop();
+        sound.flush();
+        sound.setFramePosition(85200);
+        sound.loop(Clip.LOOP_CONTINUOUSLY);
+        break;
+      case 2:
+        music.stop();
+        music.flush();
+        music.setFramePosition(95000);
+        music.start();
+        break;
     }
   }
 
@@ -288,6 +322,7 @@ public class MyNewOne implements Runnable, KeyListener {
       tb.setLocation(24 + x - 8, y);
       if (ctrl && tb.intersects(nb)) {
         ctrl = false;
+        sound(2);
         nn.put(-1, new Rectangle(nb.x - 6, nb.y + 10, mm.v, 0)); // 17,28 -> 29,18
       }
       draw(tb, 9, (p - mm.v) >> 2 & 1);
@@ -309,6 +344,7 @@ public class MyNewOne implements Runnable, KeyListener {
       eb.setLocation(x - 8, y);
       if (ctrl && eb.intersects(nb)) {
         if (nn.get(n) == null) {
+          sound(1);
           score++;
           tx.s++;
           nn.put(n, new Rectangle(eb.x - 6, eb.y + cx.v + 6, mm.v, mm.v)); // 16,31 -> 29,18
@@ -353,9 +389,15 @@ public class MyNewOne implements Runnable, KeyListener {
         if (hp > 0) { hp--; }
         break;
       case 3:
+        sound(0);
         cx.v = 0;
         cx.s = 1;
         mm.v = 68;
+        if (hiscore + score > 0) {
+          tm.random();
+          tme.random();
+          tmt.random();
+        }
         break;
       case 4:
         hp = 3;
@@ -399,6 +441,7 @@ public class MyNewOne implements Runnable, KeyListener {
         drawAttr(nb, 15);
         if (ctrl && !(nx.v < 219 && nx.v > 20)) {
           ctrl = false;
+          sound(2);
           nn.put(-1, new Rectangle(nb.x - 6, nb.y + 10, mm.v, 0));
         }
         drawScore();
@@ -534,7 +577,7 @@ public class MyNewOne implements Runnable, KeyListener {
     }
   }
 
-  public static void main(String[] args) throws IOException {
+  public static void main(String[] args) throws Exception {
     Screen screen = new Screen(GraphicsMode.ZX);
     Runnable basicProgram = new MyNewOne(screen);
     int nano = Instant.now().getNano();
