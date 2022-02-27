@@ -67,6 +67,11 @@ public class GraphicsModeZx {
     }
   }
 
+  public void attrRect(int x, int y, int width, int height, int ink, int paper) {
+    clearRect(x, y, width, height, this.ink, ink);
+    clearRect(x, y, width, height, this.paper, paper);
+  }
+
   public void cls(int ink, int paper) {
     clearRect(0, 0, AW, AH, this.ink, ink);
     clearRect(0, 0, AW, AH, this.paper, paper);
@@ -78,6 +83,41 @@ public class GraphicsModeZx {
 
   public void cls() {
     cls(7, 0);
+  }
+
+  public byte[] toScr() {
+    byte[] bytes = new byte[6912];
+    DataBuffer buffer = this.pixel.getRaster().getDataBuffer();
+    for (int y = 0; y < GraphicsModeZx.HEIGHT; y++) {
+      int yy = (y & 0xC0) + ((y & 0x38) >> 3) + ((y & 7) << 3);
+      for (int x = 0; x < 32; x++) {
+        bytes[y * 32 + x] = (byte) buffer.getElem(yy * 32 + x);
+      }
+    }
+    DataBuffer i = this.ink.getRaster().getDataBuffer();
+    DataBuffer p = this.paper.getRaster().getDataBuffer();
+    for (int x = 0; x < 24 * 32; x++) {
+      bytes[6144 + x] = (byte) (((p.getElem(x) & 0x0F) << 3) | (i.getElem(x) & 7));
+    }
+    return bytes;
+  }
+
+  public void fromScr(byte[] bytes) {
+    DataBuffer buffer = this.pixel.getRaster().getDataBuffer();
+    for (int y = 0; y < GraphicsModeZx.HEIGHT; y++) {
+      int yy = (y & 0xC0) + ((y & 0x38) >> 3) + ((y & 7) << 3);
+      for (int x = 0; x < 32; x++) {
+        buffer.setElem(yy * 32 + x, bytes[y * 32 + x]);
+      }
+    }
+    DataBuffer i = this.ink.getRaster().getDataBuffer();
+    DataBuffer p = this.paper.getRaster().getDataBuffer();
+    for (int x = 0; x < 24 * 32; x++) {
+      byte col = bytes[6144 + x];
+      int bright = (col >> 3) & 8;
+      p.setElem(x, bright | ((col >> 3) & 7));
+      i.setElem(x, bright | (col & 7));
+    }
   }
 
   public void guessInkColorSlow(BufferedImage sourceImage) {
