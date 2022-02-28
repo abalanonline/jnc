@@ -3,13 +3,13 @@ video engine on java awt
 
 ### Amiga Ball
 
-![amiga ball](amigaball.png)
+![amiga ball](src/test/resources/amigaball.png)
 
 ### NohzDyve - java replica
 
 [video](https://youtu.be/BISPHmAuor8)
 
-![Black Mirror NohzDyve](nohzdyve.png)
+![Black Mirror NohzDyve](src/test/resources/nohzdyve.png)
 
 ### JNC2 Launcher
 

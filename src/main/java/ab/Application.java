@@ -135,7 +135,7 @@ public class Application implements Runnable, KeyListener {
       throw new IllegalStateException(e);
     }
     try {
-      Playable playable = (Playable) c.newInstance();
+      Playable playable = (Playable) c.getDeclaredConstructor().newInstance();
       playable.load();
       screen.reset(GraphicsMode.DEFAULT);
       Graphics2D graphics = screen.image.createGraphics();
@@ -146,7 +146,9 @@ public class Application implements Runnable, KeyListener {
         playable.tick(Instant.now(), list);
         playable.draw(graphics);
       };
-    } catch (InstantiationException | IllegalAccessException e) {
+    } catch (NoSuchMethodException e) {
+      // try next constructor
+    } catch (InstantiationException | IllegalAccessException | InvocationTargetException e) {
       throw new IllegalStateException(e);
     }
   }
