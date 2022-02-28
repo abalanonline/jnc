@@ -117,8 +117,12 @@ public class Screen extends JComponent implements KeyListener {
   @Override
   public void keyPressed(KeyEvent e) {
     if (keyListener != null) keyListener.keyPressed(e);
-    if (e.getKeyCode() == KeyEvent.VK_F11) {
+    if ((e.getKeyCode() == KeyEvent.VK_F11) && (e.getModifiersEx() == 0)) {
       setFullscreen(!fullscreen);
+    }
+    if ((e.getKeyCode() == KeyEvent.VK_F11) && (e.getModifiersEx() == InputEvent.ALT_DOWN_MASK)) {
+      setPreferredSize(new Dimension(mode.resolution.width, mode.resolution.height));
+      setFullscreen(false);
     }
   }
 
