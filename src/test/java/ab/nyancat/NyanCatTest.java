@@ -17,6 +17,8 @@
 package ab.nyancat;
 
 import org.junit.jupiter.api.Test;
+import org.w3c.dom.NamedNodeMap;
+import org.w3c.dom.NodeList;
 
 import javax.imageio.ImageIO;
 import javax.imageio.ImageReader;
@@ -28,24 +30,40 @@ import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.stream.IntStream;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class NyanCatTest {
 
   private List<BufferedImage> readGif(String resource) {
-    List<BufferedImage> images = new ArrayList<>();
-    InputStream inputStream = getClass().getResourceAsStream(resource);
-    ImageReader gifImageReader = ImageIO.getImageReadersByFormatName("gif").next();
     try {
+      List<BufferedImage> images = new ArrayList<>();
+      InputStream inputStream = getClass().getResourceAsStream(resource);
+      ImageReader gifImageReader = ImageIO.getImageReadersByFormatName("gif").next();
       gifImageReader.setInput(ImageIO.createImageInputStream(inputStream));
+      BufferedImage master = null;
       for (int i = 0; i < gifImageReader.getNumImages(true); i++) {
-        images.add(gifImageReader.read(i));
+        NodeList nodes = gifImageReader.getImageMetadata(i).getAsTree("javax_imageio_gif_image_1.0").getChildNodes();
+        NamedNodeMap imageDescriptor = IntStream.range(0, nodes.getLength()).mapToObj(nodes::item)
+            .filter(n -> "ImageDescriptor".equals(n.getNodeName())).findAny().get().getAttributes();
+        BufferedImage image = gifImageReader.read(i);
+        if (i == 0) {
+          master = new BufferedImage(image.getWidth(), image.getHeight(), BufferedImage.TYPE_INT_ARGB);
+        }
+        master.getGraphics().drawImage(image,
+            Integer.parseInt(imageDescriptor.getNamedItem("imageLeftPosition").getNodeValue()),
+            Integer.parseInt(imageDescriptor.getNamedItem("imageTopPosition").getNodeValue()),
+            null);
+        image = new BufferedImage(master.getWidth(), master.getHeight(), BufferedImage.TYPE_INT_RGB);
+        image.getGraphics().drawImage(master, 0, 0, null);
+        images.add(image);
       }
+      return images;
     } catch (IOException e) {
       throw new UncheckedIOException(e);
     }
-    return images;
   }
 
   private byte[] toByteArray(BufferedImage image) {
@@ -75,6 +93,20 @@ class NyanCatTest {
     return outputStream.toByteArray();
   }
 
+  private BufferedImage to70(BufferedImage image) {
+    int w = image.getWidth();
+    int h = image.getHeight();
+    int sw = (w + 40) / 70 / 2;
+    int sh = (h + 40) / 70 / 2;
+    BufferedImage image70 = new BufferedImage(70, 70, BufferedImage.TYPE_INT_RGB);
+    for (int y = 0; y < 70; y++) {
+      for (int x = 0; x < 70; x++) {
+        image70.setRGB(x, y, image.getRGB(w * x / 70 + sw, h * y / 70 + sh));
+      }
+    }
+    return image70;
+  }
+
   @Test
   void testDraw() {
     List<BufferedImage> images = readGif("/nyancat/poptart1red1.gif");
@@ -82,9 +114,8 @@ class NyanCatTest {
     assertArrayEquals(skyColor, Arrays.copyOfRange(toByteArray(images.get(0)), 0, 3));
     for (int i = 0; i < images.size(); i++) {
       BufferedImage image = images.get(i);
-      int size = image.getWidth();
-      assertEquals(size, image.getHeight());
-      assertArrayEquals(toByteArray(image), NyanCat.draw(i, size));
+      assertEquals(image.getWidth(), image.getHeight());
+      assertArrayEquals(toByteArray(to70(image)), NyanCat.draw(i));
     }
   }
 

@@ -21,8 +21,14 @@ package ab.nyancat;
  */
 public class NyanCat {
 
-  public static byte[] draw(int frame, int size) {
-    return new byte[size * size * 3];
+  public static byte[] draw(int frame) {
+    byte[] image = new byte[70 * 70 * 3];
+    for (int i = 0; i < image.length; i += 3) {
+      image[i] = 0x00;
+      image[i+1] = 0x33;
+      image[i+2] = 0x66;
+    }
+    return image;
   }
 
 }
