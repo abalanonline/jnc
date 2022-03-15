@@ -115,7 +115,7 @@ class NyanCatTest {
     for (int i = 0; i < images.size(); i++) {
       BufferedImage image = images.get(i);
       assertEquals(image.getWidth(), image.getHeight());
-      assertArrayEquals(toByteArray(to70(image)), NyanCat.draw(i));
+      assertArrayEquals(toByteArray(to70(image)), new NyanCat().draw(i));
     }
   }
 
