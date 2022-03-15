@@ -24,16 +24,37 @@ public class NyanCat {
   byte[] screen = new byte[70 * 70 * 3];
 
   public byte[] draw(int frame) {
+    cls();
+    rainbow(0);
+    star(42, 1, 1);
+    star(68, 10, 3);
+    star(1, 22, 1);
+    image(25, 25, POPTART_IMAGE, POPTART_COLOR);
+    image(35, 30, HEAD_IMAGE, CAT_COLOR);
+    image(19, 32, TAIL_IMAGE[0], CAT_COLOR);
+    return screen;
+  }
+
+  void cls() {
     for (int i = 0; i < screen.length; i += 3) {
       screen[i] = 0x00;
       screen[i+1] = 0x33;
       screen[i+2] = 0x66;
     }
-    star(42, 1, 1);
-    star(68, 10, 3);
-    star(1, 22, 1);
-    image(25, 25, POPTART_IMAGE, POPTART_COLOR);
-    return screen;
+  }
+
+  void r8(int x, int y) {
+    for (int yy = 0; yy < 18; yy++) {
+      for (int xx = 0; xx < 8; xx++) {
+        pixel(x + xx, y + yy, RAINBOW_COLOR[yy / 3]);
+      }
+    }
+  }
+
+  void rainbow(int sequence) {
+    for (int i = 0; i < 4; i++) {
+      r8(19 - 8 * i, 26 + i % 2);
+    }
   }
 
   void star(int x, int y, int sequence) {
@@ -73,9 +94,35 @@ public class NyanCat {
       {{1},{1,0,0,0,1},{},{1,0,0,0,0,0,1},{},{1,0,0,0,1},{1}},
       {{1},{},{},{1,0,0,0,0,0,1},{},{},{1}},
   };
-  public static final int[] POPTART_COLOR = {0, 0x000000};
+  public static final int[] RAINBOW_COLOR = {0xFF0000, 0xFF9900, 0xFFFF00, 0x33FF00, 0x0099FF, 0x6633FF};
+  public static final int[] POPTART_COLOR = {0, 0x000000, 0xFFCC99, 0xFF99FF, 0xFF3399, 0x050505};
   public static final byte[][] POPTART_IMAGE = {
       {0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0},
+      {0,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1,0},
+      {1,2,2,2,3,3,3,3,3,3,3,3,3,3,3,3,3,2,2,2,1},
+      {1,2,2,3,3,3,3,3,3,4,3,3,4,3,3,3,3,3,2,2,1},
+      {1,2,3,3,4,3,3,3,3,3,3,3,3,3,3,3,3,3,3,2,1},
+      {1,2,3,3,3,3,3,3,3,3,3,3,5,5,3,3,4,3,3,2,1},
+      {1,2,3,3,3,3,3,3,3,3,3,5,5,5,5,3,3,3,3,2,1},
+      {5},
+      {1,2,2,2,3,3,3,3,3,3,3,3,3,3,3,3,3,2,2,2,1},
+      {0,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1,0},
+      {0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0},
   };
+  public static final int[] CAT_COLOR = {0, 0x000000, 0x999999, 0xFFFFFF, 0xFF9999, 0x050505, 0x060606};
+  public static final byte[][] HEAD_IMAGE = {
+      {0,0,1,1,0,0,0,0,0,0,0,0,1,1,0,0},
+      {0,1,2,2,1,0,0,0,0,0,0,1,2,2,1,0},
+      {0,1,2,2,2,1,0,0,0,0,1,2,2,2,1,0},
+      {0,1,2,2,2,2,1,1,1,1,2,2,2,2,1,0},
+      {0,1,2,2,2,2,2,2,2,2,2,2,2,2,1,0},
+      {1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,1},
+      {6},
+  };
+  public static final byte[][][] TAIL_IMAGE = {{
+      {1,1,1,1,0,0},
+      {1,2,2,1,1,0},
+      {5},
+  }};
 
 }

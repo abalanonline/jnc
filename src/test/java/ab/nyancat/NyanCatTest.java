@@ -107,6 +107,14 @@ class NyanCatTest {
     return image70;
   }
 
+  void assertImageEquals(byte[] expected, byte[] actual) {
+    for (int y = 0, i = 0; y < 70; y++) {
+      for (int x = 0; x < 70; x++, i += 3) {
+        assertArrayEquals(Arrays.copyOfRange(expected, i, i + 3), Arrays.copyOfRange(actual, i, i + 3), x + ", " + y);
+      }
+    }
+  }
+
   @Test
   void testDraw() {
     List<BufferedImage> images = readGif("/nyancat/poptart1red1.gif");
@@ -115,6 +123,7 @@ class NyanCatTest {
     for (int i = 0; i < images.size(); i++) {
       BufferedImage image = images.get(i);
       assertEquals(image.getWidth(), image.getHeight());
+      assertImageEquals(toByteArray(to70(image)), new NyanCat().draw(i));
       assertArrayEquals(toByteArray(to70(image)), new NyanCat().draw(i));
     }
   }
