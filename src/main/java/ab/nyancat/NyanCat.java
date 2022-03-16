@@ -25,17 +25,9 @@ public class NyanCat {
 
   public byte[] draw(int frame) {
     cls();
-    rainbow(0);
-    star(42, 1, 1);
-    star(68, 10, 3);
-    star(1, 22, 1);
-    star(11, 44, 5);
-    star(70, 56, 1);
-    star(38, 66, 2);
-    image(25, 25, POPTART_IMAGE, POPTART_COLOR);
-    image(35, 30, HEAD_IMAGE, CAT_COLOR);
-    image(19, 32, TAIL_IMAGE[0], CAT_COLOR);
-    image(23, 41, LEGS_IMAGE[0], CAT_COLOR);
+    rainbow(frame);
+    stars(STAR_CHART[frame]);
+    cat(frame);
     return screen;
   }
 
@@ -47,6 +39,14 @@ public class NyanCat {
     }
   }
 
+  void cat(int frame) {
+    int[] c = CAT_CHART[frame];
+    image(c[0], c[1], POPTART_IMAGE, POPTART_COLOR);
+    image(c[2], c[3], HEAD_IMAGE, CAT_COLOR);
+    image(c[4], c[5], TAIL_IMAGE[frame], CAT_COLOR);
+    image(c[6], c[7], LEGS_IMAGE[frame], CAT_COLOR);
+  }
+
   void r8(int x, int y) {
     for (int yy = 0; yy < 18; yy++) {
       for (int xx = 0; xx < 8; xx++) {
@@ -55,19 +55,25 @@ public class NyanCat {
     }
   }
 
-  void rainbow(int sequence) {
+  void rainbow(int frame) {
     for (int i = 0; i < 4; i++) {
       r8(19 - 8 * i, 26 + i % 2);
     }
   }
 
-  void star(int x, int y, int sequence) {
-    byte[][] image = STAR_IMAGE[sequence];
+  void star(int x, int y, int frame) {
+    byte[][] image = STAR_IMAGE[frame];
     for (int iy = 0, ny = y - image.length / 2; iy < image.length; iy++, ny++) {
       byte[] line = image[iy];
       for (int ix = 0, nx = x - line.length / 2; ix < line.length; ix++, nx++) {
         if (line[ix] != 0) pixel(nx, ny, -1);
       }
+    }
+  }
+
+  void stars(int[] chart) {
+    for (int i = 2; i < chart.length; i += 3) {
+      star(chart[i - 2], chart[i - 1], chart[i]);
     }
   }
 
@@ -90,6 +96,25 @@ public class NyanCat {
     screen[i+2] = (byte) color;
   }
 
+  public static final int[][] STAR_CHART = {
+      {42,  1, 1, 68, 10, 3,  1, 22, 1, 11, 44, 5, 70, 56, 1, 38, 66, 2},
+      {36,  1, 2, 60, 10, 4},
+      {},
+      {},
+      {},
+      {},
+      {},
+  };
+  public static final int[][] CAT_CHART = {
+      // tart, head, tail, legs
+      {25, 25, 35, 30, 19, 32, 23, 41},
+      {25, 25, 36, 30, 19, 32, 23, 41},
+      {},
+      {},
+      {},
+      {},
+      {},
+  };
   public static final byte[][][] STAR_IMAGE = {
       {{1}},
       {{1},{1,0,1},{1}},
@@ -106,16 +131,16 @@ public class NyanCat {
       {1,2,2,2,3,3,3,3,3,3,3,3,3,3,3,3,3,2,2,2,1},
       {1,2,2,3,3,3,3,3,3,4,3,3,4,3,3,3,3,3,2,2,1},
       {1,2,3,3,4,3,3,3,3,3,3,3,3,3,3,3,3,3,3,2,1},
-      {1,2,3,3,3,3,3,3,3,3,3,3,5,5,3,3,4,3,3,2,1},
-      {1,2,3,3,3,3,3,3,3,3,3,5,5,5,5,3,3,3,3,2,1},
-      {1,2,3,3,3,3,3,3,4,3,3,5,5,5,5,5,3,3,3,2,5},
+      {1,2,3,3,3,3,3,3,3,3,3,3,3,5,3,3,4,3,3,2,1},
+      {1,2,3,3,3,3,3,3,3,3,3,3,5,5,5,3,3,3,3,2,1},
+      {1,2,3,3,3,3,3,3,4,3,3,3,5,5,5,5,3,3,3,2,1},
+      {1,2,3,3,3,3,3,3,3,3,3,3,5,5,5,5,5,5,5,5,5},//33
+      {1,2,3,3,3,4,3,3,3,3,3,3,5,5,5,5,5,5,5,5,5},
+      {1,2,3,3,3,3,3,3,3,4,3,5,5,5,5,5,5,5,5,5,5},
+      {1,2,3,4,3,3,3,3,3,3,3,5,5,5,5,5,5,5,5,5,5},
       {1,2,3,3,3,3,3,3,3,3,3,5,5,5,5,5,5,5,5,5,5},
-      {1,2,3,3,3,4,3,3,3,3,3,5,5,5,5,5,5,5,5,5,5},
-      {1,2,3,3,3,3,3,3,3,4,5,5,5,5,5,5,5,5,5,5,5},
-      {1,2,3,4,3,3,3,3,3,3,5,5,5,5,5,5,5,5,5,5,5},
-      {1,2,3,3,3,3,3,3,3,3,5,5,5,5,5,5,5,5,5,5,5},
-      {1,2,3,3,3,3,3,4,3,3,5,5,5,5,5,5,5,5,5,5,5},
-      {1,2,2,3,4,3,3,3,3,3,5,5,5,5,5,5,5,5,5,5,5},
+      {1,2,3,3,3,3,3,4,3,3,3,5,5,5,5,5,5,5,5,5,5},
+      {1,2,2,3,4,3,3,3,3,3,3,5,5,5,5,5,5,5,5,5,5},
       {1,2,2,2,3,3,3,3,3,3,3,3,5,5,5,5,5,5,5,5,5},
       {0,1,2,2,2,2,2,2,2,2,2,2,5,5,5,5,5,5,5,5,5},
       {0,0,1,1,1,1,1,1,1,1,1,1,1,5,5,5,5,5,5,5,5},
@@ -144,12 +169,29 @@ public class NyanCat {
       {0,0,1,1,2,2},
       {0,0,0,1,1,1},
       {0,0,0,0,0,1},
+  }, {
+      {0,0,0,0,0,0},
+      {0,1,1,0,0,0},
+      {1,2,2,1,0,0},
+      {1,2,2,1,1,1},
+      {0,1,2,2,2,2},
+      {0,0,1,1,2,2},
+      {0,0,0,0,1,1},
+  }, {
+  }, {
+  }, {
+  }, {
   }};
   public static final byte[][][] LEGS_IMAGE = {{
       {0,1,1},
       {1,2,2,2},
       {1,2,2,1,1,0,1,2,2,1,0,0,0,0,0,1,2,2,1,0,1,2,2,1},
       {1,1,1,1,0,0,1,1,1,0,0,0,0,0,0,0,1,1,1,0,0,1,1,0},
+  }, {
+  }, {
+  }, {
+  }, {
+  }, {
   }};
 
 }
