@@ -121,7 +121,7 @@ class NyanCatTest {
     List<BufferedImage> images = readGif("/nyancat/poptart1red1.gif");
     byte[] skyColor = new byte[]{0x00, 0x33, 0x66};
     assertArrayEquals(skyColor, Arrays.copyOfRange(toByteArray(images.get(0)), 0, 3));
-    int size = 2; //images.size();
+    int size = 3; //images.size();
     for (int i = 0; i < size; i++) {
       BufferedImage image = images.get(i);
       assertEquals(image.getWidth(), image.getHeight());
