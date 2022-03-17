@@ -119,6 +119,7 @@ class NyanCatTest {
   @Test
   void testDraw() {
     List<BufferedImage> images = readGif("/nyancat/poptart1red1.gif");
+    assertEquals(12, images.size());
     byte[] skyColor = new byte[]{0x00, 0x33, 0x66};
     assertArrayEquals(skyColor, Arrays.copyOfRange(toByteArray(images.get(0)), 0, 3));
     for (int i = 0; i < images.size(); i++) {
@@ -126,6 +127,14 @@ class NyanCatTest {
       assertEquals(image.getWidth(), image.getHeight());
       assertImageEquals(toByteArray(to70(image)), new NyanCat().draw(i), Integer.toString(i));
       assertArrayEquals(toByteArray(to70(image)), new NyanCat().draw(i));
+    }
+
+    images = readGif("/nyancat/nft.gif");
+    assertEquals(12, images.size());
+    for (int i = 0; i < images.size(); i++) {
+      BufferedImage image = images.get(i);
+      assertEquals(image.getWidth(), image.getHeight());
+      assertArrayEquals(toByteArray(to70(image)), new NyanCat().drawNft(i));
     }
   }
 

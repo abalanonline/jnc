@@ -8,5 +8,5 @@
 
 ```bash
 ffmpeg -i poptart1red1.gif -vf palettegen palette.png
-ffmpeg -i nft.mp4 -i palette.png -filter_complex "fps=14.29,scale=700:-1:flags=neighbor[x];[x][1:v]paletteuse=dither=none" nft.gif
+ffmpeg -i nft.mp4 -i palette.png -filter_complex "fps=15,scale=700:-1:flags=neighbor[x];[x][1:v]paletteuse=dither=none" nft.gif
 ```
