@@ -55,28 +55,22 @@ public class NyanCat {
     image(c[6], c[7], LEGS_IMAGE[frame], CAT_COLOR);
   }
 
-  void r8(int x, int y) {
-    for (int yy = 0; yy < 18; yy++) {
-      for (int xx = 0; xx < 8; xx++) {
-        pixel(x + xx, y + yy, RAINBOW_COLOR[yy / 3]);
-      }
-    }
-  }
-
   void rainbow(int frame) {
-    for (int i = 0; i < 4; i++) {
-      if ((frame & 2) == 0) {
-        r8(19 - 8 * i, 26 + i % 2);
-      } else {
-        r8(18 - 8 * i, 27 - i % 2);
+    int sx = (frame >> 1) & 1;
+    for (int x = 0; x < 32; x++) {
+      int sy = ((x >> 3) ^ (frame >> 1) ^ 1) & 1;
+      for (int y = 0; y < 18; y++) {
+        pixel(x - sx - 5, y + 26 + sy, RAINBOW_COLOR[y / 3]);
       }
     }
   }
 
   void rainbow2(int frame) {
-    for (int y = 0; y < 18; y++) {
-      for (int x = 0; x < 32; x++) {
-        pixel(x - (frame & 1), y + 25 + (((x >> 3) & 1) ^ ((frame >> 1) & 1)), RAINBOW_COLOR[y / 3]);
+    int sx = frame & 1; // people have the same pattern
+    for (int x = 0; x < 32; x++) {
+      int sy = ((x >> 3) ^ (frame >> 1) ^ 1) & 1;
+      for (int y = 0; y < 18; y++) {
+        pixel(x - sx, y + 26 - sy, RAINBOW_COLOR[y / 3]);
       }
     }
   }
