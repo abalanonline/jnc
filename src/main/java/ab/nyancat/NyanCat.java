@@ -21,33 +21,58 @@ package ab.nyancat;
  */
 public class NyanCat {
 
+  public static final NyanCat CLASSIC = new NyanCat(true, new int[]{1, 10, 22, 44, 56, 66}, 0);
+  public static final NyanCat NFT = new NyanCat(false, new int[]{17, 22, 34, 44, 47, 56}, 1);
+  public static final NyanCat STARRY = new NyanCat(true, new int[]{1, 10, 17, 22, 34, 44, 47, 56, 66}, 0);
+
   byte[] screen = new byte[70 * 70 * 3];
+  private final boolean rainbowTransparent;
+  private final int[] starLines;
+  private final int starThreshold;
+
+  public NyanCat(boolean rainbowTransparent, int[] starLines, int starThreshold) {
+    this.rainbowTransparent = rainbowTransparent;
+    this.starLines = starLines;
+    this.starThreshold = starThreshold;
+  }
+
+  public byte[] draw(int frame) {
+    sky();
+    if (rainbowTransparent) rainbow1(frame);
+    stars(starLines, starThreshold, frame);
+    if (!rainbowTransparent) rainbow2(frame);
+    cat(frame);
+    return screen;
+  }
 
   public byte[] drawNft(int frame) {
-    cls();
-    stars(STAR_CHART_NFT[frame % 12]);
+    sky();
+    //stars(STAR_CHART_NFT[frame % 12]);
+    stars(LINES_NFT, 1, frame);
     rainbow2(frame);
     cat(frame % 6);
     return screen;
   }
 
-  public byte[] draw(int frame) {
-    cls();
-    rainbow(frame);
-    stars(STAR_CHART[frame % 12]);
+  public byte[] drawClassic(int frame) {
+    sky();
+    rainbow1(frame);
+    //stars(STAR_CHART_CLASSIC[frame % 12]);
+    stars(LINES_CLASSIC, 0, frame);
     cat(frame % 6);
     return screen;
   }
 
-  void cls() {
-    for (int i = 0; i < screen.length; i += 3) {
-      screen[i] = 0x00;
-      screen[i+1] = 0x33;
-      screen[i+2] = 0x66;
+  void sky() {
+    for (int i = 0; i < screen.length;) {
+      screen[i++] = 0x00;
+      screen[i++] = 0x33;
+      screen[i++] = 0x66;
     }
   }
 
   void cat(int frame) {
+    frame = frame % CAT_CHART.length;
     int[] c = CAT_CHART[frame];
     image(c[0], c[1], POPTART_IMAGE, POPTART_COLOR);
     image(c[2], c[3], HEAD_IMAGE, CAT_COLOR);
@@ -55,7 +80,7 @@ public class NyanCat {
     image(c[6], c[7], LEGS_IMAGE[frame], CAT_COLOR);
   }
 
-  void rainbow(int frame) {
+  void rainbow1(int frame) {
     int sx = (frame >> 1) & 1;
     for (int x = 0; x < 32; x++) {
       int sy = ((x >> 3) ^ (frame >> 1) ^ 1) & 1;
@@ -66,7 +91,7 @@ public class NyanCat {
   }
 
   void rainbow2(int frame) {
-    int sx = frame & 1; // people have the same pattern
+    int sx = frame & 1;
     for (int x = 0; x < 32; x++) {
       int sy = ((x >> 3) ^ (frame >> 1) ^ 1) & 1;
       for (int y = 0; y < 18; y++) {
@@ -91,6 +116,17 @@ public class NyanCat {
     }
   }
 
+  void stars(int[] lines, int threshold, int frame) {
+    for (int i = 0, j = 0; i < lines.length; i++) {
+      int y = lines[i];
+      for (;STAR_CHART[j][0] != y; j += 3);
+      int f = STAR_CHART[j + 2][frame];
+      if (f > threshold) {
+        star(STAR_CHART[j + 1][frame], y, f - 1);
+      }
+    }
+  }
+
   void image(int x, int y, byte[][] image, int[] color) {
     for (int iy = 0, ny = y; iy < image.length; iy++, ny++) {
       byte[] line = image[iy];
@@ -110,6 +146,20 @@ public class NyanCat {
     screen[i+2] = (byte) color;
   }
 
+  public static final int[] LINES_CLASSIC = {1, 10, 22, 44, 56, 66};
+  public static final int[] LINES_NFT = {17, 22, 34, 44, 47, 56};
+  public static final int[][] STAR_CHART = {
+      { 1}, {42, 36, 28, 19, 10,  4,  0,  0, 68, 60, 52, 46}, {2, 3, 4, 5, 6, 1, 2, 0, 4, 5, 6, 1}, // c
+      {10}, {68, 60, 52, 46, 42, 36, 28, 19, 10,  4,  0,  0}, {4, 5, 6, 1, 2, 3, 4, 5, 6, 1, 2, 0}, // c
+      {17}, {68, 60, 52,  0, 42, 36, 28, 19, 10,  0,  0,  0}, {4, 5, 6, 0, 2, 3, 4, 5, 6, 0, 2, 0}, // n
+      {22}, { 1,  0, 69, 61, 53, 47, 43, 37, 29, 20, 11,  5}, {2, 0, 4, 5, 6, 1, 2, 3, 4, 5, 6, 1},
+      {34}, { 0,  0,  0,  0,  0,  0,  0,  0, 68, 60, 52,  0}, {0, 0, 0, 0, 0, 0, 0, 0, 4, 5, 6, 0}, // n
+      {44}, {11,  5,  1,  0,  0, 69, 61, 53, 43, 37, 29, 20}, {6, 1, 2, 0, 0, 4, 5, 6, 2, 3, 4, 5},
+      {47}, {38, 30, 21, 12,  0,  2,  0,  0,  0, 54,  0, 44}, {3, 4, 5, 6, 0, 2, 0, 0, 0, 6, 0, 2}, // n
+      {56}, {69, 66, 60, 51, 42, 34, 28, 24, 18, 10,  2, -1}, {1, 1, 6, 5, 4, 3, 2, 1, 6, 5, 4, 5},
+      {66}, {38, 30, 21, 12,  6,  2,  0, 70, 62, 54, 48, 44}, {3, 4, 5, 6, 1, 2, 0, 4, 5, 6, 1, 2}, // c
+  };
+
   public static final int[][] STAR_CHART_NFT = {
       {68, 17, 3,  1, 22, 1,            11, 44, 5, 38, 47, 2           },
       {60, 17, 4,                                  30, 47, 3           },
@@ -125,7 +175,7 @@ public class NyanCat {
       {                                 20, 44, 4, 44, 47, 1, -1, 56, 4},
   };
 
-  public static final int[][] STAR_CHART = {
+  public static final int[][] STAR_CHART_CLASSIC = {
       {42, 1, 1, 68, 10, 3,  1, 22, 1, 11, 44, 5, 70, 56, 1, 38, 66, 2},
       {36, 1, 2, 60, 10, 4,             5, 44, 0, 66, 56, 0, 30, 66, 3},
       {28, 1, 3, 52, 10, 5, 69, 22, 3,  1, 44, 1, 60, 56, 5, 21, 66, 4},
@@ -173,7 +223,7 @@ public class NyanCat {
       {1,2,3,4,3,3,3,3,3,3,3,5,5,5,5,5,5,5,5,5,5},
       {1,2,3,3,3,3,3,3,3,3,3,5,5,5,5,5,5,5,5,5,5},
       {1,2,3,3,3,3,3,4,3,3,3,5,5,5,5,5,5,5,5,5,5},
-      {1,2,2,3,4,3,3,3,3,3,3,5,5,5,5,5,5,5,5,5,5},
+      {1,2,2,3,4,3,3,3,3,3,3,4,5,5,5,5,5,5,5,5,5},
       {1,2,2,2,3,3,3,3,3,3,3,3,5,5,5,5,5,5,5,5,5},
       {0,1,2,2,2,2,2,2,2,2,2,2,2,5,5,5,5,5,5,5,5},
       {0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,0},

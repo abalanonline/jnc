@@ -29,7 +29,10 @@ import java.io.InputStream;
 import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
@@ -117,6 +120,28 @@ class NyanCatTest {
   }
 
   @Test
+  void buildChart() {
+    Map<Integer, int[]> frame = new HashMap<>();
+    Map<Integer, int[]> x = new HashMap<>();
+    int[][] chart = NyanCat.STAR_CHART_NFT;
+    chart = NyanCat.STAR_CHART_CLASSIC;
+    for (int i = 0; i < chart.length; i++) {
+      int[] c = chart[i];
+      for (int j = 2; j < c.length; j += 3) {
+        x.computeIfAbsent(c[j - 1], a -> new int[12])[i] = c[j - 2];
+        frame.computeIfAbsent(c[j - 1], a -> new int[12])[i] = c[j] + 1;
+      }
+    }
+    x.keySet().stream().sorted().forEach(k -> {
+      System.out.printf("      {%2d}, {%s}, {%s},%n", k,
+          Arrays.stream(x.get(k)).mapToObj(v -> String.format("%2d", v)).collect(Collectors.joining(", ")),
+          Arrays.stream(frame.get(k)).mapToObj(v -> String.format("%d", v)).collect(Collectors.joining(", "))
+          );
+    });
+
+  }
+
+  @Test
   void testDraw() {
     List<BufferedImage> images = readGif("/nyancat/poptart1red1.gif");
     assertEquals(12, images.size());
@@ -125,8 +150,8 @@ class NyanCatTest {
     for (int i = 0; i < images.size(); i++) {
       BufferedImage image = images.get(i);
       assertEquals(image.getWidth(), image.getHeight());
-      assertImageEquals(toByteArray(to70(image)), new NyanCat().draw(i), Integer.toString(i));
-      assertArrayEquals(toByteArray(to70(image)), new NyanCat().draw(i));
+      assertImageEquals(toByteArray(to70(image)), NyanCat.CLASSIC.draw(i), Integer.toString(i));
+      assertArrayEquals(toByteArray(to70(image)), NyanCat.CLASSIC.draw(i));
     }
 
     images = readGif("/nyancat/nft.gif");
@@ -134,7 +159,7 @@ class NyanCatTest {
     for (int i = 0; i < images.size(); i++) {
       BufferedImage image = images.get(i);
       assertEquals(image.getWidth(), image.getHeight());
-      assertArrayEquals(toByteArray(to70(image)), new NyanCat().drawNft(i));
+      assertArrayEquals(toByteArray(to70(image)), NyanCat.NFT.draw(i));
     }
   }
 
