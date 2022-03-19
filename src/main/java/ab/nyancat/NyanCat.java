@@ -22,7 +22,7 @@ import java.util.stream.Stream;
 /**
  * There's more than one way to draw a cat.
  */
-public class NyanCat {
+public class NyanCat implements Runnable {
 
   public static final int[] LINES_CLASSIC = {1, 10, 22, 44, 56, 66};
   public static final int[] LINES_NFT = {17, 22, 34, 44, 47, 56};
@@ -127,6 +127,30 @@ public class NyanCat {
     screen[i] = (byte) (color >> 16);
     screen[i+1] = (byte) (color >> 8);
     screen[i+2] = (byte) color;
+  }
+
+  private String ansi24(byte r, byte g, byte b) {
+    return "2;" + (r & 0xFF) + ";" + (g & 0xFF) + ";" + (b & 0xFF) + "m";
+  }
+
+  private String ansi8(byte r, byte g, byte b) {
+    return "5;" + ((r & 0xFF) / 0x33 * 36 + (g & 0xFF) / 0x33 * 6 + (b & 0xFF) / 0x33 + 16) + "m";
+  }
+
+  @Override
+  public void run() {
+    draw(4);
+    for (int y = 23; y < 47; y += 2) {
+      int i = 210 * y;
+      int j = i + 210;
+      StringBuilder sb = new StringBuilder();
+      for (int x = 0; x < 70; x++) {
+        sb.append("\u001B[38;").append(ansi24(screen[i++], screen[i++], screen[i++]));
+        sb.append("\u001B[48;").append(ansi24(screen[j++], screen[j++], screen[j++]));
+        sb.append("\u2580\u001B[0m");
+      }
+      System.out.println(sb.toString());
+    }
   }
 
   public static final int[][] STAR_CHART = {
@@ -275,5 +299,12 @@ public class NyanCat {
       {1,2,2,1,0,1,2,2,1,0,0,0,0,0,0,1,2,2,1,0,1,2,2,1},
       {1,1,1,0,0,1,1,1,0,0,0,0,0,0,0,1,1,1,0,0,0,1,1,1},
   }};
+
+  /**
+   * mvn compile exec:java -Dexec.mainClass=ab.nyancat.NyanCat
+   */
+  public static void main(String[] args) {
+    NyanCat.NFT.run();
+  }
 
 }
