@@ -37,6 +37,7 @@ public class Application implements Runnable, KeyListener {
       "ab.jnc2.AmigaBall",
       "ab.jnc2.NohzDyve",
       "ab.jnc.g3.Game3",
+      "ab.jnc2.GeodesicDome",
   };
 
   public static final int BLACK = 8;
@@ -52,8 +53,9 @@ public class Application implements Runnable, KeyListener {
   private TextFont textFont;
   private int selected;
   List<JncKeyEvent> keyEventList;
-  static GraphicsMode newMode;
-  static Runnable program;
+  private GraphicsMode newMode;
+  private String newApplication;
+  private Runnable program;
 
   public Application(Screen screen) {
     this.screen = screen;
@@ -162,7 +164,10 @@ public class Application implements Runnable, KeyListener {
       case '4': newMode = GraphicsMode.CGA_HIGH; break;
       case '0': newMode = GraphicsMode.DEFAULT; break;
       case KeyEvent.VK_ENTER:
-        run(CLASSES[this.selected]);
+        if (newApplication == null) {
+          newApplication = CLASSES[selected];
+          run(newApplication);
+        }
         break;
     }
   }
@@ -193,13 +198,20 @@ public class Application implements Runnable, KeyListener {
     Screen screen = new Screen(GraphicsMode.ZX);
     screen.setTitle("JNC2 Launcher");
     Application application = new Application(screen);
+    application.run(application);
+  }
+
+  public void run(Runnable application) {
     program = application;
+    if (application != this) {
+      newApplication = application.getClass().getName();
+    }
     Instant now = Instant.now();
     while (true) {
-      if (newMode != null) {
+      if ((newMode != null) && (newApplication != null)) {
         screen.reset(newMode);
         newMode = null;
-        application.run(CLASSES[application.selected]);
+        run(newApplication);
       }
       program.run();
       screen.repaint();
