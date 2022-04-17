@@ -32,6 +32,7 @@ public class Basic {
   private int x = 0;
   private int y = 0;
   private TextFont textFont;
+  private TextFont tinyFont;
 
   public Basic(Screen screen) {
     this.screen = screen;
@@ -42,6 +43,7 @@ public class Basic {
     paper(screen.mode.bgColor);
     ink(screen.mode.fgColor);
     textFont = new TextFont("/48.rom", 0x3D00, 0x0300, 0x20, 8, 8);
+    tinyFont = new TextFont("/3x5.fnt", 0, 0x0280, 0, 4, 5);
   }
 
   public void paper(int color) {
@@ -83,8 +85,22 @@ public class Basic {
     this.y = y;
   }
 
+  /**
+   * PRINT AT as implemented in Sinclair BASIC.
+   */
   public void printAt(int x, int y, String s) {
     textFont.print(screen.image, s, x * 8, cy - 7 - y * 8, color, paper);
+  }
+
+  /**
+   * PRINT with the tiniest font available.
+   * @param x in pixels
+   * @param y in pixels
+   * @param s the string
+   */
+  // TODO: 2022-04-17 decide should it be a part of Basic class?
+  public void printTiny(int x, int y, String s) {
+    tinyFont.print(screen.image, s, x, cy - y, color, paper);
   }
 
   public void border(int color) {
