@@ -100,7 +100,7 @@ public class Basic {
    */
   // TODO: 2022-04-17 decide should it be a part of Basic class?
   public void printTiny(int x, int y, String s) {
-    tinyFont.print(screen.image, s, x, cy - y, color, paper);
+    tinyFont.print(screen.image, s, x, cy - 4 - y, color, paper);
   }
 
   public void border(int color) {
