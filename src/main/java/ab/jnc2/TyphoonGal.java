@@ -1,0 +1,526 @@
+/*
+ * Copyright 2022 Aleksei Balan
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package ab.jnc2;
+
+import com.codingrodent.microprocessor.IMemory;
+
+import java.awt.*;
+import java.awt.event.KeyEvent;
+import java.awt.event.KeyListener;
+import java.awt.image.BufferedImage;
+import java.io.DataInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.UncheckedIOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.Arrays;
+import java.util.Enumeration;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Queue;
+import java.util.concurrent.LinkedBlockingDeque;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
+
+/**
+ * Onna Sanshirou - Typhoon Gal.
+ * Emulator of 1985 arcade machine on the modern hardware.
+ * Game controls: left, right, up, down
+ * Z/X - jump/attack
+ * X/C - attack/jump (mirrored)
+ * SPACE to start, F1 no hit cheat code, F2 change music
+ */
+public class TyphoonGal implements Runnable, KeyListener {
+
+  TyphoonZ80 cpu;
+  TyphoonZ80 sound;
+  TyphoonZ80 videoMemory;
+  Screen screen;
+  int pianoSound;
+  final Queue<String> systemConsole = new LinkedBlockingDeque<>();
+  final Queue<Integer> audioFeed = new LinkedBlockingDeque<>();
+  final Queue<Integer> gameController = new LinkedBlockingDeque<>();
+
+  void logInfo(String s) {
+    systemConsole.add(s);
+  }
+
+  public InputStream getResourceAsStream(String resource) {
+    logInfo("loading " + resource + " ...");
+    InputStream stream = getClass().getResourceAsStream(resource);
+    if (stream == null) throw new UncheckedIOException(new FileNotFoundException(resource));
+    return stream;
+  }
+
+  public Map<String, byte[]> getZipContent(Path path) {
+    logInfo("loading " + path + " ...");
+    Map<String, byte[]> map = new LinkedHashMap<>();
+    try {
+      final ZipFile zipFile = new ZipFile(path.toFile());
+      for (Enumeration<? extends ZipEntry> entries = zipFile.entries(); entries.hasMoreElements();) {
+        ZipEntry entry = entries.nextElement();
+        byte[] bytes = new byte[(int) entry.getSize()];
+        new DataInputStream(zipFile.getInputStream(entry)).readFully(bytes);
+        map.put(entry.getName(), bytes);
+      }
+    } catch (IOException e) {
+      throw new UncheckedIOException(e);
+    }
+    return map;
+  }
+
+  public void loader() {
+    logInfo("ERR11,jnc");
+    InputStream inputFont = getResourceAsStream("/48.rom");
+
+    // TODO: 2022-07-16 make a font from java Monospaced
+    byte[] bufferFont = new byte[0x4000];
+    try {
+      inputFont.read(bufferFont);
+    } catch (IOException e) {
+      throw new UncheckedIOException(e);
+    }
+    for (int i = 0x100; i < 0x400; i++) {
+      byte b = bufferFont[i + 0x3C00];
+      bufferFont[i * 2] = (byte) ((b >> 7 & 0x01) | (b >> 5 & 0x02) | (b >> 3 & 0x04) | (b >> 1 & 0x08));
+      bufferFont[i * 2 + 1] = (byte) ((b >> 3 & 0x01) | (b >> 1 & 0x02) | (b << 1 & 0x04) | (b << 3 & 0x08));
+    }
+    for (int i = 0; i < 0x200; i++) {
+      bufferFont[i] = 0;
+    }
+
+    videoMemory.write(0x0C000, bufferFont);
+
+    Map<String, byte[]> zipContent;
+    zipContent = getZipContent(Paths.get("onna34ro.zip"));
+    videoMemory.run();
+
+    videoMemory.load(zipContent);
+    videoMemory.reset();
+    videoMemory.run();
+
+    sound.load(zipContent);
+    videoMemory.run();
+
+    zipContent = getZipContent(Paths.get("onna34roa.zip"));
+    cpu.load(zipContent);
+    cpu.write(0xD800, new byte[]{(byte) 0xC0, (byte) 0x00, (byte) 0xA0, (byte) 0x3F, (byte) 0xFF, (byte) 0x00, (byte) 0xFF});
+    videoMemory.run();
+    sound.reset();
+    logInfo("ready");
+    cpu.reset();
+  }
+
+  public TyphoonGal(Screen screen) {
+    this.screen = screen;
+    screen.keyListener = this;
+    cpu = new Cpu(gameController, audioFeed, systemConsole);
+    sound = new TyphoonSound(audioFeed, null, systemConsole);
+    videoMemory = new TyphoonVideo(cpu, screen, systemConsole);
+    logInfo("");
+    logInfo("JNC2");
+    logInfo(String.format("screen %dx%d%s - %s", screen.mode.resolution.width, screen.mode.resolution.height,
+        screen.mode.colorMap == null ? "" : "x" + screen.mode.colorMap.length,
+        screen.mode.resolution.width >= 256 && screen.mode.resolution.height >= 224
+            && screen.mode.colorMap == null ? "ok" : "poor"));
+
+    try {
+      loader();
+    } catch (RuntimeException e) {
+      String message = e.getMessage();
+      logInfo(message == null ? e.getClass().getName() : message);
+    }
+
+  }
+
+  @Override
+  public void run() {
+    cpu.run();
+    videoMemory.run();
+    sound.run();
+  }
+
+  public static void main(String[] args) {
+    Screen screen = new Screen(new GraphicsMode(256, 224));
+    TyphoonGal program = new TyphoonGal(screen);
+    Instant now = Instant.now();
+    while (true) {
+      program.run();
+      screen.repaint();
+      now = now.plusNanos(16_683_350); // NTSC
+      Duration duration = Duration.between(Instant.now(), now);
+      if (duration.isNegative()) {
+        now = Instant.now();
+        continue;
+      }
+      try {
+        Thread.sleep(duration.toMillis());
+      } catch (InterruptedException e) {
+        break;
+      }
+    }
+  }
+
+  int mask = 0;
+  @Override
+  public void keyTyped(KeyEvent e) {
+    byte[] system = new byte[0x10];
+    cpu.read(0xD800, system);
+    switch (e.getKeyChar()) {
+      case '1':
+      case '2':
+      case '3':
+      case '4':
+      case '5':
+      case '6':
+      case '7':
+      case '8':
+      case '9':
+      case '0':
+        int i = 1 << (e.getKeyChar() - '0');
+        mask ^= i;
+        systemConsole.add(String.format("ERR40,%03X", mask));
+        break;
+    }
+
+  }
+
+  @Override
+  public void keyPressed(KeyEvent e) {
+    int keyCode = e.getKeyCode();
+    switch (keyCode) {
+      case KeyEvent.VK_UP:
+      case KeyEvent.VK_DOWN:
+      case KeyEvent.VK_LEFT:
+      case KeyEvent.VK_RIGHT:
+      case KeyEvent.VK_Z:
+      case KeyEvent.VK_X:
+      case KeyEvent.VK_SPACE:
+      case KeyEvent.VK_F1:
+        gameController.add(keyCode);
+        break;
+      case KeyEvent.VK_C:
+        gameController.add(KeyEvent.VK_Z);
+        break;
+      case KeyEvent.VK_F2:
+        int[] sounds = {6, 3, 91, 8}; // fm, electric, synth, clavi
+        pianoSound = (pianoSound + 1) % sounds.length;
+        audioFeed.add(0x100 + sounds[pianoSound]);
+        break;
+    }
+  }
+
+  @Override
+  public void keyReleased(KeyEvent e) {
+    int keyCode = e.getKeyCode();
+    switch (keyCode) {
+      case KeyEvent.VK_UP:
+      case KeyEvent.VK_DOWN:
+      case KeyEvent.VK_LEFT:
+      case KeyEvent.VK_RIGHT:
+      case KeyEvent.VK_Z:
+      case KeyEvent.VK_X:
+        gameController.add(-keyCode);
+        break;
+      case KeyEvent.VK_C:
+        gameController.add(-KeyEvent.VK_Z);
+        break;
+    }
+  }
+
+  public static class TyphoonVideo extends TyphoonZ80 {
+    public static final int VIDEO_RAM = 0xC000;
+    public static final int SPRITE_RAM = 0xDC00;
+    public static final int SCRLRAM = 0xDCA0;
+    private final BufferedImage image;
+    private final IMemory cpu;
+    private final Screen screen;
+    private final Queue<String> console;
+    private final AtomicInteger cursor;
+    private boolean isDebug;
+
+    public TyphoonVideo(IMemory cpu, Screen screen, Queue<String> console) {
+      super(null, null, null, 0x20000);
+      this.cpu = cpu;
+      this.screen = screen;
+      this.console = console;
+      cursor = new AtomicInteger(VIDEO_RAM + 0x80);
+      this.image = new BufferedImage(256, 256, BufferedImage.TYPE_INT_RGB);
+    }
+
+    @Override
+    public void load(Map<String, byte[]> storage) {
+      write(0x00000, storage, "a52-04.11v", "d5f70b81-47c5-3910-967a-a501cd2d767a");
+      write(0x04000, storage, "a52-06.10v", "226cedec-da4c-3b9e-94f5-2812893264d6");
+      write(0x08000, storage, "a52-08.09v", "1da39213-5d70-3c68-9b78-ffe3b49cdbcf");
+      write(0x0C000, storage, "a52-10.08v", "89329886-446d-3108-8376-efb21a75d8f7");
+      write(0x10000, storage, "a52-05.35v", "729d9204-bdca-3b01-8c20-4eadd11f0505");
+      write(0x14000, storage, "a52-07.34v", "6b46397a-202a-383a-9839-0375821178ad");
+      write(0x18000, storage, "a52-09.33v", "e88102c7-71cf-3643-a23c-a94d6d6997ba");
+      write(0x1C000, storage, "a52-11.32v", "34774280-4304-3725-b8e6-8a043deb3d88");
+    }
+
+    @Override
+    public void reset() {
+      for (int i = 0; i < 0x20000; i++) {
+        writeByte(i, readByte(i) ^ 0xFF);
+      }
+    }
+
+    public void draw8(int x, int y, int addr, int colorAddr, boolean flip, boolean flipv, int opacity) {
+      for (int y1 = 0; y1 < 8; y1++) {
+        int y2 = flipv ? 7 - y1 : y1;
+        int a = addr + y2 * 2;
+        byte m0 = (byte) readByte(a);
+        byte m1 = (byte) readByte(a + 1);
+        int b0 = m0 & 0x0F | ((m1 & 0x0F) << 4);
+        int b1 = (m0 >> 4) & 0x0F | (((m1 >> 4) & 0x0F) << 4);
+        a += 0x10000;
+        byte m2 = (byte) readByte(a);
+        byte m3 = (byte) readByte(a + 1);
+        int b2 = m2 & 0x0F | ((m3 & 0x0F) << 4);
+        int b3 = (m2 >> 4) & 0x0F | (((m3 >> 4) & 0x0F) << 4);
+        for (int x1 = 0; x1 < 8; x1++) {
+          int x2 = flip ? 7 - x1 : x1;
+          int c = ((b0 >> x2) & 1) != 0 ? 0b01 : 0;
+          c += ((b1 >> x2) & 1) != 0 ? 0b10 : 0;
+          c += ((b2 >> x2) & 1) != 0 ? 0b0100 : 0;
+          c += ((b3 >> x2) & 1) != 0 ? 0b1000 : 0;
+          if (((1 << c) & opacity) == 0) continue;
+
+          Color rgb = new Color(c * 0x11, c * 0x11, c * 0x11);
+          int ca = c + colorAddr;
+          int cb0 = cpu.readByte(ca);
+          int cb1 = cpu.readByte(ca + 0x100);
+          int r = cb0 & 0x0F;
+          int g = (cb0 >> 4) & 0x0F;
+          int b = cb1 & 0x0F;
+          rgb = new Color(r * 0x11, g * 0x11, b * 0x11);
+          image.setRGB((x + x1) & 0xFF, (y + y1) & 0xFF, rgb.getRGB());
+        }
+      }
+    }
+
+    public void draw16(int x, int y, int addr, int colorAddr, boolean flip, boolean flipv) {
+      for (int i = 0; i < 4; i++) {
+        int i1 = (i & 1) == 0 ^ flip ? 0 : 8;
+        int i2 = (i & 2) == 0 ^ flipv ? 0 : 8;
+        draw8(i1 + x, i2 + y, 0x10 * i + addr, colorAddr, flip, flipv, 0x7FFF);
+      }
+    }
+
+    public static final Pattern REALTIME_ERROR = Pattern.compile("ERR(1?[\\dA-F]{2}),(.*)");
+    @Override
+    public void run() {
+      for (String s = console.poll(); s != null; s = console.poll()) {
+        Matcher matcher = REALTIME_ERROR.matcher(s);
+        if (matcher.matches()) {
+          int i = Integer.parseInt(matcher.group(1), 16);
+          if (i == 0xFF && "1".equals(matcher.group(2))) {
+            isDebug = true;
+            continue;
+          }
+          if (!isDebug) continue;
+          AtomicInteger addr = new AtomicInteger(VIDEO_RAM + 0x80 + i * 4);
+          matcher.group(2).toUpperCase().chars().forEach(c -> cpu.writeWord(addr.getAndAdd(2), c));
+          continue;
+        }
+
+        for (int i = 0; i < 8; i++) {
+          cpu.writeWord(i * 2 + Cpu.PALETTE_BANK_0, 0xFF00);
+          cpu.writeWord(i * 2 + Cpu.PALETTE_BANK_0 + 0x100, 0x1F00);
+        }
+        s.toUpperCase().chars().forEach(c -> cpu.writeWord(cursor.getAndAdd(2), c));
+        cursor.set(((cursor.get() + 0x40) & 0xFFC0) + 4);
+      }
+
+      for (int frontHalf = 0; frontHalf < 2; frontHalf++) {
+        for (int y = 0; y < 32; y++) {
+          for (int x = 0; x < 32; x++) {
+            int w = cpu.readWord(y * 0x40 + x * 2 + VIDEO_RAM);
+            boolean flip = (w & 0x0800) != 0;
+            boolean flipv = (w & 0x1000) != 0;
+            int ch = ((w >> 6) & 0x300) | (w & 0xFF);
+            int col = (w & 0xF00) >> 8;
+            draw8(x * 8, y * 8 - cpu.readByte(SCRLRAM + x),
+                ch * 0x10 + VIDEO_RAM, (col << 4) + Cpu.PALETTE_BANK_0, flip, flipv, frontHalf > 0 ? 0xC000 : 0xFFFF);
+          }
+        }
+
+        if (frontHalf > 0) break;
+        for (int i = 0; i < 0x20; i++) {
+          int i1 = cpu.readByte(SPRITE_RAM + 0x9F - i);
+          if (i1 >= 0x20) continue;
+          int addr = i1 * 4 + SPRITE_RAM;
+          int x = cpu.readByte(addr + 3);
+          int y = 0xEF - cpu.readByte(addr);
+          int w = cpu.readWord(addr + 1);
+          boolean flip = (w & 0x0040) != 0;
+          boolean flipv = (w & 0x0080) != 0;
+          int ch = ((w << 4) & 0x300) | ((w >> 8) & 0xFF);
+          int col = w & 0x000F;
+          draw16(x, y, ch * 0x40, (col << 4) + Cpu.PALETTE_BANK_1, flip, flipv);
+        }
+      }
+      screen.image.getGraphics().drawImage(image, 0, -16, null);
+      screen.repaint();
+    }
+
+  }
+
+  public static class Cpu extends TyphoonZ80 {
+    public static final int PALETTE_BANK = 0xDD00;
+    public static final int PALETTE_BANK_0 = 0xC800;
+    public static final int PALETTE_BANK_1 = 0xCA00;
+    public static final int GFXCTRL = 0xDF03;
+    public static final int SOUND_LATCH = 0xD400;
+
+    private int upDown;
+    private int leftRight;
+    private boolean btnAttack;
+    private boolean btnJump;
+    private boolean btnStart;
+
+    public enum ControllerCommand {
+      UP(KeyEvent.VK_UP), DOWN(KeyEvent.VK_DOWN), LEFT(KeyEvent.VK_LEFT), RIGHT(KeyEvent.VK_RIGHT),
+      ATTACK(KeyEvent.VK_X), JUMP(KeyEvent.VK_Z), START(KeyEvent.VK_SPACE), CHEAT(KeyEvent.VK_F1),
+      UP0(-KeyEvent.VK_UP), DOWN0(-KeyEvent.VK_DOWN), LEFT0(-KeyEvent.VK_LEFT), RIGHT0(-KeyEvent.VK_RIGHT),
+      ATTACK0(-KeyEvent.VK_X), JUMP0(-KeyEvent.VK_Z);
+      private int code;
+      ControllerCommand(int code) {
+        this.code = code;
+      }
+      public static ControllerCommand valueOf(int i) {
+        return Arrays.stream(ControllerCommand.values()).filter(cmd -> cmd.code == i).findAny().orElseThrow(() ->
+            new IllegalArgumentException("No enum constant " + ControllerCommand.class.getCanonicalName() + "." + i));
+      }
+    }
+
+    public Cpu(Queue<Integer> stdin, Queue<Integer> stdout, Queue<String> stderr) {
+      super(stdin, stdout, stderr);
+    }
+
+    @Override
+    public void load(Map<String, byte[]> storage) {
+      write(0x0000, storage, "ry-08.rom", "f38e82b8-b972-380d-b9df-35879e136da3");
+      write(0x4000, storage, "ry-07.rom", "5b5cf70e-f7f4-36b7-851c-e56b6b3021b0");
+      write(0x8000, storage, "ry-06.rom", "d1f11a1e-876f-343b-9287-0fe0022739b8");
+    }
+
+    public static final int IDLE_ADDRESS = 0x00A5;
+    @Override
+    public void run() {
+      if (getHalt()) return;
+      for (Integer i = stdin.poll(); i != null; i = stdin.poll()) {
+        try {
+          switch (ControllerCommand.valueOf(i)) {
+            case UP: upDown = 1; break;
+            case DOWN: upDown = -1; break;
+            case RIGHT: leftRight = 1; break;
+            case LEFT: leftRight = -1; break;
+            case ATTACK: btnAttack = true; break;
+            case JUMP: btnJump = true; break;
+            case UP0: if (upDown > 0) upDown = 0; break;
+            case DOWN0: if (upDown < 0) upDown = 0; break;
+            case RIGHT0: if (leftRight > 0) leftRight = 0; break;
+            case LEFT0: if (leftRight < 0) leftRight = 0; break;
+            case ATTACK0: btnAttack = false; break;
+            case JUMP0: btnJump = false; break;
+            case START: btnStart = true; break;
+            case CHEAT:
+              writeByte(0xD802, readByte(0xD802) | 1);
+              AtomicInteger addr = new AtomicInteger(0xC704);
+              "CHEAT ".chars().forEach(c -> writeWord(addr.getAndAdd(2), c));
+              addr.set(0xC744);
+              "NO HIT".chars().forEach(c -> writeWord(addr.getAndAdd(2), c));
+              break;
+          }
+        } catch (IllegalArgumentException e) {
+          // ignore poison messages
+        }
+      }
+      int controller = 0xFF;
+      if (upDown > 0) controller ^= 32;
+      if (upDown < 0) controller ^= 16;
+      if (leftRight > 0) controller ^= 8;
+      if (leftRight < 0) controller ^= 4;
+      if (btnJump) controller ^= 2;
+      if (btnAttack) controller ^= 1;
+      stderr.add(String.format("ERR4C,%s%s%s%s%02X%02X",
+          upDown > 0 ? 'U' : (upDown < 0 ? 'D' : '-'),
+          leftRight > 0 ? 'R' : (leftRight < 0 ? 'L' : '-'),
+          btnJump ? 'J' : '-',
+          btnAttack ? 'A' : '-',
+          readByte(0xD804), controller
+      ));
+      writeByte(0xD804, controller);
+      runToAddress(IDLE_ADDRESS);
+      rst(0x38);
+      if (btnStart) {
+        int coin = readByte(0xD803);
+        writeByte(0xD803, coin & 0xEE);
+        for (int i = 0; i < 8; i++) {
+          runToAddress(IDLE_ADDRESS);
+          rst(0x38);
+        }
+        writeByte(0xD803, coin | 0x11);
+        btnStart = false;
+      }
+    }
+
+    @Override
+    public int readByte(int address) {
+      if ((address < 0xC800) || // 0000-C000 rom + C000-C800 video ram
+          (address >= 0xE000 && address < 0xE800) // ram
+      ) {
+        return super.readByte(address);
+      }
+      // 95% ----
+      if ((address >= PALETTE_BANK) && (address < PALETTE_BANK + 0x200)) { // palette
+        address -= PALETTE_BANK;
+        address += (super.readByte(GFXCTRL) & 0x20) == 0 ? PALETTE_BANK_0 : PALETTE_BANK_1;
+      }
+      return super.readByte(address);
+    }
+
+    @Override
+    public void writeByte(int address, int data) {
+      if ((address >= 0xC000 && address < 0xC800) || // video ram
+          (address >= 0xE000) && (address < 0xE800) // ram
+      ) {
+        super.writeByte(address, data);
+        return;
+      }
+      // 95% ----
+      if (address == SOUND_LATCH) { // soundlatch
+        stdout.add(data);
+      }
+      if ((address >= PALETTE_BANK) && (address < PALETTE_BANK + 0x200)) { // palette
+        address -= PALETTE_BANK;
+        address += (super.readByte(GFXCTRL) & 0x20) == 0 ? PALETTE_BANK_0 : PALETTE_BANK_1;
+      }
+      super.writeByte(address, data);
+    }
+  }
+}

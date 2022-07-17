@@ -38,6 +38,7 @@ public class Application implements Runnable, KeyListener {
       "ab.jnc2.NohzDyve",
       "ab.jnc.g3.Game3",
       "ab.jnc2.GeodesicDome",
+      "ab.jnc2.TyphoonGal",
   };
 
   public static final int BLACK = 8;
