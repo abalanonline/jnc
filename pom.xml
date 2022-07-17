@@ -41,7 +41,7 @@
     <dependency>
       <groupId>org.projectlombok</groupId>
       <artifactId>lombok</artifactId>
-      <version>1.18.12</version>
+      <version>1.18.24</version>
       <scope>provided</scope>
     </dependency>
     <dependency>
@@ -49,6 +49,12 @@
       <artifactId>junit-jupiter-api</artifactId>
       <version>5.8.2</version>
       <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.codingrodent.microprocessor</groupId>
+      <artifactId>Z80Processor</artifactId>
+      <version>3.2.0</version>
+      <scope>provided</scope>
     </dependency>
 
   </dependencies>
@@ -63,7 +69,7 @@
         <configuration>
           <archive>
             <manifest>
-              <mainClass>ab.jnc2.NohzDyve</mainClass>
+              <mainClass>${exec.mainClass}</mainClass>
             </manifest>
           </archive>
         </configuration>

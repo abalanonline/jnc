@@ -67,8 +67,13 @@ public class Screen extends JComponent implements KeyListener {
     jFrame = new JFrame();
     jFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
     if (fullscreen) {
-      jFrame.setUndecorated(true);
-      jFrame.setExtendedState(JFrame.MAXIMIZED_BOTH);
+      if ("Linux".equals(System.getProperty("os.name")) &&
+          jFrame.getGraphicsConfiguration().getDevice().isFullScreenSupported()) {
+        jFrame.getGraphicsConfiguration().getDevice().setFullScreenWindow(jFrame);
+      } else {
+        jFrame.setUndecorated(true);
+        jFrame.setExtendedState(JFrame.MAXIMIZED_BOTH);
+      }
     }
     jFrame.add(this);
     setBackground(getBackground()); // update parent background
