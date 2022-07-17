@@ -90,6 +90,7 @@ public class Screen extends JComponent implements KeyListener {
   }
 
   public Screen(GraphicsMode mode) {
+    title = new Throwable().getStackTrace()[1].getClassName().replaceAll(".*\\.", "") + ".java";
     setPreferredSize(new Dimension(640, 480));
     setMode(mode);
     addKeyListener(this);
@@ -126,7 +127,9 @@ public class Screen extends JComponent implements KeyListener {
       setFullscreen(!fullscreen);
     }
     if ((e.getKeyCode() == KeyEvent.VK_F11) && (e.getModifiersEx() == InputEvent.ALT_DOWN_MASK)) {
-      setPreferredSize(new Dimension(mode.resolution.width, mode.resolution.height));
+      int width = mode.resolution.height * mode.aspectRatio.width / mode.aspectRatio.height;
+      int height = mode.resolution.width * mode.aspectRatio.height / mode.aspectRatio.width;
+      setPreferredSize(new Dimension(Math.max(width, mode.resolution.width), Math.max(height, mode.resolution.height)));
       setFullscreen(false);
     }
   }
