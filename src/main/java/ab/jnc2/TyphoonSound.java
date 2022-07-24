@@ -28,7 +28,7 @@ import java.util.Queue;
 /**
  * Typhoon Sound System.
  */
-public class TyphoonSound extends TyphoonZ80 {
+public class TyphoonSound extends TyphoonMachine {
 
   public static final int YM_ADDR = 0xC800;
   public static final int YM_DATA = 0xC801;
@@ -118,7 +118,7 @@ public class TyphoonSound extends TyphoonZ80 {
   }
 
   @Override
-  public void reset() {
+  public void open() {
     try {
       synthesizer = MidiSystem.getSynthesizer();
       synthesizer.open();
@@ -135,7 +135,13 @@ public class TyphoonSound extends TyphoonZ80 {
     midi[8].controlChange(8, 127); // right
     msm = new Msm5232(midi[7], midi[8], midi[9]);
 
-    super.reset();
+    super.open();
+  }
+
+  @Override
+  public void close() {
+    synthesizer.close();
+    super.close();
   }
 
   public void programChangeMsm(int programNumber) {
@@ -148,7 +154,7 @@ public class TyphoonSound extends TyphoonZ80 {
   public static final int IDLE_ADDRESS = 0x0160;
   @Override
   public void run() {
-    if (getHalt()) return;
+    if (!isOpen()) return;
     msm.run();
     runToAddress(IDLE_ADDRESS);
     Integer command = stdin.poll();

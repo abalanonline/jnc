@@ -16,8 +16,6 @@
 
 package ab.jnc2;
 
-import com.codingrodent.microprocessor.IMemory;
-
 import java.awt.*;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
@@ -53,9 +51,9 @@ import java.util.zip.ZipFile;
  */
 public class TyphoonGal implements Runnable, KeyListener {
 
-  TyphoonZ80 cpu;
-  TyphoonZ80 sound;
-  TyphoonZ80 videoMemory;
+  TyphoonMachine cpu;
+  TyphoonMachine sound;
+  TyphoonMachine videoMemory;
   Screen screen;
   int pianoSound;
   final Queue<String> systemConsole = new LinkedBlockingDeque<>();
@@ -64,6 +62,7 @@ public class TyphoonGal implements Runnable, KeyListener {
 
   void logInfo(String s) {
     systemConsole.add(s);
+    videoMemory.run();
   }
 
   public InputStream getResourceAsStream(String resource) {
@@ -114,22 +113,18 @@ public class TyphoonGal implements Runnable, KeyListener {
 
     Map<String, byte[]> zipContent;
     zipContent = getZipContent(Paths.get("onna34ro.zip"));
-    videoMemory.run();
 
     videoMemory.load(zipContent);
-    videoMemory.reset();
-    videoMemory.run();
+    videoMemory.open();
 
     sound.load(zipContent);
-    videoMemory.run();
 
     zipContent = getZipContent(Paths.get("onna34roa.zip"));
     cpu.load(zipContent);
     cpu.write(0xD800, new byte[]{(byte) 0xC0, (byte) 0x00, (byte) 0xA0, (byte) 0x3F, (byte) 0xFF, (byte) 0x00, (byte) 0xFF});
-    videoMemory.run();
-    sound.reset();
+    sound.open();
     logInfo("ready");
-    cpu.reset();
+    cpu.open();
   }
 
   public TyphoonGal(Screen screen) {
@@ -147,9 +142,10 @@ public class TyphoonGal implements Runnable, KeyListener {
 
     try {
       loader();
-    } catch (RuntimeException e) {
-      String message = e.getMessage();
-      logInfo(message == null ? e.getClass().getName() : message);
+    } catch (UncheckedIOException | IllegalStateException e) {
+      logInfo(e.getMessage());
+    } catch (RuntimeException | NoClassDefFoundError e) {
+      logInfo(e.getClass().getName() + ": " + e.getMessage());
     }
 
   }
@@ -249,18 +245,18 @@ public class TyphoonGal implements Runnable, KeyListener {
     }
   }
 
-  public static class TyphoonVideo extends TyphoonZ80 {
+  public static class TyphoonVideo extends TyphoonMachine {
     public static final int VIDEO_RAM = 0xC000;
     public static final int SPRITE_RAM = 0xDC00;
     public static final int SCRLRAM = 0xDCA0;
     private final BufferedImage image;
-    private final IMemory cpu;
+    private final TyphoonMachine cpu;
     private final Screen screen;
     private final Queue<String> console;
     private final AtomicInteger cursor;
     private boolean isDebug;
 
-    public TyphoonVideo(IMemory cpu, Screen screen, Queue<String> console) {
+    public TyphoonVideo(TyphoonMachine cpu, Screen screen, Queue<String> console) {
       super(null, null, null, 0x20000);
       this.cpu = cpu;
       this.screen = screen;
@@ -282,7 +278,7 @@ public class TyphoonGal implements Runnable, KeyListener {
     }
 
     @Override
-    public void reset() {
+    public void open() {
       for (int i = 0; i < 0x20000; i++) {
         writeByte(i, readByte(i) ^ 0xFF);
       }
@@ -333,6 +329,20 @@ public class TyphoonGal implements Runnable, KeyListener {
     public static final Pattern REALTIME_ERROR = Pattern.compile("ERR(1?[\\dA-F]{2}),(.*)");
     @Override
     public void run() {
+      boolean cheatCode = (cpu.readByte(0xD802) & 1) != 0;
+      if (cheatCode) {
+        for (int i = 0; i < 0x200; i++) {
+          int a = 0xC800 + (i & 0x100) * 2 + (i & 0xFF);
+          int c = cpu.readByte(a) | (cpu.readByte(a + 0x100) << 8);
+          int brightness = ((c << 1 & 0x1E) + (c >> 2 & 0x3C) + (c >> 8 & 0xF)) * 0x27 >> 8;
+          int bh = 15 - brightness;
+          int bl = bh / 2;
+          c = bh * 0x010 + bl * 0x101 + (c & 0xF000);
+          cpu.writeByte(a + 0x2000, c);
+          cpu.writeByte(a + 0x2100, c >> 8);
+        }
+      }
+
       for (String s = console.poll(); s != null; s = console.poll()) {
         Matcher matcher = REALTIME_ERROR.matcher(s);
         if (matcher.matches()) {
@@ -347,12 +357,14 @@ public class TyphoonGal implements Runnable, KeyListener {
           continue;
         }
 
-        for (int i = 0; i < 8; i++) {
-          cpu.writeWord(i * 2 + Cpu.PALETTE_BANK_0, 0xFF00);
-          cpu.writeWord(i * 2 + Cpu.PALETTE_BANK_0 + 0x100, 0x1F00);
+        if (!cpu.isOpen()) {
+          for (int i = 0; i < 8; i++) {
+            cpu.writeWord(i * 2 + Cpu.PALETTE_BANK_0, 0xFF00);
+            cpu.writeWord(i * 2 + Cpu.PALETTE_BANK_0 + 0x100, 0x1F00);
+          }
+          s.toUpperCase().chars().forEach(c -> cpu.writeWord(cursor.getAndAdd(2), c));
+          cursor.set(((cursor.get() + 0x40) & 0xFFC0) + 4);
         }
-        s.toUpperCase().chars().forEach(c -> cpu.writeWord(cursor.getAndAdd(2), c));
-        cursor.set(((cursor.get() + 0x40) & 0xFFC0) + 4);
       }
 
       for (int frontHalf = 0; frontHalf < 2; frontHalf++) {
@@ -364,14 +376,32 @@ public class TyphoonGal implements Runnable, KeyListener {
             int ch = ((w >> 6) & 0x300) | (w & 0xFF);
             int col = (w & 0xF00) >> 8;
             draw8(x * 8, y * 8 - cpu.readByte(SCRLRAM + x),
-                ch * 0x10 + VIDEO_RAM, (col << 4) + Cpu.PALETTE_BANK_0, flip, flipv, frontHalf > 0 ? 0xC000 : 0xFFFF);
+                ch * 0x10 + VIDEO_RAM, (col << 4) + Cpu.PALETTE_BANK_0 + (cheatCode ? 0x2000 : 0),
+                flip, flipv, frontHalf > 0 ? 0xC000 : 0xFFFF);
           }
+        }
+
+        if (isDebug) for (int i = 0; i < 0x100; i++) {
+          int i1 = i + Cpu.PALETTE_BANK_0;
+          int c0 = cpu.readByte(i1);
+          int c1 = cpu.readByte(i1 + 0x100);
+          int r = c0 & 0x0F;
+          int g = (c0 >> 4) & 0x0F;
+          int b = c1 & 0x0F;
+          int a = (c1 >> 4) & 0x0F;
+          Color rgb = new Color(r * 0x11, g * 0x11, b * 0x11);
+          Color rgba = new Color(a * 0x11, a * 0x11, a * 0x11);
+          int x = (i << 1) & 0xFF;
+          int y = 0x20 + ((i >> 6) & 2);
+          image.setRGB(x, y, rgb.getRGB());
+          image.setRGB(x + 1, y, rgb.getRGB());
+          image.setRGB(x, y + 1, rgb.getRGB());
+          image.setRGB(x + 1, y + 1, rgba.getRGB());
         }
 
         if (frontHalf > 0) break;
         for (int i = 0; i < 0x20; i++) {
-          int i1 = cpu.readByte(SPRITE_RAM + 0x9F - i);
-          if (i1 >= 0x20) continue;
+          int i1 = cpu.readByte(SPRITE_RAM + 0x9F - i) & 0x1F;
           int addr = i1 * 4 + SPRITE_RAM;
           int x = cpu.readByte(addr + 3);
           int y = 0xEF - cpu.readByte(addr);
@@ -380,7 +410,7 @@ public class TyphoonGal implements Runnable, KeyListener {
           boolean flipv = (w & 0x0080) != 0;
           int ch = ((w << 4) & 0x300) | ((w >> 8) & 0xFF);
           int col = w & 0x000F;
-          draw16(x, y, ch * 0x40, (col << 4) + Cpu.PALETTE_BANK_1, flip, flipv);
+          draw16(x, y, ch * 0x40, (col << 4) + Cpu.PALETTE_BANK_1 + (cheatCode ? 0x2000 : 0), flip, flipv);
         }
       }
       screen.image.getGraphics().drawImage(image, 0, -16, null);
@@ -389,7 +419,7 @@ public class TyphoonGal implements Runnable, KeyListener {
 
   }
 
-  public static class Cpu extends TyphoonZ80 {
+  public static class Cpu extends TyphoonMachine {
     public static final int PALETTE_BANK = 0xDD00;
     public static final int PALETTE_BANK_0 = 0xC800;
     public static final int PALETTE_BANK_1 = 0xCA00;
@@ -431,7 +461,7 @@ public class TyphoonGal implements Runnable, KeyListener {
     public static final int IDLE_ADDRESS = 0x00A5;
     @Override
     public void run() {
-      if (getHalt()) return;
+      if (!isOpen()) return;
       for (Integer i = stdin.poll(); i != null; i = stdin.poll()) {
         try {
           switch (ControllerCommand.valueOf(i)) {
@@ -450,10 +480,6 @@ public class TyphoonGal implements Runnable, KeyListener {
             case START: btnStart = true; break;
             case CHEAT:
               writeByte(0xD802, readByte(0xD802) | 1);
-              AtomicInteger addr = new AtomicInteger(0xC704);
-              "CHEAT ".chars().forEach(c -> writeWord(addr.getAndAdd(2), c));
-              addr.set(0xC744);
-              "NO HIT".chars().forEach(c -> writeWord(addr.getAndAdd(2), c));
               break;
           }
         } catch (IllegalArgumentException e) {
