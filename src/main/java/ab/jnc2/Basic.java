@@ -42,7 +42,7 @@ public class Basic {
     cy = screen.mode.resolution.height - 1;
     paper(screen.mode.bgColor);
     ink(screen.mode.fgColor);
-    textFont = new TextFont("/48.rom", 0x3D00, 0x0300, 0x20, 8, 8);
+    textFont = new TextFont(8, 8);
     tinyFont = new TextFont("/3x5.fnt", 0, 0x0280, 0, 4, 5);
   }
 

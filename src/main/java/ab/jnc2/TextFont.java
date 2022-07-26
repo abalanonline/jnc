@@ -16,10 +16,17 @@
 
 package ab.jnc2;
 
+import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
 /**
  * Text can load font and print text.
@@ -48,6 +55,110 @@ public class TextFont {
       throw new UncheckedIOException(e);
     }
     System.arraycopy(buffer, 0, font, charStart * height, byteSize);
+  }
+
+  /**
+   * Because FontMetrics.getStringBounds lies.
+   * @return baseline y offset or -1 if overshot
+   */
+  private int getBounds(Font font, int width, int height) {
+    List<Integer> pymin = new ArrayList<>(), pymax = new ArrayList<>(), pxmax = new ArrayList<>();
+    List<Character> targetChars = Stream.of(
+        IntStream.rangeClosed('A', 'Z'),
+        IntStream.rangeClosed('a', 'z'),
+        IntStream.rangeClosed('0', '9'))
+        .flatMapToInt(c -> c).mapToObj(c -> (char) c).filter(font::canDisplay).collect(Collectors.toList());
+
+    BufferedImage image = new BufferedImage(width * 2, height * 2, BufferedImage.TYPE_BYTE_BINARY);
+    Graphics graphics = image.getGraphics();
+    graphics.setFont(font);
+    for (char c : targetChars) {
+      graphics.clearRect(0, 0, width * 2, height * 2);
+      graphics.drawString(String.valueOf(c), 0, height);
+      int ymin = height * 2;
+      int ymax = 0;
+      int xmin = width * 2;
+      int xmax = 0;
+      for (int y = height * 2 - 1; y >= 0; y--) {
+        for (int x = width * 2 - 1; x >= 0; x--) {
+          if ((image.getRGB(x, y) & 0xFFFFFF) != 0) {
+            xmin = Math.min(xmin, x);
+            xmax = Math.max(xmax, x);
+            ymin = Math.min(ymin, y);
+            ymax = Math.max(ymax, y);
+          }
+        }
+      }
+      if ((xmax >= xmin) && (ymax >= ymin)) {
+        pymin.add(ymin);
+        pymax.add(ymax);
+        pxmax.add(xmax - xmin);
+      }
+    }
+    pymin.sort(Comparator.comparingInt(Integer::intValue));
+    pymax.sort(Comparator.comparingInt(i -> -i));
+    pxmax.sort(Comparator.comparingInt(i -> -i));
+    int ymin = pymin.get(pymin.size() / 7); // 85 percentile
+    int ymax = pymax.get(pymax.size() / 7);
+    int xmax = pxmax.get(pxmax.size() / 7);
+    return (xmax >= width - 1) || (ymax - ymin >= height - 1)
+        ? -1 : height - ymin + (height - ymax + ymin + 1) / 2 - 1;
+  }
+
+  public TextFont(String fontName, int width, int height) {
+    this(new byte[0], 0, width, height);
+    int size;
+    Font font = new Font(fontName, Font.PLAIN, 1);
+    int baseline = 0;
+    // increase size by 1
+    for (size = 20; size < width * 40; size += 10) {
+      font = new Font(fontName, Font.PLAIN, size / 10);
+      baseline = getBounds(font, width, height);
+      if (baseline < 0) {
+        break;
+      }
+    }
+    // decrease size by 0.1
+    for (; size > 1; size--) {
+      font = font.deriveFont(size / 10.0F);
+      baseline = getBounds(font, width, height);
+      if (baseline >= 0) {
+        break;
+      }
+    }
+    // best size found, make font
+    BufferedImage image = new BufferedImage(width * 2, height, BufferedImage.TYPE_BYTE_BINARY);
+    Graphics graphics = image.getGraphics();
+    graphics.setFont(font);
+    for (char c = 0x00; c < 0x100; c++) {
+      if (font.canDisplay(c)) {
+        graphics.clearRect(0, 0, width * 2, height);
+        graphics.drawString(String.valueOf(c), width / 2, baseline);
+        int xmin = width * 2;
+        int xmax = 0;
+        for (int y = 0; y < height; y++) {
+          for (int x = 0; x < width * 2; x++) {
+            if ((image.getRGB(x, y) & 0xFFFFFF) != 0) {
+              xmin = Math.min(xmin, x);
+              xmax = Math.max(xmax, x);
+            }
+          }
+        }
+        int xBaseline = (xmax < xmin ? 0 : (xmax + xmin - width) / 2 + 1);
+        for (int y = 0; y < height; y++) {
+          byte b = 0;
+          for (int x = 0; x < width; x++) {
+            int rgb = image.getRGB(x + xBaseline, y);
+            b = (byte) (b ^ ((rgb & 0x80) >> x));
+          }
+          this.font[c * height + y] = b;
+        }
+      }
+    }
+  }
+
+  public TextFont(int width, int height) {
+    this(Font.MONOSPACED, width, height);
   }
 
   private void print(BufferedImage image, String s, int x, int y, int color, int bgColor, boolean withBackground,
@@ -90,8 +201,18 @@ public class TextFont {
     for (int y = 0; y < 16; y++) {
       for (int x = 0; x < 16; x++) {
         print(image, Character.toString((char) (y * 16 + x)), x * width, y * height, 0xFFFF00, 0x0000AA);
+        int xr = x * width + width - 1;
+        int yd = y * height + height - 1;
+        if (xr < image.getWidth() && yd < image.getHeight() && (image.getRGB(xr, yd) & 0xFFFF00) == 0)
+        image.setRGB(xr, yd, 0x00AA00);
       }
     }
+  }
+
+  public static void main(String[] args) {
+    Screen screen = new Screen(GraphicsMode.CGA_16);
+    new TextFont(8, 8).preview(screen.image);
+    screen.repaint();
   }
 
 }
