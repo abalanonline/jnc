@@ -33,7 +33,7 @@ import java.util.stream.Stream;
  * For printing it use BufferedImage and fourth quadrant coordinates native to java.
  */
 public class TextFont {
-  byte[] font;
+  public final byte[] font;
   int height;
   int width;
 
@@ -157,6 +157,9 @@ public class TextFont {
     }
   }
 
+  /**
+   * Create bitmap font from vector font installed in system.
+   */
   public TextFont(int width, int height) {
     this(Font.MONOSPACED, width, height);
   }

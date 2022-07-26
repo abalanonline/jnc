@@ -91,24 +91,14 @@ public class TyphoonGal implements Runnable, KeyListener {
 
   public void loader() {
     logInfo("ERR11,jnc");
-    InputStream inputFont = getResourceAsStream("/48.rom");
 
-    // TODO: 2022-07-16 make a font from java Monospaced
-    byte[] bufferFont = new byte[0x4000];
-    try {
-      inputFont.read(bufferFont);
-    } catch (IOException e) {
-      throw new UncheckedIOException(e);
-    }
-    for (int i = 0x100; i < 0x400; i++) {
-      byte b = bufferFont[i + 0x3C00];
+    byte[] font8x8 = new TextFont(8, 8).font;
+    byte[] bufferFont = new byte[0x1000];
+    for (int i = 0; i < 0x800; i++) {
+      byte b = font8x8[i];
       bufferFont[i * 2] = (byte) ((b >> 7 & 0x01) | (b >> 5 & 0x02) | (b >> 3 & 0x04) | (b >> 1 & 0x08));
       bufferFont[i * 2 + 1] = (byte) ((b >> 3 & 0x01) | (b >> 1 & 0x02) | (b << 1 & 0x04) | (b << 3 & 0x08));
     }
-    for (int i = 0; i < 0x200; i++) {
-      bufferFont[i] = 0;
-    }
-
     videoMemory.write(0x0C000, bufferFont);
 
     Map<String, byte[]> zipContent;

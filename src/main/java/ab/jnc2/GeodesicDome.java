@@ -226,9 +226,9 @@ public class GeodesicDome implements Runnable {
     }
     basic.cls();
     Instant instant = Instant.now();
-    basic.printTiny(0, 12, "solid:");
-    basic.printTiny(0, 6, "cube");
-    basic.printTiny(0, 0, "iter: 3");
+    basic.printAt(0, 2, "solid:");
+    basic.printAt(0, 1, "cube");
+    basic.printAt(0, 0, "iter: 3");
 //    plotDots(model, v -> rotateVertices(v, instant.toEpochMilli() / 6_000.0, instant.toEpochMilli() / 60_000.0));
     drawLines(model, v -> rotateVertices(v, instant.toEpochMilli() / 6_000.0, instant.toEpochMilli() / 60_000.0));
   }
