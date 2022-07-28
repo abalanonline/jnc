@@ -21,9 +21,7 @@ import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.awt.image.BufferedImage;
 import java.io.DataInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.UncheckedIOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -63,13 +61,6 @@ public class TyphoonGal implements Runnable, KeyListener {
   void logInfo(String s) {
     systemConsole.add(s);
     videoMemory.run();
-  }
-
-  public InputStream getResourceAsStream(String resource) {
-    logInfo("loading " + resource + " ...");
-    InputStream stream = getClass().getResourceAsStream(resource);
-    if (stream == null) throw new UncheckedIOException(new FileNotFoundException(resource));
-    return stream;
   }
 
   public Map<String, byte[]> getZipContent(Path path) {

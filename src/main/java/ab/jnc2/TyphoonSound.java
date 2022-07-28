@@ -21,9 +21,15 @@ import javax.sound.midi.MidiChannel;
 import javax.sound.midi.MidiSystem;
 import javax.sound.midi.MidiUnavailableException;
 import javax.sound.midi.Synthesizer;
+import javax.sound.sampled.AudioFormat;
+import javax.sound.sampled.AudioSystem;
+import javax.sound.sampled.LineUnavailableException;
+import javax.sound.sampled.SourceDataLine;
 import java.time.Instant;
 import java.util.Map;
 import java.util.Queue;
+import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Typhoon Sound System.
@@ -32,16 +38,21 @@ public class TyphoonSound extends TyphoonMachine {
 
   public static final int YM_ADDR = 0xC800;
   public static final int YM_DATA = 0xC801;
-  public static final int YM_REGISTER = 0xC810;
+  public static final int YM_VOLUME = 0x1000; // MAX/8
   public static final int MSM_REGISTER = 0xCA00;
   public static final int SOUND_LATCH = 0xD800;
   public static final int A440_MIDI = 69;
   public static final int MIDI_DEFAULT_VELOCITY = 0x60;
+  public static final int SAMPLE_RATE = 44100;
+  public static final AudioFormat AUDIO_FORMAT = new AudioFormat(SAMPLE_RATE, 16, 1, true, false);
 
   MidiChannel[] midi;
   Instrument[] instruments;
   Synthesizer synthesizer;
+  SourceDataLine line;
+  AtomicReference<int[]> wav = new AtomicReference<>();
   Msm5232 msm;
+  Ym2149 ym;
 
   public static class Msm5232 implements Runnable {
     public static final int A440_MIDI = 69;
@@ -104,6 +115,88 @@ public class TyphoonSound extends TyphoonMachine {
     }
   }
 
+  public static class Ym2149 implements Runnable {
+    public static final int[] DA_VOLTAGE = {
+        5, 6, 7, 8, 9, 11, 13, 16, 19, 22, 26, 31, 37, 44, 53, 63,
+        74, 88, 105, 125, 149, 177, 210, 250, 297, 354, 420, 500, 595, 707, 841, 1000,
+    };
+    private final int clockRate;
+    private byte[] registers = new byte[0x10];
+    private final AtomicReference<int[]> wav;
+    private final byte[] noise;
+    private int[] chd = new int[5]; // divisor
+    private int[] chq = new int[5]; // quotient
+    private int[] chr = new int[5]; // remainder
+
+    public Ym2149(int clockRate, AtomicReference<int[]> wav) {
+      this.clockRate = clockRate;
+      this.wav = wav;
+      noise = new byte[0x1000];
+      ThreadLocalRandom.current().nextBytes(noise);
+    }
+
+    @Override
+    public void run() {
+      final int[] wav = this.wav.get();
+      for (int sample = 0; sample < wav.length; sample++) {
+        int v = 0;
+        int ticks = 45; // FIXME: 2022-07-27 fixed point 2_000_000 / 44_100
+
+        // increment oscillators
+        for (int ch = 0; ch < 5; ch++) {
+          int d = (registers[2 * ch] & 0xFF) | (registers[2 * ch + 1] << 8);
+          d &= ch < 3 ? 0x0FFF : 0x001F;
+          if (ch == 4) {
+            d = (registers[11] & 0xFF) | (registers[12] << 8);
+          }
+          d <<= 3;
+          if (d == 0) { d = 1; } // undocumented
+          if (chr[ch] >= d) { // decreased during playback
+            chq[ch]++;
+            chr[ch] = 0;
+          }
+          int t = chr[ch] + ticks;
+          chd[ch] = d;
+          chq[ch] += t / d;
+          chr[ch] = t % d;
+        }
+
+        // noise and envelope volume
+        boolean n = (noise[(chq[3] >> 3) & 0xFFF] & (1 << (chq[3] & 7))) == 0;
+        int envv = chq[4]; // volume
+        int envs = registers[13] & 0x0F; // shape
+        envs = envs < 8 ? (envs < 4 ? 1 : 7) : envs - 8;
+        if (envv >= 0x20) {
+          envv = (envs & 1) == 0 ? envv : -1;
+          envv = envv ^ ((envs & (envv >> 4) & 2) == 0 ? 0 : -1); // chiptunes are about bit logic
+        }
+        envv = (envv ^ ((envs & 4) == 0 ? -1 : 0)) & 0x1F;
+
+        // make tone/noise with fixed/variable volume
+        for (int ch = 0; ch < 3; ch++) {
+          int volume = registers[8 + ch];
+          volume = volume > 0x0F ? envv : volume * 2 + 1;
+          volume = DA_VOLTAGE[volume] * YM_VOLUME / 1000;
+          if ((registers[7] & 1 << ch) == 0) {
+            v += ((chq[ch] & 1) == 0 ? 1 : -1) * volume;
+          }
+          if ((registers[7] & 8 << ch) == 0) {
+            v += (n ? 1 : -1) * volume;
+          }
+        }
+        wav[sample] += v;
+      }
+    }
+
+    void set(int register, byte data) {
+      registers[register] = data;
+      if (register == 13) { // envelope reset
+        chq[4] = 0;
+        chr[4] = 0;
+      }
+    }
+  }
+
   public TyphoonSound(Queue<Integer> stdin, Queue<Integer> stdout, Queue<String> stderr) {
     super(stdin, stdout, stderr);
   }
@@ -120,6 +213,14 @@ public class TyphoonSound extends TyphoonMachine {
   @Override
   public void open() {
     try {
+      int pingMs = 50; // 17 - min NTSC, 2*min - ok, 50 - good, 500 - java default
+      line = AudioSystem.getSourceDataLine(AUDIO_FORMAT);
+      line.open(AUDIO_FORMAT, (int) (AUDIO_FORMAT.getFrameRate() * pingMs / 1000) * AUDIO_FORMAT.getFrameSize());
+    } catch (LineUnavailableException e) {
+      throw new IllegalStateException(e);
+    }
+    line.start();
+    try {
       synthesizer = MidiSystem.getSynthesizer();
       synthesizer.open();
     } catch (MidiUnavailableException e) {
@@ -134,6 +235,7 @@ public class TyphoonSound extends TyphoonMachine {
     midi[8].programChange(5);
     midi[8].controlChange(8, 127); // right
     msm = new Msm5232(midi[7], midi[8], midi[9]);
+    ym = new Ym2149(2_000_000, wav);
 
     super.open();
   }
@@ -141,6 +243,9 @@ public class TyphoonSound extends TyphoonMachine {
   @Override
   public void close() {
     synthesizer.close();
+    line.drain();
+    line.stop();
+    line.close();
     super.close();
   }
 
@@ -171,29 +276,29 @@ public class TyphoonSound extends TyphoonMachine {
     rst(0x38);
     runToAddress(IDLE_ADDRESS);
     rst(0x38);
-    //playYm();
+
+    final int[] wav = new int[line.available() / AUDIO_FORMAT.getFrameSize()];
+    this.wav.set(wav);
+    ym.run();
+    if (wav.length > 0) {
+      byte[] bytes = new byte[wav.length * AUDIO_FORMAT.getFrameSize()];
+      for (int wi = 0, i = 0; wi < wav.length; wi++) {
+        int v = wav[wi];
+        v = Math.min(v, Short.MAX_VALUE);
+        v = Math.max(v, Short.MIN_VALUE);
+        for (int channel = 0; channel < AUDIO_FORMAT.getChannels(); channel++) {
+          bytes[i++] = (byte) v;
+          bytes[i++] = (byte) (v >> 8);
+        }
+      }
+      line.write(bytes, 0, bytes.length);
+    }
   }
 
   public static int midiNoteNumber(double frequency) {
     double log2 = Math.log(frequency / 440.0) / Math.log(2);
     double note = A440_MIDI + log2 * 12;
     return (int) Math.round(note);
-  }
-
-  public void playYm() {
-    int mixerMute = super.readByte(YM_REGISTER + 7);
-    for (int i = 0; i < 3; i++) {
-      if (((mixerMute >> i) & 1) != 0) {
-        midi[i].allNotesOff();
-        continue;
-      }
-      int mixerVolume = super.readByte(YM_REGISTER + 8 + i);
-      mixerVolume &= 0x0F;
-      midi[i].controlChange(7, (mixerVolume << 1) + 40);
-      int frequency = super.readWord(YM_REGISTER + 2 * i);
-      frequency &= 0x0FFF;
-      midi[i].noteOn(midiNoteNumber(2_000_000 / 16.0 / frequency), MIDI_DEFAULT_VELOCITY);
-    }
   }
 
   @Override
@@ -223,15 +328,17 @@ public class TyphoonSound extends TyphoonMachine {
     }
     // 95% ----
     if (address == YM_DATA) {
-      int ymAddr = readByte(YM_ADDR);
+      int ymAddr = super.readByte(YM_ADDR);
+      ym.set(ymAddr, (byte) data);
       super.writeByte(address, data);
       stderr.add(String.format("ERR%02X,%02X", 0x190 + ymAddr, data));
       return;
     }
     if ((address >= MSM_REGISTER && address < MSM_REGISTER + 0x0E)) {
+      // audiocpu.mb@2b1=0
       msm.set(address - MSM_REGISTER, (byte) data);
       super.writeByte(address, data);
-      stderr.add(String.format("ERR%02X,%02X", address - MSM_REGISTER + 0x180, data));
+      stderr.add(String.format("ERR%02X,%02X", 0x180 + address - MSM_REGISTER, data));
       return;
     }
     super.writeByte(address, data);
