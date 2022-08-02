@@ -23,19 +23,28 @@ import java.awt.image.BufferedImage;
 import java.io.DataInputStream;
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.Enumeration;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Queue;
+import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
@@ -373,11 +382,11 @@ public class TyphoonGal implements Runnable, KeyListener {
           Color rgb = new Color(r * 0x11, g * 0x11, b * 0x11);
           Color rgba = new Color(a * 0x11, a * 0x11, a * 0x11);
           int x = (i << 1) & 0xFF;
-          int y = 0x20 + ((i >> 6) & 2);
-          image.setRGB(x, y, rgb.getRGB());
-          image.setRGB(x + 1, y, rgb.getRGB());
-          image.setRGB(x, y + 1, rgb.getRGB());
-          image.setRGB(x + 1, y + 1, rgba.getRGB());
+          int y = 0x10 + ((i >> 5) & 4);
+          image.setRGB(x, y, rgb.getRGB()); image.setRGB(x + 1, y, rgb.getRGB());
+          image.setRGB(x, y + 1, rgb.getRGB()); image.setRGB(x + 1, y + 1, rgb.getRGB());
+          image.setRGB(x, y + 2, rgb.getRGB()); image.setRGB(x + 1, y + 2, rgba.getRGB());
+          image.setRGB(x, y + 3, rgb.getRGB()); image.setRGB(x + 1, y + 3, rgba.getRGB());
         }
 
         if (frontHalf > 0) break;
@@ -412,6 +421,7 @@ public class TyphoonGal implements Runnable, KeyListener {
     private boolean btnAttack;
     private boolean btnJump;
     private boolean btnStart;
+    private HighScore highScore;
 
     public enum ControllerCommand {
       UP(KeyEvent.VK_UP), DOWN(KeyEvent.VK_DOWN), LEFT(KeyEvent.VK_LEFT), RIGHT(KeyEvent.VK_RIGHT),
@@ -437,6 +447,12 @@ public class TyphoonGal implements Runnable, KeyListener {
       write(0x0000, storage, "ry-08.rom", "f38e82b8-b972-380d-b9df-35879e136da3");
       write(0x4000, storage, "ry-07.rom", "5b5cf70e-f7f4-36b7-851c-e56b6b3021b0");
       write(0x8000, storage, "ry-06.rom", "d1f11a1e-876f-343b-9287-0fe0022739b8");
+    }
+
+    @Override
+    public void open() {
+      highScore = new HighScore(this);
+      super.open();
     }
 
     public static final int IDLE_ADDRESS = 0x00A5;
@@ -474,7 +490,7 @@ public class TyphoonGal implements Runnable, KeyListener {
       if (leftRight < 0) controller ^= 4;
       if (btnJump) controller ^= 2;
       if (btnAttack) controller ^= 1;
-      stderr.add(String.format("ERR4C,%s%s%s%s%02X%02X",
+      stderr.add(String.format("ERR1C,%s%s%s%s%02X%02X",
           upDown > 0 ? 'U' : (upDown < 0 ? 'D' : '-'),
           leftRight > 0 ? 'R' : (leftRight < 0 ? 'L' : '-'),
           btnJump ? 'J' : '-',
@@ -494,6 +510,7 @@ public class TyphoonGal implements Runnable, KeyListener {
         writeByte(0xD803, coin | 0x11);
         btnStart = false;
       }
+      highScore.run();
     }
 
     @Override
@@ -528,6 +545,102 @@ public class TyphoonGal implements Runnable, KeyListener {
         address += (super.readByte(GFXCTRL) & 0x20) == 0 ? PALETTE_BANK_0 : PALETTE_BANK_1;
       }
       super.writeByte(address, data);
+    }
+  }
+
+  public static class HighScore implements Runnable {
+
+    public static class Score {
+      int score;
+      String name;
+      public Score(int score, String name) {
+        this.score = score;
+        this.name = name;
+      }
+      @Override
+      public int hashCode() {
+        return name.hashCode() + score;
+      }
+      @Override
+      public boolean equals(Object obj) {
+        return ((obj instanceof Score)
+            && (((Score) obj).score == this.score)
+            && (((Score) obj).name.equals(this.name)));
+      }
+    }
+
+    private final Path path;
+    private final TyphoonMachine memory;
+    private UUID checksum;
+    private final Set<Score> table;
+    private boolean writtenOnce;
+
+    public HighScore(TyphoonMachine memory) {
+      this.memory = memory;
+      try {
+        Path tempFile = Files.createTempFile("TyphoonGal.", ".txt");
+        Files.deleteIfExists(tempFile);
+        this.path = tempFile.resolveSibling("TyphoonGal.txt");
+        table = Files.exists(path) ? Files.readAllLines(path).stream().map(s -> {
+          String[] split = s.split("\\s", 2);
+          if (split.length < 2) return null;
+          return new Score(Integer.parseInt(split[0]), split[1]);
+        }).filter(Objects::nonNull).collect(Collectors.toSet()) : new HashSet<>();
+      } catch (IOException e) {
+        throw new UncheckedIOException(e);
+      }
+    }
+
+    public static final int ADDRESS_TOP10_TEXT = 0xC158;
+    public static final int ADDRESS_TOP10 = 0xE1D7;
+    public static final int ADDRESS_PLAYER_SCORE = 0xE26A;
+    public static final int ADDRESS_HIGH_SCORE = 0xE188;
+    public static final UUID TOP10 = UUID.fromString("b7a0efac-cade-347b-9c23-4087cfdc3ec3");
+    @Override
+    public void run() {
+      if (!TOP10.equals(UUID.nameUUIDFromBytes(memory.read(ADDRESS_TOP10_TEXT, new byte[18]))) &&
+          writtenOnce) return;
+      byte[] m = new byte[130];
+      memory.read(ADDRESS_TOP10, m);
+      UUID uuid = UUID.nameUUIDFromBytes(m);
+      if (uuid.equals(checksum)) return;
+      checksum = uuid;
+      for (int i = 0; i < 10; i++) {
+        int score = 0;
+        for (int j = 2; j >= 0; j--) {
+          score += (m[i * 3 + j] >> 4) & 15;
+          score *= 10;
+          score += m[i * 3 + j] & 15;
+          score *= 10;
+        }
+        byte[] bytes = Arrays.copyOfRange(m, i * 10 + 30, i * 10 + 40);
+        String s = new String(bytes, StandardCharsets.ISO_8859_1);
+        table.add(new Score(score, s));
+      }
+      List<Score> top = table.stream().sorted(Comparator.comparingInt(e -> -e.score)).collect(Collectors.toList());
+      String content = top.stream().map(e -> e.score + " " + e.name).collect(Collectors.joining("\n"));
+      try {
+        Files.writeString(path, content);
+      } catch (IOException e) {
+        throw new UncheckedIOException(e);
+      }
+
+      if (writtenOnce) return;
+      writtenOnce = true;
+      for (int i = 0; i < 10; i++) {
+        Score score = top.get(i);
+        int sc = score.score;
+        for (int j = 0; j < 3; j++) {
+          sc /= 10;
+          m[i * 3 + j] = (byte) (sc % 10);
+          sc /= 10;
+          m[i * 3 + j] |= ((sc % 10) << 4);
+        }
+        byte[] bytes = score.name.getBytes(StandardCharsets.ISO_8859_1);
+        System.arraycopy(bytes, 0, m, i * 10 + 30, 10);
+      }
+      memory.write(ADDRESS_TOP10, m);
+      memory.write(ADDRESS_HIGH_SCORE, Arrays.copyOf(m, 3));
     }
   }
 }

@@ -22,7 +22,7 @@ import java.util.UUID;
 
 public class TyphoonMachine implements Runnable, AutoCloseable {
   private final byte[] memory;
-  private TyphoonZ80 z80;
+  protected TyphoonZ80 z80;
   protected final Queue<Integer> stdin;
   protected final Queue<Integer> stdout;
   protected final Queue<String> stderr;
@@ -104,8 +104,9 @@ public class TyphoonMachine implements Runnable, AutoCloseable {
     write(address, data);
   }
 
-  public void read(int address, byte[] data) {
+  public byte[] read(int address, byte[] data) {
     System.arraycopy(memory, address, data, 0, data.length);
+    return data;
   }
 
   @Override

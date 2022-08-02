@@ -22,3 +22,9 @@ mvn compile exec:java -D"exec.mainClass"="ab.Application"
 mvn compile exec:java -Dexec.mainClass=ab.nyancat.NyanCat
 
 ![Nyan Cat](src/test/resources/nyancatansi.png)
+
+### Typhoon Gal (c) Taito 1985 - arcade machine emulator
+
+mvn compile exec:java -Dexec.mainClass=ab.jnc2.TyphoonGal
+
+![Typhoon Gal](src/test/resources/typhoongal.png)

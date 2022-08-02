@@ -25,11 +25,16 @@ import javax.sound.sampled.AudioFormat;
 import javax.sound.sampled.AudioSystem;
 import javax.sound.sampled.LineUnavailableException;
 import javax.sound.sampled.SourceDataLine;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.time.Instant;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Queue;
+import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
 
 /**
  * Typhoon Sound System.
@@ -38,7 +43,7 @@ public class TyphoonSound extends TyphoonMachine {
 
   public static final int YM_ADDR = 0xC800;
   public static final int YM_DATA = 0xC801;
-  public static final int YM_VOLUME = 0x1000; // MAX/8
+  public static final int YM_VOLUME = 0x4000; // personal opinion
   public static final int MSM_REGISTER = 0xCA00;
   public static final int SOUND_LATCH = 0xD800;
   public static final int A440_MIDI = 69;
@@ -51,6 +56,8 @@ public class TyphoonSound extends TyphoonMachine {
   Synthesizer synthesizer;
   SourceDataLine line;
   AtomicReference<int[]> wav = new AtomicReference<>();
+  ByteArrayOutputStream dacInput;
+  Set<ByteArrayInputStream> dacOutput = new HashSet<>();
   Msm5232 msm;
   Ym2149 ym;
 
@@ -117,7 +124,8 @@ public class TyphoonSound extends TyphoonMachine {
 
   public static class Ym2149 implements Runnable {
     public static final int[] DA_VOLTAGE = {
-        5, 6, 7, 8, 9, 11, 13, 16, 19, 22, 26, 31, 37, 44, 53, 63,
+        1, 3, 5, 7, // made this part linear, by specs it must be 5, 6, 7, 8
+        9, 11, 13, 16, 19, 22, 26, 31, 37, 44, 53, 63,
         74, 88, 105, 125, 149, 177, 210, 250, 297, 354, 420, 500, 595, 707, 841, 1000,
     };
     private final int clockRate;
@@ -176,7 +184,8 @@ public class TyphoonSound extends TyphoonMachine {
         for (int ch = 0; ch < 3; ch++) {
           int volume = registers[8 + ch];
           volume = volume > 0x0F ? envv : volume * 2 + 1;
-          volume = DA_VOLTAGE[volume] * YM_VOLUME / 1000;
+          volume += (registers[14] >> 3 & 0x1F) - 0x1F; // port A volume control, not in spec
+          volume = volume < 0 ? 0 : DA_VOLTAGE[volume] * YM_VOLUME / 1000;
           if ((registers[7] & 1 << ch) == 0) {
             v += ((chq[ch] & 1) == 0 ? 1 : -1) * volume;
           }
@@ -261,6 +270,7 @@ public class TyphoonSound extends TyphoonMachine {
   public void run() {
     if (!isOpen()) return;
     msm.run();
+    dacInput = new ByteArrayOutputStream();
     runToAddress(IDLE_ADDRESS);
     Integer command = stdin.poll();
     if (command != null) {
@@ -277,9 +287,34 @@ public class TyphoonSound extends TyphoonMachine {
     runToAddress(IDLE_ADDRESS);
     rst(0x38);
 
+    if (dacInput.size() > 0) {
+      // dac code have a loop of 252,252,252,251 clock cycles
+      // producing 8_000_000 / 2 / 251.75 = 15888.8 Hz rate, why?
+      // MAME emulator gives around 15427 Hz which neither make sense to me
+      double x3 = SAMPLE_RATE / (8_000_000 / 2 / 251.75);
+      byte[] b1 = dacInput.toByteArray();
+      byte[] b2 = new byte[(int) (b1.length * x3)];
+      for (int i = 0; i < b2.length; i++) {
+        b2[i] = b1[(int) (i / x3)];
+      }
+      dacOutput.add(new ByteArrayInputStream(b2));
+    }
     final int[] wav = new int[line.available() / AUDIO_FORMAT.getFrameSize()];
     this.wav.set(wav);
     ym.run();
+    for (ByteArrayInputStream output : dacOutput) {
+      for (int i = 0; i < wav.length; i++) {
+        int b = output.read();
+        if (b < 0) {
+          break;
+        }
+        wav[i] += (b - 0x80) << 8;
+      }
+    }
+    if (dacOutput.stream().anyMatch(s -> s.available() <= 0)) {
+      dacOutput = dacOutput.stream().filter(s -> s.available() > 0).collect(Collectors.toSet());
+    }
+
     if (wav.length > 0) {
       byte[] bytes = new byte[wav.length * AUDIO_FORMAT.getFrameSize()];
       for (int wi = 0, i = 0; wi < wav.length; wi++) {
@@ -327,18 +362,23 @@ public class TyphoonSound extends TyphoonMachine {
       return;
     }
     // 95% ----
+    if (address == 0xDE00) {
+      dacInput.write(data);
+      super.writeByte(address, data);
+      return;
+    }
     if (address == YM_DATA) {
       int ymAddr = super.readByte(YM_ADDR);
       ym.set(ymAddr, (byte) data);
       super.writeByte(address, data);
-      stderr.add(String.format("ERR%02X,%02X", 0x190 + ymAddr, data));
+      stderr.add(String.format("ERR%02X,%02X", 0x1B0 + ymAddr, data));
       return;
     }
     if ((address >= MSM_REGISTER && address < MSM_REGISTER + 0x0E)) {
       // audiocpu.mb@2b1=0
       msm.set(address - MSM_REGISTER, (byte) data);
       super.writeByte(address, data);
-      stderr.add(String.format("ERR%02X,%02X", 0x180 + address - MSM_REGISTER, data));
+      stderr.add(String.format("ERR%02X,%02X", 0x1A0 + address - MSM_REGISTER, data));
       return;
     }
     super.writeByte(address, data);

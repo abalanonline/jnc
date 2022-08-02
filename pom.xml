@@ -54,7 +54,6 @@
       <groupId>com.codingrodent.microprocessor</groupId>
       <artifactId>Z80Processor</artifactId>
       <version>3.2.0</version>
-      <scope>provided</scope>
     </dependency>
 
   </dependencies>
