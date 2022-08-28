@@ -26,7 +26,7 @@ class ApplicationTest {
 
   @Test
   void testMenu() throws Exception {
-    Application application = new Application(null);
+    Application application = new Application(null, false);
     byte[] scr = new byte[6912];
 
     new DataInputStream(getClass().getResourceAsStream("/zx128.scr")).readFully(scr);

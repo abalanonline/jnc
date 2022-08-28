@@ -26,8 +26,12 @@ import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.awt.image.BufferedImage;
 import java.io.BufferedInputStream;
-import java.time.Instant;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -56,7 +60,6 @@ public class NohzDyve implements Runnable, KeyListener {
       { 32,  31, 200, 161, 1},
       { 16,  22, 136, 168, 4},
   };
-  public static int throttling;
 
   BufferedImage image;
   Screen screen;
@@ -529,25 +532,8 @@ public class NohzDyve implements Runnable, KeyListener {
 
   public static void main(String[] args) throws Exception {
     Screen screen = new Screen(GraphicsMode.ZX);
-    Runnable basicProgram = new NohzDyve(screen);
-    int nano = Instant.now().getNano();
-    while (true) {
-      basicProgram.run();
-      screen.repaint();
-      int now = Instant.now().getNano();
-      if (now - nano < 20_000_000) { // don't sync if late
-        try {
-          throttling = 20 - now / 1_000_000 % 20;
-          Thread.sleep(throttling); // nano sync 1 - 20
-          now = ((now / 20_000_000) + 1) * 20_000_000; // Instant.now().getNano();
-        } catch (InterruptedException e) {
-          break;
-        }
-      } else {
-        throttling = 0;
-      }
-      nano = now;
-    }
+    Runnable program = new NohzDyve(screen);
+    screen.flicker(50, program);
   }
 
   public static class Osc { // oscillator

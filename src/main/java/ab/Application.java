@@ -18,13 +18,16 @@ package ab;
 
 import ab.jnc.JncKeyEvent;
 import ab.jnc.Playable;
-import ab.jnc2.*;
+import ab.jnc2.Basic;
+import ab.jnc2.GraphicsMode;
+import ab.jnc2.GraphicsModeZx;
+import ab.jnc2.Screen;
+import ab.jnc2.TextFont;
 
 import java.awt.*;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.lang.reflect.InvocationTargetException;
-import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -58,14 +61,13 @@ public class Application implements Runnable, KeyListener {
   private String newApplication;
   private Runnable program;
 
-  public Application(Screen screen) {
+  public Application(Screen screen, boolean withKeyListener) {
     this.screen = screen;
     this.zxm = new GraphicsModeZx();
     textFont = new TextFont("/48.rom", 0x3D00, 0x0300, 0x20, 8, 8);
-    if (screen == null) {
-      return; // return from constructor!
+    if (withKeyListener) {
+      screen.keyListener = this;
     }
-    screen.keyListener = this;
   }
 
   public void menu(String title, String[] items, String footer, int selected) {
@@ -198,7 +200,7 @@ public class Application implements Runnable, KeyListener {
   public static void main(String[] args) {
     Screen screen = new Screen(GraphicsMode.ZX);
     screen.setTitle("JNC2 Launcher");
-    Application application = new Application(screen);
+    Application application = new Application(screen, true);
     application.run(application);
   }
 
@@ -207,27 +209,15 @@ public class Application implements Runnable, KeyListener {
     if (application != this) {
       newApplication = application.getClass().getName();
     }
-    Instant now = Instant.now();
-    while (true) {
+
+    screen.flicker(50, () -> {
       if ((newMode != null) && (newApplication != null)) {
         screen.reset(newMode);
         newMode = null;
         run(newApplication);
       }
       program.run();
-      screen.repaint();
-      now = now.plusMillis(20);
-      Duration duration = Duration.between(Instant.now(), now);
-      if (duration.isNegative()) {
-        now = Instant.now();
-        continue;
-      }
-      try {
-        Thread.sleep(duration.toMillis());
-      } catch (InterruptedException e) {
-        break;
-      }
-    }
+    });
   }
 
 }

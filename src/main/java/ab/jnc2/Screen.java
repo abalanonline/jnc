@@ -24,6 +24,8 @@ import java.awt.event.KeyListener;
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBuffer;
 import java.awt.image.IndexColorModel;
+import java.time.Duration;
+import java.time.Instant;
 
 /**
  * Screen is a physical screen for writing and drawing. Should be available after instantiating.
@@ -148,6 +150,33 @@ public class Screen extends JComponent implements KeyListener {
   public void setBackground(Color bg) {
     super.setBackground(bg);
     if (getParent() instanceof JComponent) getParent().setBackground(bg);
+  }
+
+  /**
+   * Run the runnable and repaint the screen with the defined refresh rate.
+   * @param refreshRate in Hz
+   * @param runnable that update the screen
+   * TODO: 2022-08-27 give a cool name for the method
+   */
+  public void flicker(double refreshRate, Runnable runnable) {
+    int durationNanos = (int) Math.round(1_000_000_000 / refreshRate);
+    Instant now = Instant.now();
+    while (true) {
+      runnable.run();
+      this.repaint();
+      now = now.plusNanos(durationNanos);
+      Duration duration = Duration.between(Instant.now(), now);
+      if (duration.isNegative()) {
+        now = Instant.now();
+        continue;
+      }
+      try {
+        Thread.sleep(duration.toMillis());
+      } catch (InterruptedException e) {
+        break;
+      }
+    }
+
   }
 
 }

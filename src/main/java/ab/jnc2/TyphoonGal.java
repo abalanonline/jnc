@@ -27,8 +27,6 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.time.Duration;
-import java.time.Instant;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.Enumeration;
@@ -150,22 +148,7 @@ public class TyphoonGal implements Runnable, KeyListener {
   public static void main(String[] args) {
     Screen screen = new Screen(new GraphicsMode(256, 224));
     TyphoonGal program = new TyphoonGal(screen);
-    Instant now = Instant.now();
-    while (true) {
-      program.run();
-      screen.repaint();
-      now = now.plusNanos(16_683_350); // NTSC
-      Duration duration = Duration.between(Instant.now(), now);
-      if (duration.isNegative()) {
-        now = Instant.now();
-        continue;
-      }
-      try {
-        Thread.sleep(duration.toMillis());
-      } catch (InterruptedException e) {
-        break;
-      }
-    }
+    screen.flicker(59.94, program);
   }
 
   int mask = 0;

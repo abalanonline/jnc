@@ -16,6 +16,8 @@
 
 package ab.jnc2;
 
+import ab.Application;
+
 import java.time.LocalTime;
 
 public class AmigaBall implements Runnable {
@@ -124,15 +126,7 @@ public class AmigaBall implements Runnable {
   public static void main(String[] args) {
     Screen screen = new Screen(GraphicsMode.ZX);
     Runnable basicProgram = new AmigaBall(new Basic(screen));
-    while (true) {
-      basicProgram.run();
-      screen.repaint();
-      try {
-        Thread.sleep(10);
-      } catch (InterruptedException e) {
-        break;
-      }
-    }
+    new Application(screen, true).run(basicProgram);
   }
 
 }
