@@ -25,14 +25,24 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * ZX graphic mode.
+ * No flash: brightness bit 6 == paper bit 3 == ink bit 3, flash bit 7 == 0
+ * Flash: brightness bit 6 == paper bit 3 != ink bit 3, flash bit 7 == paper bit 3 ^ ink bit 3
  */
-// TODO: 2021-12-25 support the flashing bit
 public class GraphicsModeZx {
 
   public static final int WIDTH = 256;
   public static final int HEIGHT = 192;
   public static final int AW = 32;
   public static final int AH = 24;
+
+  public static final int BLACK = 8;
+  public static final int BLUE = 9;
+  public static final int RED = 10;
+  public static final int GREEN = 12;
+  public static final int CYAN = 13;
+  public static final int YELLOW = 14;
+  public static final int WHITE = 15;
+  public static final int[] RAINBOW = new int[]{BLACK, RED, YELLOW, GREEN, CYAN, BLACK, BLACK};
 
   public final BufferedImage pixel;
   public final BufferedImage ink;
@@ -72,6 +82,19 @@ public class GraphicsModeZx {
     clearRect(x, y, width, height, this.paper, paper);
   }
 
+  public void uiRainbow(int x, int y) {
+    for (int i = 0; i < RAINBOW.length - 1; i++) {
+      this.attrRect(x + i, y, 1, 1, RAINBOW[i | 1], RAINBOW[(i + 1) & 0xFFFE]);
+    }
+    for (int i = 0; i < 8; i++) {
+      int xx = x * 8 + 7 - i;
+      int yy = y * 8 + i;
+      this.clearRect(xx, yy, 8, 1, this.pixel, -1);
+      this.clearRect(xx + 16, yy, 8, 1, this.pixel, -1);
+      this.clearRect(xx + 32, yy, i + 1, 1, this.pixel, -1);
+    }
+  }
+
   public void cls(int ink, int paper) {
     clearRect(0, 0, AW, AH, this.ink, ink);
     clearRect(0, 0, AW, AH, this.paper, paper);
@@ -97,7 +120,8 @@ public class GraphicsModeZx {
     DataBuffer i = this.ink.getRaster().getDataBuffer();
     DataBuffer p = this.paper.getRaster().getDataBuffer();
     for (int x = 0; x < 24 * 32; x++) {
-      bytes[6144 + x] = (byte) (((p.getElem(x) & 0x0F) << 3) | (i.getElem(x) & 7));
+      bytes[6144 + x] = (byte) (i.getElem(x) & 7 | p.getElem(x) << 3 & 0x78
+          | (i.getElem(x) ^ p.getElem(x)) << 4 & 0x80); // see flash support note
     }
     return bytes;
   }
@@ -114,9 +138,10 @@ public class GraphicsModeZx {
     DataBuffer p = this.paper.getRaster().getDataBuffer();
     for (int x = 0; x < 24 * 32; x++) {
       byte col = bytes[6144 + x];
-      int bright = (col >> 3) & 8;
-      p.setElem(x, bright | ((col >> 3) & 7));
-      i.setElem(x, bright | (col & 7));
+      int bright = col >> 3 & 8;
+      int flash = col >> 4 & 8; // see flash support note
+      i.setElem(x, bright ^ flash | col & 7);
+      p.setElem(x, bright | col >> 3 & 7);
     }
   }
 

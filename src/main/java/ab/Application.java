@@ -36,6 +36,7 @@ import java.util.List;
 public class Application implements Runnable, KeyListener {
 
   public static final String[] CLASSES = new String[]{ // TODO: 2022-02-27 class scan
+      "ab.jnc2.SystemTerm",
       "ab.jnc2.BasicClock",
       "ab.jnc2.AmigaBall",
       "ab.jnc2.NohzDyve",
@@ -43,14 +44,6 @@ public class Application implements Runnable, KeyListener {
       "ab.jnc2.GeodesicDome",
       "ab.jnc2.TyphoonGal",
   };
-
-  public static final int BLACK = 8;
-  public static final int RED = 10;
-  public static final int GREEN = 12;
-  public static final int CYAN = 13;
-  public static final int YELLOW = 14;
-  public static final int WHITE = 15;
-  public static final int[] RAINBOW = new int[]{BLACK, RED, YELLOW, GREEN, CYAN, BLACK, BLACK};
 
   Screen screen;
   GraphicsModeZx zxm;
@@ -79,27 +72,18 @@ public class Application implements Runnable, KeyListener {
     int y = Math.max(1, 11 - (h + 1) / 2);
     zxm.cls(0, 7); // dark black and white
 
-    zxm.attrRect(x, y - 1, w, 1, WHITE, BLACK);
+    zxm.attrRect(x, y - 1, w, 1, GraphicsModeZx.WHITE, GraphicsModeZx.BLACK);
     textFont.print(zxm.pixel, title, x * 8, y * 8 - 8, -1);
 
-    zxm.attrRect(x, y, w, h, BLACK, WHITE);
+    zxm.attrRect(x, y, w, h, GraphicsModeZx.BLACK, GraphicsModeZx.WHITE);
     zxm.clearRect(x * 8, y * 8, w * 8, h * 8, zxm.pixel, -1);
     zxm.clearRect(x * 8 + 1, y * 8, w * 8 - 2, h * 8 - 1, zxm.pixel, 0);
     for (int i = 0; i < items.length; i++) {
       textFont.print(zxm.pixel, items[i], x * 8 + 8, (y + i) * 8, -1);
     }
-    zxm.attrRect(x, y + selected, w, 1, BLACK, CYAN);
+    zxm.attrRect(x, y + selected, w, 1, GraphicsModeZx.BLACK, GraphicsModeZx.CYAN);
 
-    for (int i = 0; i < RAINBOW.length - 1; i++) {
-      zxm.attrRect(x + w - 6 + i, y - 1, 1, 1, RAINBOW[i | 1], RAINBOW[(i + 1) & 0xFFFE]);
-    }
-    for (int i = 0; i < 8; i++) {
-      int xx = (x + w) * 8 - 41;
-      int yy = y * 8 - 8;
-      zxm.clearRect(xx - i, yy + i, 8, 1, zxm.pixel, -1);
-      zxm.clearRect(xx - i + 16, yy + i, 8, 1, zxm.pixel, -1);
-      zxm.clearRect(xx - i + 32, yy + i, i + 1, 1, zxm.pixel, -1);
-    }
+    zxm.uiRainbow(x + w - 6, y - 1);
 
     String[] footers = footer.split("\n");
     for (int i = 0; i < footers.length; i++) {
