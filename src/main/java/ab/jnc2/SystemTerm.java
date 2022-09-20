@@ -21,6 +21,7 @@ import ab.Application;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -46,11 +47,21 @@ public class SystemTerm implements Runnable, KeyListener {
     this.textFont = new TextFont("/48.rom", 0x3D00, 0x0300, 0x20, 8, 8);
     this.basic = screen == null ? null : new Basic(screen);
     this.tty = new Tty(GraphicsModeZx.AW, GraphicsModeZx.AH - FOOTER_HEIGHT - 1);
-    screen.keyListener = this;
 
+    if (screen == null) return;
     Runtime.getRuntime().addShutdownHook(new Thread(() -> {
       if (process != null) process.destroy();
     }));
+    screen.keyListener = this;
+    try {
+      this.process = Runtime.getRuntime().exec(
+          new String[]{"bash", "--norc", "-i"},
+          new String[]{"TERM=xterm", "COLUMNS=32", "LINES=21", "PS1=$", });
+      new Thread(() -> this.transferFromTo(this.process.getInputStream(), tty)).start();
+      new Thread(() -> this.transferFromTo(this.process.getErrorStream(), tty)).start();
+    } catch (IOException e) {
+      throw new UncheckedIOException(e);
+    }
   }
 
   @Override
@@ -82,9 +93,9 @@ public class SystemTerm implements Runnable, KeyListener {
     zxm.draw(screen.image);
   }
 
-  public void transferToTty(InputStream inputStream) {
+  public void transferFromTo(InputStream inputStream, OutputStream outputStream) {
     try {
-      inputStream.transferTo(tty);
+      inputStream.transferTo(outputStream);
     } catch (IOException e) {
       throw new UncheckedIOException(e);
     }
@@ -121,21 +132,6 @@ public class SystemTerm implements Runnable, KeyListener {
   public static void main(String[] args) {
     Screen screen = new Screen(GraphicsMode.ZX);
     SystemTerm shell = new SystemTerm(screen);
-    try {
-      shell.process = Runtime.getRuntime().exec(
-          new String[]{"bash", "-i"},
-          new String[]{"TERM=dumb", "COLUMNS=33", "LINES=21", });
-      try {
-        new ByteArrayInputStream("PS1=\"$\"\nls\n".getBytes()).transferTo(shell.process.getOutputStream());
-        shell.process.getOutputStream().flush();
-      } catch (IOException e) {
-        throw new UncheckedIOException(e);
-      }
-      new Thread(() -> shell.transferToTty(shell.process.getInputStream())).start();
-      new Thread(() -> shell.transferToTty(shell.process.getErrorStream())).start();
-    } catch (IOException e) {
-      throw new UncheckedIOException(e);
-    }
     new Application(screen, false).run(shell);
   }
 
@@ -178,6 +174,9 @@ public class SystemTerm implements Runnable, KeyListener {
             y--;
           case 0x0D:
             x = 0;
+            break;
+          case 0x08:
+            x--;
             break;
         }
         while (y < 0) {
