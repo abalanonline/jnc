@@ -18,6 +18,9 @@ package ab.jnc2;
 
 import ab.Application;
 
+import java.awt.event.KeyEvent;
+import java.awt.event.KeyListener;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -26,7 +29,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.LinkedList;
 import java.util.List;
 
-public class SystemTerm implements Runnable {
+public class SystemTerm implements Runnable, KeyListener {
 
   public static final int FOOTER_HEIGHT = 2;
 
@@ -43,6 +46,7 @@ public class SystemTerm implements Runnable {
     this.textFont = new TextFont("/48.rom", 0x3D00, 0x0300, 0x20, 8, 8);
     this.basic = screen == null ? null : new Basic(screen);
     this.tty = new Tty(GraphicsModeZx.AW, GraphicsModeZx.AH - FOOTER_HEIGHT - 1);
+    screen.keyListener = this;
 
     Runtime.getRuntime().addShutdownHook(new Thread(() -> {
       if (process != null) process.destroy();
@@ -50,7 +54,30 @@ public class SystemTerm implements Runnable {
   }
 
   @Override
+  public void keyTyped(KeyEvent e) {
+    try {
+      OutputStream outputStream = process.getOutputStream();
+      outputStream.write(e.getKeyChar());
+      outputStream.flush();
+    } catch (IOException ex) {
+      System.exit(0);
+      throw new UncheckedIOException(ex);
+    }
+  }
+
+  @Override
+  public void keyPressed(KeyEvent e) {
+
+  }
+
+  @Override
+  public void keyReleased(KeyEvent e) {
+
+  }
+
+  @Override
   public void run() {
+    if (!process.isAlive()) System.exit(0);
     menu(tty, "System Terminal", "0 OK, 0:0", FOOTER_HEIGHT);
     zxm.draw(screen.image);
   }
@@ -96,8 +123,14 @@ public class SystemTerm implements Runnable {
     SystemTerm shell = new SystemTerm(screen);
     try {
       shell.process = Runtime.getRuntime().exec(
-          new String[]{"top", "-b"},
+          new String[]{"bash", "-i"},
           new String[]{"TERM=dumb", "COLUMNS=33", "LINES=21", });
+      try {
+        new ByteArrayInputStream("PS1=\"$\"\nls\n".getBytes()).transferTo(shell.process.getOutputStream());
+        shell.process.getOutputStream().flush();
+      } catch (IOException e) {
+        throw new UncheckedIOException(e);
+      }
       new Thread(() -> shell.transferToTty(shell.process.getInputStream())).start();
       new Thread(() -> shell.transferToTty(shell.process.getErrorStream())).start();
     } catch (IOException e) {
