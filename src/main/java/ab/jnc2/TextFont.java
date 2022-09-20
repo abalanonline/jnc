@@ -34,12 +34,17 @@ import java.util.stream.Stream;
  */
 public class TextFont {
   public final byte[] font;
-  int height;
+
+  private final int intw;
+  private final int inth;
   int width;
+  int height;
 
   public TextFont(byte[] data, int charStart, int width, int height) {
     font = new byte[height * 0x100];
     System.arraycopy(data, 0, font, charStart * height, data.length);
+    this.intw = width;
+    this.inth = height;
     this.width = width;
     this.height = height;
   }
@@ -55,6 +60,16 @@ public class TextFont {
       throw new UncheckedIOException(e);
     }
     System.arraycopy(buffer, 0, font, charStart * height, byteSize);
+  }
+
+  public TextFont width(int width) {
+    this.width = width;
+    return this;
+  }
+
+  public TextFont height(int height) {
+    this.height = height;
+    return this;
   }
 
   /**
@@ -166,14 +181,14 @@ public class TextFont {
 
   private void print(BufferedImage image, String s, int x, int y, int color, int bgColor, boolean withBackground,
       boolean centered) {
-    if (centered) x -= this.width * s.length() / 2;
+    if (centered) x -= this.intw * s.length() / 2;
     int width = image.getWidth();
     int height = image.getHeight();
     for (int i = 0; i < s.length(); i++) {
       int c = s.charAt(i);
-      c *= this.height;
-      for (int iy = 0; iy < this.height; iy++) {
-        for (int ix = 0; ix < this.width; ix++) {
+      c *= this.inth;
+      for (int iy = 0; iy < this.inth; iy++) {
+        for (int ix = 0; ix < this.intw; ix++) {
           int jx = x + ix;
           int jy = y + iy;
           if (jx < 0 || jy < 0 || jx >= width || jy >= height) continue;
@@ -184,7 +199,7 @@ public class TextFont {
           }
         }
       }
-      x += this.width;
+      x += this.intw;
     }
   }
 
@@ -203,9 +218,9 @@ public class TextFont {
   public void preview(BufferedImage image) {
     for (int y = 0; y < 16; y++) {
       for (int x = 0; x < 16; x++) {
-        print(image, Character.toString((char) (y * 16 + x)), x * width, y * height, 0xFFFF00, 0x0000AA);
-        int xr = x * width + width - 1;
-        int yd = y * height + height - 1;
+        print(image, Character.toString((char) (y * 16 + x)), x * intw, y * inth, 0xFFFF00, 0x0000AA);
+        int xr = x * intw + intw - 1;
+        int yd = y * inth + inth - 1;
         if (xr < image.getWidth() && yd < image.getHeight() && (image.getRGB(xr, yd) & 0xFFFF00) == 0)
         image.setRGB(xr, yd, 0x00AA00);
       }

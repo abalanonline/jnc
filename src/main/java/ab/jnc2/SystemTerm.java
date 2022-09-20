@@ -31,16 +31,14 @@ import java.util.List;
 
 public class SystemTerm implements Runnable, KeyListener {
 
-  public static final int FOOTER_HEIGHT = 2;
-
   private final Screen screen;
   private final Tty tty;
   Process process;
 
   public SystemTerm(Screen screen) {
     this.screen = screen;
-    TextFont textFont = new TextFont("/48.rom", 0x3D00, 0x0300, 0x20, 8, 8);
-    this.tty = new Tty(textFont);
+    TextFont textFont = new TextFont("/NohzDyve.fnt", 0, 0x0300, 0x20, 6, 8).height(6);
+    this.tty = new Tty(textFont, new TextFont("/48.rom", 0x3D00, 0x0300, 0x20, 8, 8));
     tty.title = "System Terminal";
     tty.footer = "0 OK, 0:0";
 
@@ -103,51 +101,69 @@ public class SystemTerm implements Runnable, KeyListener {
 
   public static class Tty extends OutputStream {
     protected GraphicsModeZx zxm = new GraphicsModeZx();
-    private final TextFont textFont;
+    private final TextFont monospaced;
+    private final int mw;
+    private final int mh;
+    private final TextFont dialog;
     public String title = "";
     public String footer = "";
     public int footerHeight = 2;
 
     private final int width;
     private final int height;
-    private final List<byte[]> screen;
+    private final List<byte[]> plainText;
     public int x;
     public int y;
 
+    public Tty() {
+      this(new TextFont("/48.rom", 0x3D00, 0x0300, 0x20, 8, 8));
+    }
+
     public Tty(TextFont textFont) {
-      this.textFont = textFont;
-      this.width = GraphicsModeZx.WIDTH / textFont.width;
-      this.height = GraphicsModeZx.HEIGHT / textFont.height - footerHeight - 1;
-      this.screen = new LinkedList<>();
+      this(textFont, textFont);
+    }
+
+    public Tty(TextFont monospaced, TextFont dialog) {
+      this.monospaced = monospaced;
+      this.mw = monospaced.width;
+      this.mh = monospaced.height;
+      this.dialog = dialog;
+      this.width = GraphicsModeZx.WIDTH / mw;
+      this.height = (GraphicsModeZx.HEIGHT - (footerHeight + 1) * 8) / mh;
+      this.plainText = new LinkedList<>();
       for (int i = 0; i < height; i++) {
-        screen.add(new byte[width]);
+        plainText.add(new byte[width]);
       }
       y = height - 1;
     }
 
     public String getLine(int index) {
-      return new String(screen.get(index), StandardCharsets.ISO_8859_1);
+      return new String(plainText.get(index), StandardCharsets.ISO_8859_1);
     }
 
     public void repaint() {
       zxm.cls(0, 7); // dark black and white
 
-      int bottomLine = GraphicsModeZx.AH - footerHeight - 2;
-      for (int y = bottomLine, i = 0; y >= 0; y--, i++) {
-        textFont.print(zxm.pixel, this.getLine(i), 0, y * 8, -1);
+      int bottomLine = GraphicsModeZx.HEIGHT - (footerHeight + 1) * 8 - mh;
+      for (int y = bottomLine, i = 0; y >= 0; y -= mh, i++) {
+        monospaced.print(zxm.pixel, this.getLine(i), 0, y, -1);
       }
-      zxm.attrRect(this.x, bottomLine - this.y, 1, 1, GraphicsModeZx.WHITE & ~8, GraphicsModeZx.BLUE);
+      if (mw == 8 && mh == 8) {
+        zxm.attrRect(this.x, bottomLine / 8 - this.y, 1, 1, GraphicsModeZx.WHITE & ~8, GraphicsModeZx.BLUE);
+      } else {
+        monospaced.print(zxm.pixel, "_", this.x * mw, bottomLine - this.y * mh, -1);
+      }
 
       int y = GraphicsModeZx.AH - footerHeight - 1;
       zxm.attrRect(0, y, GraphicsModeZx.AW, 1, GraphicsModeZx.BLACK, GraphicsModeZx.BLACK);
       zxm.attrRect(0, y, title.length(), 1, GraphicsModeZx.WHITE, GraphicsModeZx.BLACK);
-      textFont.print(zxm.pixel, title, 0, y * 8, -1);
+      dialog.print(zxm.pixel, title, 0, y * 8, -1);
 
       zxm.uiRainbow(26, y);
 
       String[] footers = footer.split("\n");
       for (int i = 0; i < footers.length; i++) {
-        textFont.print(zxm.pixel, footers[i], 0, (i - footers.length) * 8 + GraphicsModeZx.HEIGHT, -1);
+        dialog.print(zxm.pixel, footers[i], 0, (i - footers.length) * 8 + GraphicsModeZx.HEIGHT, -1);
       }
     }
 
@@ -179,7 +195,7 @@ public class SystemTerm implements Runnable, KeyListener {
             break;
         }
         while (y < 0) {
-          screen.add(0, new byte[width]);
+          plainText.add(0, new byte[width]);
           y++;
         }
         return;
@@ -189,10 +205,10 @@ public class SystemTerm implements Runnable, KeyListener {
         y--;
       }
       while (y < 0) {
-        screen.add(0, new byte[width]);
+        plainText.add(0, new byte[width]);
         y++;
       }
-      screen.get(y)[x] = (byte) c;
+      plainText.get(y)[x] = (byte) c;
       x++;
     }
   }
