@@ -26,16 +26,25 @@ class SystemTermTest {
 
   @Test
   void testMenu() throws Exception {
-    SystemTerm shell = new SystemTerm(null);
+    SystemTerm.Tty zt;
+    TextFont textFont = new TextFont("/48.rom", 0x3D00, 0x0300, 0x20, 8, 8);
     byte[] scr = new byte[6912];
 
     new DataInputStream(getClass().getResourceAsStream("/tapeloader.scr")).readFully(scr);
-    shell.menu("                                ", "Tape Loader", "To cancel - press BREAK twice", 2);
-    assertArrayEquals(scr, shell.zxm.toScr());
+    zt = new SystemTerm.Tty(textFont);
+    zt.title = "Tape Loader";
+    zt.footer = "To cancel - press BREAK twice";
+    zt.write("                                ".getBytes());
+    zt.repaint();
+    assertArrayEquals(scr, zt.zxm.toScr());
 
     new DataInputStream(getClass().getResourceAsStream("/calculator.scr")).readFully(scr);
-    shell.menu("1-1\n0", "Calculator", "0 OK, 0:0", 2);
-    assertArrayEquals(scr, shell.zxm.toScr());
+    zt = new SystemTerm.Tty(textFont);
+    zt.title = "Calculator";
+    zt.footer = "0 OK, 0:0";
+    zt.write("1-1\n0".getBytes());
+    zt.repaint();
+    assertArrayEquals(scr, zt.zxm.toScr());
   }
 
 }
