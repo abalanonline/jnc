@@ -181,7 +181,7 @@ public class TextFont {
 
   private void print(BufferedImage image, String s, int x, int y, int color, int bgColor, boolean withBackground,
       boolean centered) {
-    if (centered) x -= this.intw * s.length() / 2;
+    if (centered) x -= this.width * s.length() / 2;
     int width = image.getWidth();
     int height = image.getHeight();
     for (int i = 0; i < s.length(); i++) {
@@ -199,7 +199,7 @@ public class TextFont {
           }
         }
       }
-      x += this.intw;
+      x += this.width;
     }
   }
 

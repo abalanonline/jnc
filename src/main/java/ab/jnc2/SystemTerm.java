@@ -37,7 +37,7 @@ public class SystemTerm implements Runnable, KeyListener {
 
   public SystemTerm(Screen screen) {
     this.screen = screen;
-    TextFont textFont = new TextFont("/NohzDyve.fnt", 0, 0x0300, 0x20, 6, 8).height(6);
+    TextFont textFont = new TextFont("/pico-8.fnt", 0, 0x0400, 0, 8, 8).width(4).height(6);
     this.tty = new Tty(textFont, new TextFont("/48.rom", 0x3D00, 0x0300, 0x20, 8, 8));
     tty.title = "System Terminal";
     tty.footer = "0 OK, 0:0";
@@ -49,7 +49,7 @@ public class SystemTerm implements Runnable, KeyListener {
     try {
       this.process = Runtime.getRuntime().exec(
           new String[]{"bash", "--norc", "-i"},
-          new String[]{"TERM=xterm", "COLUMNS=32", "LINES=21", "PS1=$", });
+          new String[]{"TERM=xterm", "COLUMNS=" + tty.columns, "LINES=" + tty.lines, "PS1=$", });
       new Thread(() -> this.transferFromTo(this.process.getInputStream(), tty)).start();
       new Thread(() -> this.transferFromTo(this.process.getErrorStream(), tty)).start();
     } catch (IOException e) {
@@ -109,8 +109,8 @@ public class SystemTerm implements Runnable, KeyListener {
     public String footer = "";
     public int footerHeight = 2;
 
-    private final int width;
-    private final int height;
+    public final int columns;
+    public final int lines;
     private final List<byte[]> plainText;
     public int x;
     public int y;
@@ -128,13 +128,13 @@ public class SystemTerm implements Runnable, KeyListener {
       this.mw = monospaced.width;
       this.mh = monospaced.height;
       this.dialog = dialog;
-      this.width = GraphicsModeZx.WIDTH / mw;
-      this.height = (GraphicsModeZx.HEIGHT - (footerHeight + 1) * 8) / mh;
+      this.columns = GraphicsModeZx.WIDTH / mw;
+      this.lines = (GraphicsModeZx.HEIGHT - (footerHeight + 1) * 8) / mh;
       this.plainText = new LinkedList<>();
-      for (int i = 0; i < height; i++) {
-        plainText.add(new byte[width]);
+      for (int i = 0; i < lines; i++) {
+        plainText.add(new byte[columns]);
       }
-      y = height - 1;
+      y = lines - 1;
     }
 
     public String getLine(int index) {
@@ -195,17 +195,17 @@ public class SystemTerm implements Runnable, KeyListener {
             break;
         }
         while (y < 0) {
-          plainText.add(0, new byte[width]);
+          plainText.add(0, new byte[columns]);
           y++;
         }
         return;
       }
-      if (x >= width) {
+      if (x >= columns) {
         x = 0;
         y--;
       }
       while (y < 0) {
-        plainText.add(0, new byte[width]);
+        plainText.add(0, new byte[columns]);
         y++;
       }
       plainText.get(y)[x] = (byte) c;
