@@ -4,18 +4,18 @@ import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import javax.imageio.ImageIO;
-
 import java.awt.image.BufferedImage;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 
-import static org.junit.jupiter.api.Assertions.*;
-
 class TextFontTest {
+
+  public static final String FOX_S = "The quick brown fox jumps over the lazy dog";
+  public static final int FOX_X = 0x84;
+  public static final int FOX_Y = 0x20;
 
   /**
    * PICO-8 font. (CC0 1.0)
@@ -24,28 +24,44 @@ class TextFontTest {
   @Test
   @Disabled
   void pico8() throws IOException {
-    BufferedImage png = ImageIO.read(new FileInputStream("pico-8_font.png"));
-    assert png.getWidth() == 0x80;
-    assert png.getHeight() == 0x80;
+    BufferedImage png = ImageIO.read(new FileInputStream("pico-8_font_022.png"));
+    int pngWidth = png.getWidth();
+    int pngHeight = png.getHeight();
+    assert pngWidth % 0x80 == 0;
+    int zoom = pngWidth / 0x80;
     ByteBuffer bytes = ByteBuffer.allocate(0x800);
-    int rgb0 = png.getRGB(0, 0);
-    for (int y = 0; y < 0x10; y++) {
-      for (int x = 0; x < 0x10; x++) {
-        int yh = y;
-        int xh = x;
-        if ((yh | 2) == 6 && xh > 0 || (yh | 2) == 7 && xh < 0x0B) {
-          yh ^= 2; // ASCII uppercase/lowercase feature fix
+    int rgb0 = getRgb(png, 0, 0, zoom);
+    for (char c = 0; c < 0x100; c++) {
+      int yh = c / 0x10;
+      int xh = c % 0x10;
+      if ((c | 0x20) >= 'a' && (c | 0x20) <= 'z') {
+        yh ^= 2; // ASCII uppercase/lowercase feature fix
+      }
+      if ((yh + 1) * 8 * zoom > pngHeight) break;
+      for (int yl = 0; yl < 0x08; yl++) {
+        byte b = 0;
+        for (int xl = 0; xl < 0x08; xl++) {
+          b <<= 1;
+          b |= getRgb(png, xh * 8 + xl, yh * 8 + yl, zoom) == rgb0 ? 0 : 1;
         }
-        for (int yl = 0; yl < 0x08; yl++) {
-          byte b = 0;
-          for (int xl = 0; xl < 0x08; xl++) {
-            b <<= 1;
-            b |= png.getRGB(xh * 8 + xl, yh * 8 + yl) == rgb0 ? 0 : 1;
-          }
-          bytes.put(b);
-        }
+        bytes.put(b);
       }
     }
     Files.write(Paths.get("src/main/resources/pico-8.fnt"), bytes.array());
+
+    TextFont textFont = new TextFont(bytes.array(), 0, 8, 8).width(4).height(6);
+    Screen screen = new Screen(GraphicsMode.CGA_16);
+    screen.flicker(10, () -> {
+      int fw = (screen.mode.resolution.width - FOX_X) / textFont.width;
+      int fl = FOX_S.length();
+      for (int fx = 0, y = FOX_Y; fx < fl; fx += fw, y += textFont.height) {
+        textFont.print(screen.image, FOX_S.substring(fx, Math.min(fx + fw, fl)), FOX_X, y, -1);
+      }
+      textFont.preview(screen.image);
+    });
+  }
+
+  private static int getRgb(BufferedImage png, int x, int y, int zoom) {
+    return png.getRGB(x * zoom, y * zoom);
   }
 }
