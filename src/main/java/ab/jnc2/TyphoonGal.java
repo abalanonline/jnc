@@ -52,7 +52,7 @@ import java.util.zip.ZipFile;
  * Game controls: left, right, up, down
  * Z/X - jump/attack
  * X/C - attack/jump (mirrored)
- * SPACE to start, F1 no hit cheat code, F2 change music
+ * SPACE to start, F1 no hit cheat code, F2 change music, F3 ext midi
  */
 public class TyphoonGal implements Runnable, KeyListener {
 
@@ -61,6 +61,7 @@ public class TyphoonGal implements Runnable, KeyListener {
   TyphoonMachine videoMemory;
   Screen screen;
   int pianoSound;
+  int extMidi;
   final Queue<String> systemConsole = new LinkedBlockingDeque<>();
   final Queue<Integer> audioFeed = new LinkedBlockingDeque<>();
   final Queue<Integer> gameController = new LinkedBlockingDeque<>();
@@ -136,6 +137,9 @@ public class TyphoonGal implements Runnable, KeyListener {
       logInfo(e.getClass().getName() + ": " + e.getMessage());
     }
 
+    Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+      sound.close();
+    }));
   }
 
   @Override
@@ -147,8 +151,7 @@ public class TyphoonGal implements Runnable, KeyListener {
 
   public static void main(String[] args) {
     Screen screen = new Screen(new GraphicsMode(256, 224));
-    TyphoonGal program = new TyphoonGal(screen);
-    screen.flicker(59.94, program);
+    screen.flicker(59.94, new TyphoonGal(screen));
   }
 
   int mask = 0;
@@ -167,8 +170,8 @@ public class TyphoonGal implements Runnable, KeyListener {
       case '8':
       case '9':
       case '0':
-        int i = 1 << (e.getKeyChar() - '0');
-        mask ^= i;
+        int i = e.getKeyChar() - '0';
+        mask ^= 1 << i;
         systemConsole.add(String.format("ERR40,%03X", mask));
         break;
     }
@@ -196,6 +199,10 @@ public class TyphoonGal implements Runnable, KeyListener {
         int[] sounds = {6, 3, 91, 8}; // fm, electric, synth, clavi
         pianoSound = (pianoSound + 1) % sounds.length;
         audioFeed.add(0x100 + sounds[pianoSound]);
+        break;
+      case KeyEvent.VK_F3:
+        extMidi = (extMidi + 1) % TyphoonSound.MAX_MIDI_DEVICES;
+        audioFeed.add(0x200 + extMidi);
         break;
     }
   }

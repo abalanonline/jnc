@@ -16,11 +16,12 @@
 
 package ab.jnc2;
 
-import javax.sound.midi.Instrument;
-import javax.sound.midi.MidiChannel;
+import javax.sound.midi.InvalidMidiDataException;
+import javax.sound.midi.MidiDevice;
 import javax.sound.midi.MidiSystem;
 import javax.sound.midi.MidiUnavailableException;
-import javax.sound.midi.Synthesizer;
+import javax.sound.midi.Receiver;
+import javax.sound.midi.ShortMessage;
 import javax.sound.sampled.AudioFormat;
 import javax.sound.sampled.AudioSystem;
 import javax.sound.sampled.LineUnavailableException;
@@ -28,10 +29,14 @@ import javax.sound.sampled.SourceDataLine;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.time.Instant;
+import java.util.Arrays;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Queue;
 import java.util.Set;
+import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
@@ -46,14 +51,9 @@ public class TyphoonSound extends TyphoonMachine {
   public static final int YM_VOLUME = 0x4000; // personal opinion
   public static final int MSM_REGISTER = 0xCA00;
   public static final int SOUND_LATCH = 0xD800;
-  public static final int A440_MIDI = 69;
-  public static final int MIDI_DEFAULT_VELOCITY = 0x60;
   public static final int SAMPLE_RATE = 44100;
   public static final AudioFormat AUDIO_FORMAT = new AudioFormat(SAMPLE_RATE, 16, 1, true, false);
 
-  MidiChannel[] midi;
-  Instrument[] instruments;
-  Synthesizer synthesizer;
   SourceDataLine line;
   AtomicReference<int[]> wav = new AtomicReference<>();
   ByteArrayOutputStream dacInput;
@@ -61,64 +61,142 @@ public class TyphoonSound extends TyphoonMachine {
   Msm5232 msm;
   Ym2149 ym;
 
-  public static class Msm5232 implements Runnable {
-    public static final int A440_MIDI = 69;
-    public static final int A440_MSM = 0x21;
+  public static class Msm5232 implements Runnable, AutoCloseable {
+    public static final int CHANNEL_DCO1 = 7;
+    public static final int CHANNEL_DCO2 = 8;
+    public static final int CHANNEL_PERCUSSION = 9;
+    public static final int MIDI_DEFAULT_VELOCITY = 0x60;
+    public static final int MIDI_DEFAULT_INSTRUMENT = 6; // fm piano
+
+    public static final int C4_MIDI = 60;
+    public static final int C4_MSM = 0x24;
     public static final int[] ATTACK = {2, 4, 8, 16, 32, 64, 32, 64};
     public static final int[] DECAY = {40, 80, 160, 320, 640, 1300, 640, 1300,
         330, 500, 1000, 2000, 4000, 8000, 4000, 8000};
-    private final MidiChannel midi1;
-    private final MidiChannel midi2;
-    private final MidiChannel percussion;
 
-    private byte[] registers = new byte[0x0E];
-    private int[] notes = new int[8];
-    private Instant[] noteOff = new Instant[8];
+    private int[] tgMidiNoteNumber = new int[8];
+    private int[] tgMidiChannel = new int[8];
+    private Instant[] tgNoteOff = new Instant[8];
+    private int[] groupOctave = new int[2];
+    private int[] groupWaveform = new int[2];
+    private int[] groupAttack = new int[2];
+    private int[] groupDecay = new int[2];
 
-    public Msm5232(MidiChannel left, MidiChannel right, MidiChannel percussion) {
-      this.midi1 = left;
-      this.midi2 = right;
-      this.percussion = percussion;
+    private final Queue<Integer> tgData = new LinkedBlockingDeque<>();
+    private Receiver midiReceiver;
+
+    public Msm5232(Receiver midiReceiver) {
+      changeDevice(midiReceiver);
+      changeInstrument(MIDI_DEFAULT_INSTRUMENT);
+    }
+
+    public void changeInstrument(int programNumber) {
+      sendShortMessage(ShortMessage.PROGRAM_CHANGE, CHANNEL_DCO1, programNumber - 1, 0);
+      sendShortMessage(ShortMessage.PROGRAM_CHANGE, CHANNEL_DCO2, programNumber - 1, 0);
+    }
+
+    /**
+     * @param midiReceiver nullable
+     */
+    public void changeDevice(Receiver midiReceiver) {
+      this.midiReceiver = midiReceiver;
+      sendShortMessage(ShortMessage.CONTROL_CHANGE, CHANNEL_DCO1, 10, 0); // left
+      sendShortMessage(ShortMessage.CONTROL_CHANGE, CHANNEL_DCO2, 10, 127); // right
+    }
+
+    private void sendShortMessage(int command, int channel, int data1, int data2) {
+      if (midiReceiver == null) return;
+      try {
+        ShortMessage message = new ShortMessage(command, channel, data1, data2);
+        midiReceiver.send(message, -1);
+      } catch (InvalidMidiDataException ignore) {
+      }
     }
 
     @Override
     public void run() {
+      while (!tgData.isEmpty()) {
+        int data = tgData.remove();
+        int tg = data >> 8;
+        if (tgNoteOff[tg] != null) { // release the key before playing next
+          sendShortMessage(ShortMessage.NOTE_OFF, tgMidiChannel[tg], tgMidiNoteNumber[tg], MIDI_DEFAULT_VELOCITY);
+          tgNoteOff[tg] = null;
+        }
+        int dco = tg >> 2;
+        if ((data & 0x80) == 0 || groupWaveform[dco] == 0) {
+          continue;
+        }
+        byte note = (byte) (data & 0x7F);
+        tgMidiChannel[tg] = tg < 4 ? CHANNEL_DCO1 : CHANNEL_DCO2;
+        tgMidiNoteNumber[tg] = note - C4_MSM + C4_MIDI + groupOctave[dco] * 12;
+        // percussion in song 0x41: 5F606264, in song 0x51: 5F6062, 5E6062, 5F6062
+        if (note >= 0x58) {
+          int percussion;
+          switch (note) {
+            case 0x5E: percussion = 49; break;
+            case 0x5F: percussion = 57; break;
+            case 0x60: percussion = 42; break;
+            case 0x62: percussion = 55; break;
+            case 0x64: percussion = 49; break;
+            default:
+              percussion = 42; // default closed hi-hat
+          }
+          tgMidiChannel[tg] = CHANNEL_PERCUSSION;
+          tgMidiNoteNumber[tg] = percussion;
+        }
+        sendShortMessage(ShortMessage.NOTE_ON, tgMidiChannel[tg], tgMidiNoteNumber[tg], MIDI_DEFAULT_VELOCITY);
+        tgNoteOff[tg] = Instant.now().plusMillis(groupAttack[dco] + groupDecay[dco]);
+      }
+
       Instant now = Instant.now();
       for (int tg = 0; tg < 8; tg++) {
-        if (noteOff[tg] != null && now.isAfter(noteOff[tg])) {
-          noteOff(tg);
+        if (tgNoteOff[tg] != null && now.isAfter(tgNoteOff[tg])) {
+          sendShortMessage(ShortMessage.NOTE_OFF, tgMidiChannel[tg], tgMidiNoteNumber[tg], MIDI_DEFAULT_VELOCITY);
+          tgNoteOff[tg] = null;
         }
       }
     }
 
     void set(int register, byte data) {
-      registers[register] = data;
-      if (register >= 8) return;
-      int group = (register < 4) ? 1 : 2;
-      noteOn(register, data, ATTACK[registers[7 + group] & 0x07], DECAY[registers[9 + group] & 0x0F]);
-    }
-
-    private void noteOff(int tg) {
-      if (noteOff[tg] != null) {
-        (tg < 4 ? midi1 : midi2).noteOff(notes[tg]);
-        noteOff[tg] = null;
-      }
-    }
-
-    private void noteOn(int tg, byte note, int attack, int decay) {
-      noteOff(tg); // release the key before playing next
-      if ((note & 0x80) == 0) {
+      if ((register | 7) == 7) {
+        assert data == 0 || (data & 0x80) == 0x80;
+        tgData.add(register << 8 | data & 0xFF);
         return;
       }
-      note = (byte) (note & 0x7F);
-      if (note >= 0x58) {
-        percussion.noteOn(49, MIDI_DEFAULT_VELOCITY); // TODO: 2022-07-17 noteOff
-        return;
+      switch (register | 1) {
+        case 0x09: // attack time data
+          groupAttack[register & 1] = ATTACK[data & 0x07];
+          break;
+        case 0x0B: // decay time data
+          groupDecay[register & 1] = DECAY[data & 0x0F];
+          break;
+        case 0x0D: // control data
+          assert data == 0 || (data & 0xF0) == 0x20;
+          data &= 0x0F;
+          int dco = register & 1; // DCO1 DCO2 or TG Group 1 TG Group 2
+          groupOctave[dco] = 0;
+          groupWaveform[dco] = data; // FIXME: 2022-10-09 data == 0 make no sound
+          for (int i = 0; (i < 4) && ((groupWaveform[dco] & 1) == 0); i++) {
+            groupOctave[dco]++;
+            groupWaveform[dco] >>= 1;
+          }
+          break;
+        default:
+          throw new IllegalStateException();
       }
-      int midiNote = note - A440_MSM + A440_MIDI;
-      notes[tg] = midiNote;
-      (tg < 4 ? midi1 : midi2).noteOn(midiNote, MIDI_DEFAULT_VELOCITY);
-      noteOff[tg] = Instant.now().plusMillis(attack + decay);
+    }
+
+    @Override
+    public void close() {
+      for (int tg = 0; tg < 8; tg++) {
+        if (tgNoteOff[tg] != null) {
+          sendShortMessage(ShortMessage.NOTE_OFF, tgMidiChannel[tg], tgMidiNoteNumber[tg], MIDI_DEFAULT_VELOCITY);
+          tgNoteOff[tg] = null;
+        }
+      }
+      if (midiReceiver != null) {
+        midiReceiver.close();
+      }
     }
   }
 
@@ -229,21 +307,16 @@ public class TyphoonSound extends TyphoonMachine {
       throw new IllegalStateException(e);
     }
     line.start();
+
+    Receiver midiReceiver;
     try {
-      synthesizer = MidiSystem.getSynthesizer();
-      synthesizer.open();
+      MidiDevice midiDevice = MidiSystem.getSynthesizer();
+      midiDevice.open();
+      midiReceiver = midiDevice.getReceiver();
     } catch (MidiUnavailableException e) {
       throw new IllegalStateException(e);
     }
-    instruments = synthesizer.getDefaultSoundbank().getInstruments();
-    midi = synthesizer.getChannels();
-    synthesizer.loadInstrument(instruments[5]); // 6 - FM Electric Piano
-
-    midi[7].programChange(5);
-    midi[7].controlChange(8, 0); // left
-    midi[8].programChange(5);
-    midi[8].controlChange(8, 127); // right
-    msm = new Msm5232(midi[7], midi[8], midi[9]);
+    msm = new Msm5232(midiReceiver);
     ym = new Ym2149(2_000_000, wav);
 
     super.open();
@@ -251,35 +324,61 @@ public class TyphoonSound extends TyphoonMachine {
 
   @Override
   public void close() {
-    synthesizer.close();
-    line.drain();
-    line.stop();
-    line.close();
+    if (isOpen()) {
+      msm.close();
+      line.stop();
+      line.close();
+    }
     super.close();
   }
 
-  public void programChangeMsm(int programNumber) {
-    synthesizer.loadInstrument(instruments[programNumber - 1]);
-    for (int i = 7; i < 9; i++) {
-      midi[i].programChange(programNumber - 1);
+  public static final int MAX_MIDI_DEVICES = 3;
+  public void extMidi(int number) {
+    Set<String> noReceiver = new HashSet<>(Arrays.asList("RealTimeSequencer", "MidiInDevice"));
+    List<MidiDevice> midiDevices = Arrays.stream(MidiSystem.getMidiDeviceInfo()).map(info -> {
+      try {
+        return MidiSystem.getMidiDevice(info);
+      } catch (MidiUnavailableException e) {
+        return null;
+      }
+    })
+        .filter(Objects::nonNull)
+        .filter(device -> !noReceiver.contains(device.getClass().getSimpleName()))
+        .collect(Collectors.toList());
+    Receiver midiReceiver = null; // valid value
+    if (number > 0 && midiDevices.size() > MAX_MIDI_DEVICES) {
+      number += midiDevices.size() - MAX_MIDI_DEVICES; // first and last two
     }
+    if (number < midiDevices.size()) {
+      MidiDevice midiDevice = midiDevices.get(number);
+      try {
+        midiDevice.open();
+        midiReceiver = midiDevice.getReceiver();
+      } catch (MidiUnavailableException e) {
+        // could not use unknown device, expected exception
+      }
+    }
+    msm.changeDevice(midiReceiver);
   }
 
   public static final int IDLE_ADDRESS = 0x0160;
   @Override
   public void run() {
     if (!isOpen()) return;
-    msm.run();
     dacInput = new ByteArrayOutputStream();
     runToAddress(IDLE_ADDRESS);
     Integer command = stdin.poll();
     if (command != null) {
       if ((command | 0xFF) == 0xFF) {
+        stderr.add(String.format("ERR1AF,%02X", command));
         writeByte(SOUND_LATCH, command);
         rst(0x66);
       }
       if ((command | 0xFF) == 0x01FF) {
-        programChangeMsm(command & 0xFF);
+        msm.changeInstrument(command & 0xFF);
+      }
+      if ((command | 0xFF) == 0x02FF) {
+        extMidi(command & 0xFF);
       }
     }
     runToAddress(IDLE_ADDRESS);
@@ -287,6 +386,7 @@ public class TyphoonSound extends TyphoonMachine {
     runToAddress(IDLE_ADDRESS);
     rst(0x38);
 
+    msm.run();
     if (dacInput.size() > 0) {
       // dac code have a loop of 252,252,252,251 clock cycles
       // producing 8_000_000 / 2 / 251.75 = 15888.8 Hz rate, why?
@@ -328,12 +428,6 @@ public class TyphoonSound extends TyphoonMachine {
       }
       line.write(bytes, 0, bytes.length);
     }
-  }
-
-  public static int midiNoteNumber(double frequency) {
-    double log2 = Math.log(frequency / 440.0) / Math.log(2);
-    double note = A440_MIDI + log2 * 12;
-    return (int) Math.round(note);
   }
 
   @Override
