@@ -54,6 +54,15 @@ public class Application implements Runnable, KeyListener {
   private String newApplication;
   private Runnable program;
 
+  /**
+   * JNC2 applets can be run with this launcher to elevate its mode switching ability.
+   * new Application(screen, true).run(program);
+   * another way, simpler and more low-level
+   * screen.flicker(50, program);
+   *
+   * @param screen screen
+   * @param withKeyListener true, otherwise it make no sense (screen.flicker)
+   */
   public Application(Screen screen, boolean withKeyListener) {
     this.screen = screen;
     this.zxm = new GraphicsModeZx();

@@ -24,6 +24,7 @@ import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -33,6 +34,12 @@ import java.util.stream.Stream;
  * For printing it use BufferedImage and fourth quadrant coordinates native to java.
  */
 public class TextFont {
+
+  public static final Supplier<TextFont> ZX =
+      () -> new TextFont("/48.rom", 0x3D00, 0x0300, 0x20, 8, 8);
+  public static final Supplier<TextFont> PICO8 =
+      () -> new TextFont("/pico-8.fnt", 0, 0x0400, 0, 8, 8).width(4).height(6);
+
   public final byte[] font;
 
   private final int intw;
