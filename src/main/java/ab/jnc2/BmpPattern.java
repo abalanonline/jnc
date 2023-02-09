@@ -19,7 +19,6 @@ package ab.jnc2;
 import lombok.SneakyThrows;
 
 import java.awt.*;
-import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.nio.file.Files;
@@ -35,7 +34,7 @@ public class BmpPattern implements Runnable, KeyListener {
   private final int screenHeight;
   private final Graphics2D graphics;
   private final TextFont textFont;
-  private final byte[] bytes;
+  private byte[] bytes;
   private int width;
   private int offset8;
   private int step = 8;

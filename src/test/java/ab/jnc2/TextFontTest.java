@@ -7,9 +7,11 @@ import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.Arrays;
 
 class TextFontTest {
 
@@ -59,6 +61,36 @@ class TextFontTest {
       }
       textFont.preview(screen.image);
     });
+  }
+
+  public static byte[] readInterleaved(String... files) {
+    byte[][] banks = Arrays.stream(files).map(file -> {
+      try {
+        return Files.readAllBytes(Paths.get(file));
+      } catch (IOException e) {
+        throw new UncheckedIOException(e);
+      }
+    }).toArray(byte[][]::new);
+    int length = banks[0].length;
+    for (byte[] bank : banks) {
+      assert bank.length == length;
+    }
+    byte[] result = new byte[length * banks.length];
+    for (int i = 0, j = 0; i < length; i++) {
+      for (int b = 0; b < banks.length; b++) {
+        result[j++] = banks[b][i];
+      }
+    }
+    return result;
+  }
+
+  @Test
+  @Disabled
+  void vgaFont() throws IOException {
+    byte[] bytes = null;
+    bytes = Arrays.copyOfRange(readInterleaved("15F8366.BIN", "15F8365.BIN"), 0x51B4, 0x7A25); // Model 50
+    bytes = Arrays.copyOfRange(readInterleaved("90X6816.BIN", "90X6817.BIN"), 0x5266, 0x7AD7); // Model 60
+    Files.write(Paths.get("src/main/resources/vga.fnt"), bytes);
   }
 
   private static int getRgb(BufferedImage png, int x, int y, int zoom) {

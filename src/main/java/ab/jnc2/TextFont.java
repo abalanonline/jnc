@@ -39,6 +39,9 @@ public class TextFont {
       () -> new TextFont("/48.rom", 0x3D00, 0x0300, 0x20, 8, 8);
   public static final Supplier<TextFont> PICO8 =
       () -> new TextFont("/pico-8.fnt", 0, 0x0400, 0, 8, 8).width(4).height(6);
+  public static final Supplier<TextFont> VGA8 = () -> new TextFont("/vga.fnt", 0, 0x0800, 0, 8, 8);
+  public static final Supplier<TextFont> VGA14 = () -> new TextFont("/vga.fnt", 0x0800, 0x0E00, 0, 8, 14);
+  public static final Supplier<TextFont> VGA16 = () -> new TextFont("/vga.fnt", 0x172D, 0x1000, 0, 8, 16);
 
   public final byte[] font;
 
@@ -223,9 +226,9 @@ public class TextFont {
   }
 
   public void preview(BufferedImage image) {
-    for (int y = 0; y < 16; y++) {
-      for (int x = 0; x < 16; x++) {
-        print(image, Character.toString((char) (y * 16 + x)), x * intw, y * inth, 0xFFFF00, 0x0000AA);
+    for (int y = 0; y < 8; y++) {
+      for (int x = 0; x < 32; x++) {
+        print(image, Character.toString((char) (y * 32 + x)), x * intw, y * inth, 0xFFFF00, 0x0000AA);
         int xr = x * intw + intw - 1;
         int yd = y * inth + inth - 1;
         if (xr < image.getWidth() && yd < image.getHeight() && (image.getRGB(xr, yd) & 0xFFFF00) == 0)
@@ -235,7 +238,7 @@ public class TextFont {
   }
 
   public static void main(String[] args) {
-    Screen screen = new Screen(GraphicsMode.CGA_16);
+    Screen screen = new Screen(GraphicsMode.ZX);
     new TextFont(8, 8).preview(screen.image);
     screen.repaint();
   }
