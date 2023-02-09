@@ -43,6 +43,7 @@ public class Application implements Runnable, KeyListener {
       "ab.jnc.g3.Game3",
       "ab.jnc2.GeodesicDome",
       "ab.jnc2.TyphoonGal",
+      "ab.jnc2.BmpPattern",
   };
 
   Screen screen;
