@@ -52,8 +52,9 @@ public class TextFont {
 
   private final int intw;
   private final int inth;
-  int width;
-  int height;
+  public int width;
+  public int height;
+  public Charset charset; // charset aware font
 
   public TextFont(byte[] data, int charStart, int width, int height) {
     font = new byte[height * 0x100];
@@ -62,6 +63,7 @@ public class TextFont {
     this.inth = height;
     this.width = width;
     this.height = height;
+    this.charset = DifferentCharsets.IBM437; // Charset.forName("IBM437");
   }
 
   public TextFont(String resource, int byteStart, int byteSize, int charStart, int width, int height) {
@@ -135,7 +137,7 @@ public class TextFont {
         ? -1 : height - ymin + (height - ymax + ymin + 1) / 2 - 1;
   }
 
-  public TextFont(String fontName, Charset charset, int width, int height) {
+  public TextFont(String fontName, int width, int height) {
     this(new byte[0], 0, width, height);
     int size;
     Font font = new Font(fontName, Font.PLAIN, 1);
@@ -192,7 +194,7 @@ public class TextFont {
    * Create bitmap font from vector font installed in system.
    */
   public TextFont(int width, int height) {
-    this(Font.MONOSPACED, DifferentCharsets.IBM437, width, height);
+    this(Font.MONOSPACED, width, height);
   }
 
   private void print(BufferedImage image, String s, int x, int y, int color, int bgColor, boolean withBackground,
@@ -200,8 +202,9 @@ public class TextFont {
     if (centered) x -= this.width * s.length() / 2;
     int width = image.getWidth();
     int height = image.getHeight();
+    byte[] chars = s.getBytes(charset);
     for (int i = 0; i < s.length(); i++) {
-      int c = s.charAt(i);
+      int c = chars[i] & 0xFF;
       c *= this.inth;
       for (int iy = 0; iy < this.inth; iy++) {
         for (int ix = 0; ix < this.intw; ix++) {

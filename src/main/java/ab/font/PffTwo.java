@@ -16,9 +16,12 @@
 
 package ab.font;
 
+import ab.jnc2.TextFont;
+
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
@@ -67,27 +70,28 @@ public class PffTwo {
     return buffer.getShort();
   }
 
-  public void fromFile(byte[] bytes) {
+  public static PffTwo fromFile(byte[] bytes) {
+    PffTwo that = new PffTwo();
     ByteBuffer buffer = ByteBuffer.wrap(bytes);
 
     // FILE, NAME, FAMI, WEIG, SLAN, PTSZ, MAXW, MAXH, ASCE, DESC
     String sFile = new String(readSection(buffer, "FILE"));
     assert "PFF2".equals(sFile);
-    this.name = readString(buffer, "NAME");
-    this.family = readString(buffer, "FAMI");
-    this.weight = readString(buffer, "WEIG"); // bold normal
-    this.slant = readString(buffer, "SLAN"); // italic normal
-    this.pointSize = readShort(buffer, "PTSZ");
-    this.maxWidth = readShort(buffer, "MAXW");
-    this.maxHeight = readShort(buffer, "MAXH");
-    this.ascent = readShort(buffer, "ASCE");
-    this.descent = readShort(buffer, "DESC");
-    assert "bold".equals(weight) || "normal".equals(weight);
-    assert "italic".equals(slant) || "normal".equals(slant);
-    assert pointSize > 0;
-    assert maxWidth > 0;
-    assert maxHeight > 0;
-    assert ascent + descent == maxHeight;
+    that.name = readString(buffer, "NAME");
+    that.family = readString(buffer, "FAMI");
+    that.weight = readString(buffer, "WEIG"); // bold normal
+    that.slant = readString(buffer, "SLAN"); // italic normal
+    that.pointSize = readShort(buffer, "PTSZ");
+    that.maxWidth = readShort(buffer, "MAXW");
+    that.maxHeight = readShort(buffer, "MAXH");
+    that.ascent = readShort(buffer, "ASCE");
+    that.descent = readShort(buffer, "DESC");
+    assert "bold".equals(that.weight) || "normal".equals(that.weight);
+    assert "italic".equals(that.slant) || "normal".equals(that.slant);
+    assert that.pointSize > 0;
+    assert that.maxWidth > 0;
+    assert that.maxHeight > 0;
+    assert that.ascent + that.descent == that.maxHeight;
 
     int chixLength = readSectionLength(buffer, "CHIX");
     assert chixLength % 9 == 0;
@@ -113,10 +117,10 @@ public class PffTwo {
       short yOffset = buffer.getShort();
       short deviceWidth = buffer.getShort();
       assert width >= 0; // can be 0
-      assert width <= maxWidth;
+      assert width <= that.maxWidth;
       assert width <= deviceWidth;
       assert height >= 0; // can be 0
-      assert height <= maxHeight;
+      assert height <= that.maxHeight;
       assert xOffset >= 0;
       assert xOffset + width <= deviceWidth;
 
@@ -140,8 +144,9 @@ public class PffTwo {
       assert b == 0;
       characters.put(unicode[i], character);
     }
-    this.characters = characters;
+    that.characters = characters;
     assert !buffer.hasRemaining();
+    return that;
   }
 
   public static void writeSectionLength(ByteBuffer buffer, String section, int length) {
@@ -221,6 +226,44 @@ public class PffTwo {
       buffer.put(characters.get(i));
     }
     return buffer.array();
+  }
+
+  public static PffTwo fromTextFont(TextFont textFont) {
+    PffTwo that = new PffTwo();
+    short shortWidth = (short) textFont.width;
+    short shortHeight = (short) textFont.height;
+    byte[] charsetBytes = new byte[0x100];
+    for (int i = 0; i < 0x100; i++) {
+      charsetBytes[i] = (byte) i;
+    }
+    String charset = new String(charsetBytes, textFont.charset);
+
+    that.name = "Name";
+    that.family = "Family";
+    that.weight = "normal";
+    that.slant = "normal";
+    that.pointSize = 10;
+    that.maxWidth = shortWidth;
+    that.maxHeight = shortHeight;
+    that.ascent = 2;
+    that.descent = (short) (that.maxHeight - that.ascent);
+
+    Map<Integer, PffTwoChar> characters = new LinkedHashMap<>();
+    for (int i = 0; i < 0x100; i++) {
+      int c = (textFont.font.length >> 8) * i;
+      PffTwoChar character = new PffTwoChar(shortWidth, shortHeight);
+      character.xOffset = (short) 0;
+      character.yOffset = (short) 0;
+      character.deviceWidth = shortWidth;
+      for (int y = 0; y < shortHeight; y++) {
+        for (int x = 0; x < shortWidth; x++) {
+          character.bitmap[y][x] = (textFont.font[c + y] >> (7 - x) & 1) == 1;
+        }
+      }
+      characters.put((int) charset.charAt(i), character);
+    }
+    that.characters = characters;
+    return that;
   }
 
 }

@@ -18,16 +18,19 @@ package ab.font;
 
 import org.junit.jupiter.api.Test;
 
-import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 
-import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.*;
 
-class PffTwoTest {
+class DifferentCharsetsTest {
 
   @Test
-  void fromFileToFile() throws IOException {
-    byte[] file = getClass().getResourceAsStream("/ascii.pf2").readAllBytes();
-    assertArrayEquals(file, PffTwo.fromFile(file).toFile());
+  void decodeEncode() {
+    byte[] bytes = new byte[0x100];
+    for (int i = 0; i < 0x100; i++) {
+      bytes[i] = (byte) i;
+    }
+    assertArrayEquals(bytes, new String(bytes, StandardCharsets.ISO_8859_1).getBytes(StandardCharsets.ISO_8859_1));
+    assertArrayEquals(bytes, new String(bytes, DifferentCharsets.IBM437).getBytes(DifferentCharsets.IBM437));
   }
-
 }
