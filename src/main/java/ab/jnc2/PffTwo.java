@@ -18,8 +18,11 @@ package ab.jnc2;
 
 import java.nio.ByteBuffer;
 import java.util.Arrays;
+import java.util.Comparator;
+import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.stream.Collectors;
 
 /**
  * PFF2 bitmap font format.
@@ -100,7 +103,8 @@ public class PffTwo {
 
     int dataLength = readSectionLength(buffer, "DATA");
     assert dataLength == -1;
-    Map<Integer, PffTwoChar> characters = new TreeMap<>();
+    Map<Integer, PffTwoChar> characters = new TreeMap<>(
+        Comparator.comparingInt(a -> a + Integer.MIN_VALUE)); // unsigned
     for (int i = 0; i < chixLength; i++) {
       assert buffer.position() == offset[i];
       short width = buffer.getShort();
@@ -121,22 +125,102 @@ public class PffTwo {
       character.yOffset = yOffset;
       character.deviceWidth = deviceWidth;
       byte b = 0;
-      byte bs = 0;
+      byte ib = 0;
       for (int y = 0; y < height; y++) {
         for (int x = 0; x < width; x++) {
-          if (bs <= 0) {
+          if (ib <= 0) {
             b = buffer.get();
-            bs = 8;
+            ib = 8;
           }
           character.bitmap[y][x] = (b & 0x80) != 0;
           b <<= 1;
-          bs--;
+          ib--;
         }
       }
       assert b == 0;
       characters.put(unicode[i], character);
     }
+    this.characters = characters;
     assert !buffer.hasRemaining();
+  }
+
+  public static void writeSectionLength(ByteBuffer buffer, String section, int length) {
+    buffer.put(section.getBytes());
+    buffer.putInt(length);
+  }
+
+  public static void writeSection(ByteBuffer buffer, String section, byte[] bytes) {
+    writeSectionLength(buffer, section, bytes.length);
+    buffer.put(bytes);
+  }
+
+  public static void writeString(ByteBuffer buffer, String section, String s) {
+    writeSectionLength(buffer, section, s.length() + 1);
+    buffer.put(s.getBytes());
+    buffer.put((byte) 0);
+  }
+
+  public static void writeShort(ByteBuffer buffer, String section, short s) {
+    writeSectionLength(buffer, section, 2);
+    buffer.putShort(s);
+  }
+
+  public byte[] toFile() {
+    int[] unicode = this.characters.keySet().stream().mapToInt(c -> c).toArray();
+    int n = unicode.length;
+    List<byte[]> characters = Arrays.stream(unicode).mapToObj(uc -> {
+      PffTwoChar c = this.characters.get(uc);
+      ByteBuffer buf = ByteBuffer.wrap(new byte[(c.width * c.height + 7) / 8 + 10]);
+      buf.putShort(c.width);
+      buf.putShort(c.height);
+      buf.putShort(c.xOffset);
+      buf.putShort(c.yOffset);
+      buf.putShort(c.deviceWidth);
+      byte b = 0;
+      int ib = 0;
+      for (int y = 0; y < c.height; y++) {
+        for (int x = 0; x < c.width; x++) {
+          if (ib == 0) {
+            ib = 0x80;
+          }
+          if (c.bitmap[y][x]) b |= ib;
+          ib >>= 1;
+          if (ib == 0) {
+            buf.put(b);
+            b = 0;
+          }
+        }
+      }
+      if (ib > 0) buf.put(b);
+      return buf.array();
+    }).collect(Collectors.toList());
+    int offsetBase = 20 + name.length() + 9 + family.length() + 9
+        + weight.length() + 9 + slant.length() + 59 + n * 9 + 8;
+    ByteBuffer buffer = ByteBuffer.allocate(offsetBase + characters.stream().mapToInt(b -> b.length).sum());
+
+    writeSection(buffer, "FILE", "PFF2".getBytes());
+    writeString(buffer, "NAME", name);
+    writeString(buffer, "FAMI", family);
+    writeString(buffer, "WEIG", weight);
+    writeString(buffer, "SLAN", slant);
+    writeShort(buffer, "PTSZ", pointSize);
+    writeShort(buffer, "MAXW", maxWidth);
+    writeShort(buffer, "MAXH", maxHeight);
+    writeShort(buffer, "ASCE", ascent);
+    writeShort(buffer, "DESC", descent);
+
+    writeSectionLength(buffer, "CHIX", n * 9);
+    for (int i = 0; i < n; i++) {
+      buffer.putInt(unicode[i]);
+      buffer.put((byte) 0);
+      buffer.putInt(offsetBase);
+      offsetBase += characters.get(i).length;
+    }
+    writeSectionLength(buffer, "DATA", -1);
+    for (int i = 0; i < n; i++) {
+      buffer.put(characters.get(i));
+    }
+    return buffer.array();
   }
 
 }

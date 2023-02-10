@@ -20,6 +20,8 @@ import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+
 class PffTwoTest {
 
   @Test
@@ -27,6 +29,7 @@ class PffTwoTest {
     PffTwo pffTwo = new PffTwo();
     byte[] file = getClass().getResourceAsStream("/ascii.pf2").readAllBytes();
     pffTwo.fromFile(file);
+    assertArrayEquals(file, pffTwo.toFile());
   }
 
 }
