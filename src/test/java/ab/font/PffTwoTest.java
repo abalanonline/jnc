@@ -16,6 +16,7 @@
 
 package ab.font;
 
+import ab.jnc2.TextFont;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
@@ -28,6 +29,9 @@ class PffTwoTest {
   void fromFileToFile() throws IOException {
     byte[] file = getClass().getResourceAsStream("/ascii.pf2").readAllBytes();
     assertArrayEquals(file, PffTwo.fromFile(file).toFile());
+
+    TextFont textFont = TextFont.VGA16.get();
+    assertArrayEquals(textFont.font, PffTwo.fromTextFont(textFont).toTextFont().font);
   }
 
 }

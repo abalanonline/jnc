@@ -25,7 +25,6 @@ import java.io.InputStream;
 import java.io.UncheckedIOException;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -237,7 +236,7 @@ public class TextFont {
   public void preview(BufferedImage image) {
     for (int y = 0; y < 8; y++) {
       for (int x = 0; x < 32; x++) {
-        print(image, Character.toString((char) (y * 32 + x)), x * intw, y * inth, 0xFFFF00, 0x0000AA);
+        print(image, new String(new byte[]{(byte) (y * 32 + x)}, charset), x * intw, y * inth, 0xFFFF00, 0x0000AA);
         int xr = x * intw + intw - 1;
         int yd = y * inth + inth - 1;
         if (xr < image.getWidth() && yd < image.getHeight() && (image.getRGB(xr, yd) & 0xFFFF00) == 0)

@@ -238,22 +238,22 @@ public class PffTwo {
     }
     String charset = new String(charsetBytes, textFont.charset);
 
-    that.name = "Name";
-    that.family = "Family";
+    that.name = "Unifont Regular " + shortHeight;
+    that.family = "Unifont";
     that.weight = "normal";
     that.slant = "normal";
-    that.pointSize = 10;
+    that.pointSize = shortHeight;
     that.maxWidth = shortWidth;
     that.maxHeight = shortHeight;
-    that.ascent = 2;
-    that.descent = (short) (that.maxHeight - that.ascent);
+    that.descent = 2; // TODO: 2023-02-10 calculate baseline
+    that.ascent = (short) (that.maxHeight - that.descent);
 
     Map<Integer, PffTwoChar> characters = new LinkedHashMap<>();
     for (int i = 0; i < 0x100; i++) {
       int c = (textFont.font.length >> 8) * i;
       PffTwoChar character = new PffTwoChar(shortWidth, shortHeight);
       character.xOffset = (short) 0;
-      character.yOffset = (short) 0;
+      character.yOffset = (short) -that.descent;
       character.deviceWidth = shortWidth;
       for (int y = 0; y < shortHeight; y++) {
         for (int x = 0; x < shortWidth; x++) {
@@ -264,6 +264,29 @@ public class PffTwo {
     }
     that.characters = characters;
     return that;
+  }
+
+  public TextFont toTextFont() {
+    TextFont textFont = new TextFont(new byte[0], 0, 8, maxHeight);
+    byte[] charsetBytes = new byte[0x100];
+    for (int i = 0; i < 0x100; i++) {
+      charsetBytes[i] = (byte) i;
+    }
+    String charset = new String(charsetBytes, textFont.charset);
+    for (int i = 0; i < 0x100; i++) {
+      char c = charset.charAt(i);
+      PffTwoChar pffTwoChar = characters.get((int) c);
+      if (pffTwoChar == null) continue;
+      int yo = ascent - pffTwoChar.yOffset - pffTwoChar.height;
+      int xo = pffTwoChar.xOffset;
+      for (int y = 0; y < pffTwoChar.bitmap.length; y++) {
+        boolean[] row = pffTwoChar.bitmap[y];
+        for (int x = 0; x < row.length; x++) {
+          if (row[x]) textFont.font[i * maxHeight + y + yo] |= 1 << (7 - x - xo);
+        }
+      }
+    }
+    return textFont;
   }
 
 }
