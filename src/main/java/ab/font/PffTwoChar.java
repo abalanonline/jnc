@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package ab.jnc2;
+package ab.font;
 
 public class PffTwoChar {
   short width;

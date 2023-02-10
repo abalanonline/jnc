@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package ab.jnc2;
+package ab.font;
 
 import java.nio.ByteBuffer;
 import java.util.Arrays;
