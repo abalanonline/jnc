@@ -16,11 +16,16 @@
 
 package ab.jnc2;
 
+import ab.font.DifferentCharsets;
+
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
+import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -130,7 +135,7 @@ public class TextFont {
         ? -1 : height - ymin + (height - ymax + ymin + 1) / 2 - 1;
   }
 
-  public TextFont(String fontName, int width, int height) {
+  public TextFont(String fontName, Charset charset, int width, int height) {
     this(new byte[0], 0, width, height);
     int size;
     Font font = new Font(fontName, Font.PLAIN, 1);
@@ -155,7 +160,8 @@ public class TextFont {
     BufferedImage image = new BufferedImage(width * 2, height, BufferedImage.TYPE_BYTE_BINARY);
     Graphics graphics = image.getGraphics();
     graphics.setFont(font);
-    for (char c = 0x00; c < 0x100; c++) {
+    for (int i = 0x00; i < 0x100; i++) {
+      char c = charset.decode(ByteBuffer.wrap(new byte[]{(byte) i})).get();
       if (font.canDisplay(c)) {
         graphics.clearRect(0, 0, width * 2, height);
         graphics.drawString(String.valueOf(c), width / 2, baseline);
@@ -176,7 +182,7 @@ public class TextFont {
             int rgb = image.getRGB(x + xBaseline, y);
             b = (byte) (b ^ ((rgb & 0x80) >> x));
           }
-          this.font[c * height + y] = b;
+          this.font[i * height + y] = b;
         }
       }
     }
@@ -186,7 +192,7 @@ public class TextFont {
    * Create bitmap font from vector font installed in system.
    */
   public TextFont(int width, int height) {
-    this(Font.MONOSPACED, width, height);
+    this(Font.MONOSPACED, DifferentCharsets.IBM437, width, height);
   }
 
   private void print(BufferedImage image, String s, int x, int y, int color, int bgColor, boolean withBackground,
