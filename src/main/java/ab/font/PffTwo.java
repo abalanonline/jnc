@@ -21,7 +21,6 @@ import ab.jnc2.TextFont;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Comparator;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
@@ -33,16 +32,21 @@ import java.util.stream.Collectors;
  */
 public class PffTwo {
 
-  private String name;
-  private String family;
-  private String weight;
-  private String slant;
+  public String name;
+  public String family;
+  public String weight;
+  public String slant;
   private short pointSize;
   private short maxWidth;
   private short maxHeight;
   private short ascent;
   private short descent;
-  private Map<Integer, PffTwoChar> characters;
+  public final Map<Integer, PffTwoChar> characters;
+
+  public PffTwo() {
+    this.characters = new TreeMap<>(
+        Comparator.comparingInt(a -> a + Integer.MIN_VALUE)); // unsigned
+  }
 
   public static int readSectionLength(ByteBuffer buffer, String section) {
     //assert section.length() == 4;
@@ -107,8 +111,6 @@ public class PffTwo {
 
     int dataLength = readSectionLength(buffer, "DATA");
     assert dataLength == -1;
-    Map<Integer, PffTwoChar> characters = new TreeMap<>(
-        Comparator.comparingInt(a -> a + Integer.MIN_VALUE)); // unsigned
     for (int i = 0; i < chixLength; i++) {
       assert buffer.position() == offset[i];
       short width = buffer.getShort();
@@ -142,9 +144,8 @@ public class PffTwo {
         }
       }
       assert b == 0;
-      characters.put(unicode[i], character);
+      that.characters.put(unicode[i], character);
     }
-    that.characters = characters;
     assert !buffer.hasRemaining();
     return that;
   }
@@ -248,7 +249,6 @@ public class PffTwo {
     that.descent = 2; // TODO: 2023-02-10 calculate baseline
     that.ascent = (short) (that.maxHeight - that.descent);
 
-    Map<Integer, PffTwoChar> characters = new LinkedHashMap<>();
     for (int i = 0; i < 0x100; i++) {
       int c = (textFont.font.length >> 8) * i;
       PffTwoChar character = new PffTwoChar(shortWidth, shortHeight);
@@ -260,9 +260,8 @@ public class PffTwo {
           character.bitmap[y][x] = (textFont.font[c + y] >> (7 - x) & 1) == 1;
         }
       }
-      characters.put((int) charset.charAt(i), character);
+      that.characters.put((int) charset.charAt(i), character);
     }
-    that.characters = characters;
     return that;
   }
 
