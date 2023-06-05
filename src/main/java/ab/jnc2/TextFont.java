@@ -46,6 +46,11 @@ public class TextFont {
   public static final Supplier<TextFont> VGA8 = () -> new TextFont("/vga.fnt", 0, 0x0800, 0, 8, 8);
   public static final Supplier<TextFont> VGA14 = () -> new TextFont("/vga.fnt", 0x0800, 0x0E00, 0, 8, 14);
   public static final Supplier<TextFont> VGA16 = () -> new TextFont("/vga.fnt", 0x172D, 0x1000, 0, 8, 16);
+  public static final Supplier<TextFont> XTRACKER0 = () -> new TextFont("/XTRACKER.FNT", 0x0000, 0x0D00, 0, 8, 13).width(9);
+  public static final Supplier<TextFont> XTRACKER1 = () -> new TextFont("/XTRACKER.FNT", 0x0D00, 0x0D00, 0, 8, 13).width(9);
+  public static final Supplier<TextFont> XTRACKER2 = () -> new TextFont("/XTRACKER.FNT", 0x1A00, 0x0D00, 0, 8, 13).width(9);
+  public static final Supplier<TextFont> XTRACKER3 = () -> new TextFont("/XTRACKER.FNT", 0x2700, 0x0D00, 0, 8, 13).width(9);
+  public static final Supplier<TextFont> XTRACKER4 = () -> new TextFont("/XTRACKER.FNT", 0x3400, 0x0D00, 0, 8, 13).width(9);
 
   public final byte[] font;
 
