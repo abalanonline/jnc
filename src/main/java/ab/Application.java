@@ -67,7 +67,7 @@ public class Application implements Runnable, KeyListener {
   public Application(Screen screen, boolean withKeyListener) {
     this.screen = screen;
     this.zxm = new GraphicsModeZx();
-    textFont = new TextFont("/48.rom", 0x3D00, 0x0300, 0x20, 8, 8);
+    textFont = TextFont.ZX.get();
     if (withKeyListener) {
       screen.keyListener = this;
     }

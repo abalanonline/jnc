@@ -27,7 +27,7 @@ class SystemTermTest {
   @Test
   void testMenu() throws Exception {
     SystemTerm.Tty zt;
-    TextFont textFont = new TextFont("/48.rom", 0x3D00, 0x0300, 0x20, 8, 8);
+    TextFont textFont = TextFont.ZX.get();
     byte[] scr = new byte[6912];
 
     new DataInputStream(getClass().getResourceAsStream("/tapeloader.scr")).readFully(scr);

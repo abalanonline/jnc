@@ -56,6 +56,11 @@ public class GraphicsMode {
     resolution = new Dimension(width, height);
   }
 
+  public GraphicsMode aspectRatio(Dimension aspectRatio) {
+    this.aspectRatio = aspectRatio;
+    return this;
+  }
+
   public GraphicsMode withColorMap(int[] colorMap) {
     this.colorMap = colorMap;
     return this;

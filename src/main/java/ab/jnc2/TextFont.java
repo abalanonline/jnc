@@ -25,6 +25,7 @@ import java.io.InputStream;
 import java.io.UncheckedIOException;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -40,7 +41,7 @@ import java.util.stream.Stream;
 public class TextFont {
 
   public static final Supplier<TextFont> ZX =
-      () -> new TextFont("/48.rom", 0x3D00, 0x0300, 0x20, 8, 8);
+      () -> new TextFont("/48.rom", 0x3D00, 0x0300, 0x20, 8, 8).charset(StandardCharsets.ISO_8859_1);
   public static final Supplier<TextFont> PICO8 =
       () -> new TextFont("/pico-8.fnt", 0, 0x0400, 0, 8, 8).width(4).height(6);
   public static final Supplier<TextFont> VGA8 = () -> new TextFont("/vga.fnt", 0, 0x0800, 0, 8, 8);
@@ -90,6 +91,11 @@ public class TextFont {
 
   public TextFont height(int height) {
     this.height = height;
+    return this;
+  }
+
+  public TextFont charset(Charset charset) {
+    this.charset = charset;
     return this;
   }
 

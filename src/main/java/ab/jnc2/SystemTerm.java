@@ -37,8 +37,7 @@ public class SystemTerm implements Runnable, KeyListener {
 
   public SystemTerm(Screen screen) {
     this.screen = screen;
-    TextFont textFont = new TextFont("/pico-8.fnt", 0, 0x0400, 0, 8, 8).width(4).height(6);
-    this.tty = new Tty(textFont, new TextFont("/48.rom", 0x3D00, 0x0300, 0x20, 8, 8));
+    this.tty = new Tty(TextFont.PICO8.get(), TextFont.ZX.get());
     tty.title = "System Terminal";
     tty.footer = "0 OK, 0:0";
 
@@ -82,6 +81,7 @@ public class SystemTerm implements Runnable, KeyListener {
   @Override
   public void run() {
     if (!process.isAlive()) System.exit(0);
+    tty.footer = "0 OK, " + screen.getWidth() + ":" + screen.getHeight();
     tty.draw(screen.image);
   }
 
@@ -116,7 +116,7 @@ public class SystemTerm implements Runnable, KeyListener {
     public int y;
 
     public Tty() {
-      this(new TextFont("/48.rom", 0x3D00, 0x0300, 0x20, 8, 8));
+      this(TextFont.ZX.get());
     }
 
     public Tty(TextFont textFont) {
