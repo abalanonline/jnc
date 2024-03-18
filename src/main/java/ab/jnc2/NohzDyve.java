@@ -98,7 +98,6 @@ public class NohzDyve implements Runnable, KeyListener {
 
   public NohzDyve(Screen screen) throws Exception {
     screen.setPreferredSize(new Dimension(screen.mode.resolution.width * 2, screen.mode.resolution.height * 2));
-    screen.setTitle(this.getClass().getSimpleName() + ".java");
     this.screen = screen;
     image = screen.createImage();
     graphics = image.createGraphics();

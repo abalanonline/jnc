@@ -110,13 +110,13 @@ public class Application implements Runnable, KeyListener {
   }
 
   void run(String className) {
-    screen.setTitle(className.replaceAll("ab\\.jnc2?\\.", "") + ".java");
     Class<?> c;
     try {
       c = Class.forName(className);
     } catch (ClassNotFoundException e) {
       throw new IllegalStateException(e);
     }
+    screen.setTitle(c.getSimpleName() + ".java");
     try {
       program = (Runnable) c.getDeclaredConstructor(Basic.class).newInstance(new Basic(screen));
       return;

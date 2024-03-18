@@ -21,6 +21,7 @@ import java.awt.*;
 import java.awt.event.InputEvent;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
+import java.awt.event.WindowEvent;
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBuffer;
 import java.awt.image.IndexColorModel;
@@ -30,7 +31,7 @@ import java.time.Instant;
 /**
  * Screen is a physical screen for writing and drawing. Should be available after instantiating.
  */
-public class Screen extends JComponent implements KeyListener {
+public class Screen extends JComponent implements KeyListener, AutoCloseable {
 
   private JFrame jFrame;
   private String title;
@@ -47,6 +48,7 @@ public class Screen extends JComponent implements KeyListener {
     int ah = cw * mode.aspectRatio.height / mode.aspectRatio.width;
     aw = Math.min(cw, aw);
     ah = Math.min(ch, ah);
+    //((Graphics2D) g).setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
     g.drawImage(image, (cw - aw) / 2, (ch - ah) / 2, aw, ah, null);
   }
 
@@ -95,6 +97,7 @@ public class Screen extends JComponent implements KeyListener {
     title = new Throwable().getStackTrace()[1].getClassName().replaceAll(".*\\.", "") + ".java";
     setPreferredSize(new Dimension(640, 480));
     setMode(mode);
+    setFocusTraversalKeysEnabled(false);
     addKeyListener(this);
     createJFrame();
   }
@@ -150,6 +153,11 @@ public class Screen extends JComponent implements KeyListener {
   public void setBackground(Color bg) {
     super.setBackground(bg);
     if (getParent() instanceof JComponent) getParent().setBackground(bg);
+  }
+
+  @Override
+  public void close() {
+    jFrame.dispatchEvent(new WindowEvent(jFrame, WindowEvent.WINDOW_CLOSING));
   }
 
   /**

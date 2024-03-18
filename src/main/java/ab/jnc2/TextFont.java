@@ -16,8 +16,6 @@
 
 package ab.jnc2;
 
-import ab.font.DifferentCharsets;
-
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
@@ -68,7 +66,7 @@ public class TextFont {
     this.inth = height;
     this.width = width;
     this.height = height;
-    this.charset = DifferentCharsets.IBM437; // Charset.forName("IBM437");
+    this.charset = Charset.forName("IBM437"); // DifferentCharsets.IBM437;
   }
 
   public TextFont(String resource, int byteStart, int byteSize, int charStart, int width, int height) {
