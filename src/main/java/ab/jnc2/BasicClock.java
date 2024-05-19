@@ -34,6 +34,7 @@ public class BasicClock implements Runnable {
     radius = basic.getHeight() * basic.getPixelHeight() / 2;
     rx = Math.min(radius, radius * basic.getPixelHeight());
     ry = Math.min(radius, radius / basic.getPixelHeight());
+    //basic.paper(basic.getColorFromRgb(0x999900));
   }
 
   void drawThickLine(int x1, int y1, int x2, int y2, int stroke) {

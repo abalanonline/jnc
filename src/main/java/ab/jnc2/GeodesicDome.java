@@ -236,7 +236,7 @@ public class GeodesicDome implements Runnable {
   public static void main(String[] args) {
     Screen screen = new Screen(GraphicsMode.CGA_16);
     GeodesicDome application = new GeodesicDome(new Basic(screen));
-    new Application(screen, true).run(application);
+    new Application(screen).run(application);
   }
 
   public static class Model3d {

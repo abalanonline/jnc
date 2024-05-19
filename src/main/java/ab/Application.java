@@ -44,6 +44,7 @@ public class Application implements Runnable, KeyListener {
       "ab.jnc2.GeodesicDome",
       "ab.jnc2.TyphoonGal",
       "ab.jnc2.BmpPattern",
+      "ab.jnc2.CubicGrid",
   };
 
   Screen screen;
@@ -54,21 +55,21 @@ public class Application implements Runnable, KeyListener {
   private GraphicsMode newMode;
   private String newApplication;
   private Runnable program;
+  String footer = "\u007F 2022 Apache License v2.0";
 
   /**
    * JNC2 applets can be run with this launcher to elevate its mode switching ability.
-   * new Application(screen, true).run(program);
+   * new Application(screen).run(program);
    * another way, simpler and more low-level
    * screen.flicker(50, program);
    *
    * @param screen screen
-   * @param withKeyListener true, otherwise it make no sense (screen.flicker)
    */
-  public Application(Screen screen, boolean withKeyListener) {
+  public Application(Screen screen) {
     this.screen = screen;
     this.zxm = new GraphicsModeZx();
     textFont = TextFont.ZX.get();
-    if (withKeyListener) {
+    if (screen != null) {
       screen.keyListener = this;
     }
   }
@@ -105,7 +106,7 @@ public class Application implements Runnable, KeyListener {
   public void run() {
     menu("JNC2",
         Arrays.stream(CLASSES).map(s -> s.replaceAll("ab\\.jnc2?\\.", "")).toArray(String[]::new),
-        "\u007F 2022 Apache License v2.0", this.selected);
+        footer, this.selected);
     zxm.draw(screen.image);
   }
 
@@ -163,7 +164,12 @@ public class Application implements Runnable, KeyListener {
       case KeyEvent.VK_ENTER:
         if (newApplication == null) {
           newApplication = CLASSES[selected];
-          run(newApplication);
+          try {
+            run(newApplication);
+          } catch (IllegalStateException ex) {
+            newApplication = null;
+            footer = ex.getMessage();
+          }
         }
         break;
     }
@@ -194,7 +200,7 @@ public class Application implements Runnable, KeyListener {
   public static void main(String[] args) {
     Screen screen = new Screen(GraphicsMode.ZX);
     screen.setTitle("JNC2 Launcher");
-    Application application = new Application(screen, true);
+    Application application = new Application(screen);
     application.run(application);
   }
 

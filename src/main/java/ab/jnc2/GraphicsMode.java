@@ -16,7 +16,9 @@
 
 package ab.jnc2;
 
-import java.awt.Dimension;
+import java.awt.*;
+import java.awt.image.DataBuffer;
+import java.awt.image.IndexColorModel;
 
 /**
  * Graphics mode is a pojo. The windows and buffers management belongs to the Screen class
@@ -39,7 +41,8 @@ public class GraphicsMode {
 
   public static final GraphicsMode CGA_16 =
       new GraphicsMode(160, 100).withColorMap(COLOR_MAP_CGA).withDefaultColors(0, 7);
-  public static final GraphicsMode CGA_HIGH = new GraphicsMode(640, 200).withColorMap(COLOR_MAP_BW);
+  public static final GraphicsMode CGA_HIGH = new GraphicsMode(640, 200).withColorMap(COLOR_MAP_BW)
+      .withDefaultColors(1, 0);
   public static final GraphicsMode ZX =
       new GraphicsMode(256, 192).withColorMap(COLOR_MAP_ZX_GAMMA_025).withDefaultColors(7, 0);
   public static final GraphicsMode C64 =
@@ -49,8 +52,9 @@ public class GraphicsMode {
   public Dimension aspectRatio = new Dimension(4, 3);
   public Dimension resolution;
   public int[] colorMap;
+  public IndexColorModel colorModel;
   public int bgColor = 0;
-  public int fgColor = 0xFFFFFF;
+  public int fgColor = 0x999999;
 
   public GraphicsMode(int width, int height) {
     resolution = new Dimension(width, height);
@@ -63,6 +67,7 @@ public class GraphicsMode {
 
   public GraphicsMode withColorMap(int[] colorMap) {
     this.colorMap = colorMap;
+    this.colorModel = new IndexColorModel(8, colorMap.length, colorMap, 0, false, -1, DataBuffer.TYPE_BYTE);
     return this;
   }
 
@@ -70,6 +75,14 @@ public class GraphicsMode {
     bgColor = bg;
     fgColor = fg;
     return this;
+  }
+
+  public int getRgbColor(int indexed) {
+    return colorMap == null ? indexed : colorMap[indexed];
+  }
+
+  public int getIndexedColor(int rgb) {
+    return colorModel == null ? rgb : ((byte[]) colorModel.getDataElements(rgb, null))[0];
   }
 
 }

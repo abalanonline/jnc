@@ -63,10 +63,6 @@ public class Screen extends JComponent implements KeyListener, AutoCloseable {
         colorModel);
   }
 
-  public Color backgroundColor() {
-    return mode.colorMap == null ? new Color(mode.bgColor) : new Color(mode.colorMap[mode.bgColor]);
-  }
-
   private void createJFrame() {
     jFrame = new JFrame();
     jFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -90,7 +86,7 @@ public class Screen extends JComponent implements KeyListener, AutoCloseable {
   private void setMode(GraphicsMode mode) {
     this.mode = mode;
     image = createImage();
-    setBackground(backgroundColor());
+    setBackground(new Color(this.mode.getRgbColor(this.mode.bgColor)));
   }
 
   public Screen(GraphicsMode mode) {

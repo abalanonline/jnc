@@ -16,8 +16,6 @@
 
 package ab.jnc2;
 
-import ab.Application;
-
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.awt.image.BufferedImage;
@@ -96,7 +94,7 @@ public class SystemTerm implements Runnable, KeyListener {
   public static void main(String[] args) {
     Screen screen = new Screen(GraphicsMode.ZX);
     SystemTerm shell = new SystemTerm(screen);
-    new Application(screen, false).run(shell);
+    screen.flicker(50, shell);
   }
 
   public static class Tty extends OutputStream {

@@ -28,3 +28,10 @@ mvn compile exec:java -Dexec.mainClass=ab.nyancat.NyanCat
 mvn compile exec:java -Dexec.mainClass=ab.jnc2.TyphoonGal
 
 ![Typhoon Gal](src/test/resources/typhoongal.png)
+
+### XScreenSaver Cubic Grid
+
+mvn compile exec:java -Dexec.mainClass=ab.jnc2.CubicGrid
+
+![Cubic Grid](src/test/resources/cubicgrid.png)
+

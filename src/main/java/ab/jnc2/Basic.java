@@ -45,20 +45,15 @@ public class Basic {
   }
 
   public void paper(int color) {
-    this.paper = rgbColor(color);
+    this.paper = screen.mode.getRgbColor(color);
   }
 
   public void ink(int color) { // bright, flash, inverse, over
-    this.color = rgbColor(color);
+    this.color = screen.mode.getRgbColor(color);
   }
 
-  public int rgbColor(int color) {
-    int[] colorMap = screen.mode.colorMap;
-    if (colorMap != null) {
-      color = color % colorMap.length;
-      color = colorMap[color];
-    }
-    return color | 0xFF000000;
+  public int getColorFromRgb(int rgb) {
+    return screen.mode.getIndexedColor(rgb);
   }
 
   public void circle(int x, int y, int r) {
@@ -91,11 +86,14 @@ public class Basic {
   }
 
   public void border(int color) {
+    this.screen.setBackground(new Color(screen.mode.getRgbColor(color)));
   }
 
   public void cls() {
     Graphics2D graphics = this.screen.image.createGraphics();
-    graphics.setBackground(new Color(paper));
+    Color paperColor = new Color(paper);
+    this.screen.setBackground(paperColor);
+    graphics.setBackground(paperColor);
     graphics.clearRect(0, 0, screen.mode.resolution.width, screen.mode.resolution.height);
   }
 

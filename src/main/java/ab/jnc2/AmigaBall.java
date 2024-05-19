@@ -40,6 +40,10 @@ public class AmigaBall implements Runnable {
     radius = basic.getHeight() * basic.getPixelHeight() / 2;
     rx = Math.min(radius, radius * basic.getPixelHeight());
     ry = Math.min(radius, radius / basic.getPixelHeight());
+    white = basic.getColorFromRgb(0xFFFFFF);
+    red = basic.getColorFromRgb(0xFF0000); // redBright 0xFFDDDD
+    gray = basic.getColorFromRgb(0xAAAAAA); // grayDark 0x666666
+    purple = basic.getColorFromRgb(0xAA00AA); // purpleDark 0x660066
   }
 
   void drawBall(int ballx, int bally, double ballAngle) {
@@ -126,7 +130,7 @@ public class AmigaBall implements Runnable {
   public static void main(String[] args) {
     Screen screen = new Screen(GraphicsMode.ZX);
     Runnable basicProgram = new AmigaBall(new Basic(screen));
-    new Application(screen, true).run(basicProgram);
+    new Application(screen).run(basicProgram);
   }
 
 }
