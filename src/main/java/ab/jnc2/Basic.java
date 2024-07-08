@@ -82,7 +82,7 @@ public class Basic {
    * PRINT AT as implemented in Sinclair BASIC.
    */
   public void printAt(int x, int y, String s) {
-    textFont.print(screen.image, s, x * 8, cy - 7 - y * 8, color, paper);
+    textFont.print(screen.image, s, x * textFont.width, cy + 1 - (y + 1) * textFont.height, color, paper);
   }
 
   public void border(int color) {

@@ -67,11 +67,11 @@ public class Screen extends JComponent implements KeyListener, AutoCloseable {
     jFrame = new JFrame();
     jFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
     if (fullscreen) {
+      jFrame.setUndecorated(true);
       if ("Linux".equals(System.getProperty("os.name")) &&
           jFrame.getGraphicsConfiguration().getDevice().isFullScreenSupported()) {
         jFrame.getGraphicsConfiguration().getDevice().setFullScreenWindow(jFrame);
       } else {
-        jFrame.setUndecorated(true);
         jFrame.setExtendedState(JFrame.MAXIMIZED_BOTH);
       }
     }

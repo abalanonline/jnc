@@ -25,7 +25,6 @@ import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -101,95 +100,94 @@ public class TextFont {
    * Because FontMetrics.getStringBounds lies.
    * @return baseline y offset or -1 if overshot
    */
-  private int getBounds(Font font, int width, int height) {
+  public static BufferedImage debug = new BufferedImage(320, 240, BufferedImage.TYPE_INT_RGB);
+  public static int debugx = 0;
+  public static int debugy = 0;
+
+  private static void drawChar(Graphics graphics, Dimension size, Point point, char c) {
+    graphics.clearRect(0, 0, size.width, size.height);
+    graphics.drawString(String.valueOf(c), point.x, point.y);
+  }
+
+  private Rectangle getBounds(Font font, BufferedImage image, Point point) {
+    int width = image.getWidth();
+    int height = image.getHeight();
     List<Integer> pymin = new ArrayList<>(), pymax = new ArrayList<>(), pxmax = new ArrayList<>();
+    int axmin = Integer.MAX_VALUE, axmax = 0, aymin = Integer.MAX_VALUE, aymax = 0;
     List<Character> targetChars = Stream.of(
         IntStream.rangeClosed('A', 'Z'),
         IntStream.rangeClosed('a', 'z'),
         IntStream.rangeClosed('0', '9'))
         .flatMapToInt(c -> c).mapToObj(c -> (char) c).filter(font::canDisplay).collect(Collectors.toList());
+    targetChars = IntStream.rangeClosed('\u2550', '\u256C')
+        .mapToObj(c -> (char) c).filter(font::canDisplay).collect(Collectors.toList());
 
-    BufferedImage image = new BufferedImage(width * 2, height * 2, BufferedImage.TYPE_BYTE_BINARY);
     Graphics graphics = image.getGraphics();
+    Dimension size = new Dimension(image.getWidth(), image.getHeight());
     graphics.setFont(font);
     for (char c : targetChars) {
-      graphics.clearRect(0, 0, width * 2, height * 2);
-      graphics.drawString(String.valueOf(c), 0, height);
-      int ymin = height * 2;
-      int ymax = 0;
-      int xmin = width * 2;
-      int xmax = 0;
-      for (int y = height * 2 - 1; y >= 0; y--) {
-        for (int x = width * 2 - 1; x >= 0; x--) {
+      drawChar(graphics, size, point, c);
+      for (int y = height - 1; y >= 0; y--) {
+        for (int x = width - 1; x >= 0; x--) {
           if ((image.getRGB(x, y) & 0xFFFFFF) != 0) {
-            xmin = Math.min(xmin, x);
-            xmax = Math.max(xmax, x);
-            ymin = Math.min(ymin, y);
-            ymax = Math.max(ymax, y);
+            axmin = Math.min(axmin, x);
+            axmax = Math.max(axmax, x);
+            aymin = Math.min(aymin, y);
+            aymax = Math.max(aymax, y);
           }
         }
       }
-      if ((xmax >= xmin) && (ymax >= ymin)) {
-        pymin.add(ymin);
-        pymax.add(ymax);
-        pxmax.add(xmax - xmin);
-      }
     }
-    pymin.sort(Comparator.comparingInt(Integer::intValue));
-    pymax.sort(Comparator.comparingInt(i -> -i));
-    pxmax.sort(Comparator.comparingInt(i -> -i));
-    int ymin = pymin.get(pymin.size() / 7); // 85 percentile
-    int ymax = pymax.get(pymax.size() / 7);
-    int xmax = pxmax.get(pxmax.size() / 7);
-    return (xmax >= width - 1) || (ymax - ymin >= height - 1)
-        ? -1 : height - ymin + (height - ymax + ymin + 1) / 2 - 1;
+    if (axmax < axmin || aymax < aymin || axmin == 0 || aymin == 0 || axmax >= width - 1 || aymax >= height - 1)
+      return null;
+    return new Rectangle(axmin, aymin, axmax - axmin + 1, aymax - aymin + 1);
+//    int rx = width1 - (axmax - axmin + 1);
+//    int ry = height1 - (aymax - aymin + 1);
+//    return Math.min(rx, ry) < 0 ? null : new Rectangle(axmin, axmax, axmax - axmin + 1, aymax - aymin + 1);
+//    return (axmax - axmin >= width - 1) || (aymax - aymin >= height - 1)
+//        ? -1 : height - ymin + (height - ymax + ymin + 1) / 2 - 1;
   }
 
   public TextFont(String fontName, int width, int height) {
     this(new byte[0], 0, width, height);
+    Dimension imageSize = new Dimension(width * 3, height * 3);
+    Point point = new Point(width, height);
+    BufferedImage image = new BufferedImage(imageSize.width, imageSize.height, BufferedImage.TYPE_BYTE_BINARY);
+
     int size;
     Font font = new Font(fontName, Font.PLAIN, 1);
-    int baseline = 0;
+    Rectangle baseline = null;
     // increase size by 1
     for (size = 20; size < width * 40; size += 10) {
       font = new Font(fontName, Font.PLAIN, size / 10);
-      baseline = getBounds(font, width, height);
-      if (baseline < 0) {
+      baseline = getBounds(font, image, point);
+      if (baseline == null || baseline.width > width || baseline.height > height) {
         break;
       }
     }
+    debugx = 0;
+    debugy += height * 2;
     // decrease size by 0.1
     for (; size > 1; size--) {
       font = font.deriveFont(size / 10.0F);
-      baseline = getBounds(font, width, height);
-      if (baseline >= 0) {
+      baseline = getBounds(font, image, point);
+      if (baseline != null && baseline.width <= width && baseline.height <= height) {
         break;
       }
     }
+    debugx = 0;
+    debugy += height * 2;
     // best size found, make font
-    BufferedImage image = new BufferedImage(width * 2, height, BufferedImage.TYPE_BYTE_BINARY);
     Graphics graphics = image.getGraphics();
     graphics.setFont(font);
     for (int i = 0x00; i < 0x100; i++) {
       char c = charset.decode(ByteBuffer.wrap(new byte[]{(byte) i})).get();
       if (font.canDisplay(c)) {
-        graphics.clearRect(0, 0, width * 2, height);
-        graphics.drawString(String.valueOf(c), width / 2, baseline);
-        int xmin = width * 2;
-        int xmax = 0;
-        for (int y = 0; y < height; y++) {
-          for (int x = 0; x < width * 2; x++) {
-            if ((image.getRGB(x, y) & 0xFFFFFF) != 0) {
-              xmin = Math.min(xmin, x);
-              xmax = Math.max(xmax, x);
-            }
-          }
-        }
-        int xBaseline = (xmax < xmin ? 0 : (xmax + xmin - width) / 2 + 1);
+        drawChar(graphics, imageSize, point, c);
         for (int y = 0; y < height; y++) {
           byte b = 0;
           for (int x = 0; x < width; x++) {
-            int rgb = image.getRGB(x + xBaseline, y);
+            int rgb = image.getRGB(x + baseline.x, y + baseline.y);
             b = (byte) (b ^ ((rgb & 0x80) >> x));
           }
           this.font[i * height + y] = b;

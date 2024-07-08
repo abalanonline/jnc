@@ -189,7 +189,7 @@ public class SystemTerm implements Runnable, KeyListener {
             x = 0;
             break;
           case 0x08:
-            x--;
+            if (x > 0) x--;
             break;
         }
         while (y < 0) {
