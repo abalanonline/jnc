@@ -49,7 +49,7 @@ class TextFontTest {
         bytes.put(b);
       }
     }
-    Files.write(Paths.get("src/main/resources/pico-8.fnt"), bytes.array());
+    Files.write(Paths.get("src/main/resources/jnc2/pico-8.fnt"), bytes.array());
 
     TextFont textFont = new TextFont(bytes.array(), 0, 8, 8).width(4).height(6);
     Screen screen = new Screen(GraphicsMode.CGA_16);
@@ -90,7 +90,7 @@ class TextFontTest {
     byte[] bytes = null;
     bytes = Arrays.copyOfRange(readInterleaved("15F8366.BIN", "15F8365.BIN"), 0x51B4, 0x7A25); // Model 50
     bytes = Arrays.copyOfRange(readInterleaved("90X6816.BIN", "90X6817.BIN"), 0x5266, 0x7AD7); // Model 60
-    Files.write(Paths.get("src/main/resources/vga.fnt"), bytes);
+    Files.write(Paths.get("src/main/resources/jnc2/vga.fnt"), bytes);
   }
 
   private static int getRgb(BufferedImage png, int x, int y, int zoom) {

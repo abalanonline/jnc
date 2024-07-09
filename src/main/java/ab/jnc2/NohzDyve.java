@@ -16,8 +16,6 @@
 
 package ab.jnc2;
 
-import ab.Nibble;
-
 import javax.imageio.ImageIO;
 import javax.sound.sampled.AudioSystem;
 import javax.sound.sampled.Clip;
@@ -101,7 +99,7 @@ public class NohzDyve implements Runnable, KeyListener {
     this.screen = screen;
     image = screen.createImage();
     graphics = image.createGraphics();
-    String resName = "/" + this.getClass().getSimpleName() + ".";
+    String resName = "/jnc2/" + this.getClass().getSimpleName() + ".";
     png = ImageIO.read(getClass().getResourceAsStream(resName + "png"));
     color = new int[10];
     byte[] buffer = new byte[1];

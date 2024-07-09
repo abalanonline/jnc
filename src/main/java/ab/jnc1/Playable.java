@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package ab.jnc;
+package ab.jnc1;
 
 import java.awt.*;
 import java.time.Instant;

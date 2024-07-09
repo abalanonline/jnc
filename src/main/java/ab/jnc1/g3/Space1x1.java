@@ -14,17 +14,23 @@
  * limitations under the License.
  */
 
-package ab.jnc;
+package ab.jnc1.g3;
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
+import ab.jnc1.Sprite;
 
-import java.time.Instant;
+import java.awt.*;
 
-@AllArgsConstructor
-@Getter
-public class JncKeyEvent {
-  private Instant instant;
-  private int keyCode;
-  private boolean released;
+public class Space1x1 extends SpaceSpace {
+  public Space1x1(Physics physics, Rectangle rectangle, Sprite sprite, int spriteCount) {
+    super(physics, null);
+    color = physics.getColor();
+    setBounds(rectangle);
+    for (int i = 0; i < spriteCount; i++) {
+      Sprite s = new Sprite(sprite);
+      s.setCurrentFrame(nextInt(6));
+      s.x = nextInt(width);
+      s.y = nextInt(height);
+      sprites.add(s);
+    }
+  }
 }

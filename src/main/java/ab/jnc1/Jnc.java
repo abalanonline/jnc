@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
-package ab.jnc;
+package ab.jnc1;
 
-import ab.jnc.g3.Game3;
+import ab.jnc1.g3.Game3;
 
 import java.awt.event.KeyEvent;
 import java.time.Instant;

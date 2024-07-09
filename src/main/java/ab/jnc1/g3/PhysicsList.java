@@ -14,9 +14,8 @@
  * limitations under the License.
  */
 
-package ab.jnc.g3;
+package ab.jnc1.g3;
 
-import ab.MessageDigest;
 import lombok.Getter;
 
 import java.io.Serializable;

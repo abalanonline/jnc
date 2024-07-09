@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package ab;
+package ab.jnc1.g3;
 
 import java.io.Serializable;
 import java.nio.ByteBuffer;

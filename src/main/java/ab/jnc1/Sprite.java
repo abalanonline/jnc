@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package ab.jnc;
+package ab.jnc1;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -25,7 +25,6 @@ import javax.imageio.ImageReader;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.InputStream;
-import java.net.URL;
 import java.util.ArrayList;
 import java.util.function.Function;
 import java.util.function.Supplier;

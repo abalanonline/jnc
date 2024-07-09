@@ -14,14 +14,14 @@
  * limitations under the License.
  */
 
-package ab;
+package ab.jnc2;
 
 import org.junit.jupiter.api.Test;
 
 import java.security.MessageDigest;
 import java.util.UUID;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class NibbleTest {
 

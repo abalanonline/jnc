@@ -38,17 +38,17 @@ import java.util.stream.Stream;
 public class TextFont {
 
   public static final Supplier<TextFont> ZX =
-      () -> new TextFont("/48.rom", 0x3D00, 0x0300, 0x20, 8, 8).charset(StandardCharsets.ISO_8859_1);
+      () -> new TextFont("/jnc2/48.rom", 0x3D00, 0x0300, 0x20, 8, 8).charset(StandardCharsets.ISO_8859_1);
   public static final Supplier<TextFont> PICO8 =
-      () -> new TextFont("/pico-8.fnt", 0, 0x0400, 0, 8, 8).width(4).height(6);
-  public static final Supplier<TextFont> VGA8 = () -> new TextFont("/vga.fnt", 0, 0x0800, 0, 8, 8);
-  public static final Supplier<TextFont> VGA14 = () -> new TextFont("/vga.fnt", 0x0800, 0x0E00, 0, 8, 14);
-  public static final Supplier<TextFont> VGA16 = () -> new TextFont("/vga.fnt", 0x172D, 0x1000, 0, 8, 16);
-  public static final Supplier<TextFont> XTRACKER0 = () -> new TextFont("/XTRACKER.FNT", 0x0000, 0x0D00, 0, 8, 13).width(9);
-  public static final Supplier<TextFont> XTRACKER1 = () -> new TextFont("/XTRACKER.FNT", 0x0D00, 0x0D00, 0, 8, 13).width(9);
-  public static final Supplier<TextFont> XTRACKER2 = () -> new TextFont("/XTRACKER.FNT", 0x1A00, 0x0D00, 0, 8, 13).width(9);
-  public static final Supplier<TextFont> XTRACKER3 = () -> new TextFont("/XTRACKER.FNT", 0x2700, 0x0D00, 0, 8, 13).width(9);
-  public static final Supplier<TextFont> XTRACKER4 = () -> new TextFont("/XTRACKER.FNT", 0x3400, 0x0D00, 0, 8, 13).width(9);
+      () -> new TextFont("/jnc2/pico-8.fnt", 0, 0x0400, 0, 8, 8).width(4).height(6);
+  public static final Supplier<TextFont> VGA8 = () -> new TextFont("/jnc2/vga.fnt", 0, 0x0800, 0, 8, 8);
+  public static final Supplier<TextFont> VGA14 = () -> new TextFont("/jnc2/vga.fnt", 0x0800, 0x0E00, 0, 8, 14);
+  public static final Supplier<TextFont> VGA16 = () -> new TextFont("/jnc2/vga.fnt", 0x172D, 0x1000, 0, 8, 16);
+  public static final Supplier<TextFont> XTRACKER0 = () -> new TextFont("/jnc2/XTRACKER.FNT", 0x0000, 0x0D00, 0, 8, 13).width(9);
+  public static final Supplier<TextFont> XTRACKER1 = () -> new TextFont("/jnc2/XTRACKER.FNT", 0x0D00, 0x0D00, 0, 8, 13).width(9);
+  public static final Supplier<TextFont> XTRACKER2 = () -> new TextFont("/jnc2/XTRACKER.FNT", 0x1A00, 0x0D00, 0, 8, 13).width(9);
+  public static final Supplier<TextFont> XTRACKER3 = () -> new TextFont("/jnc2/XTRACKER.FNT", 0x2700, 0x0D00, 0, 8, 13).width(9);
+  public static final Supplier<TextFont> XTRACKER4 = () -> new TextFont("/jnc2/XTRACKER.FNT", 0x3400, 0x0D00, 0, 8, 13).width(9);
 
   public final byte[] font;
 
@@ -201,6 +201,7 @@ public class TextFont {
    */
   public TextFont(int width, int height) {
     this(Font.MONOSPACED, width, height);
+    if (width == 8 && height == 8) System.arraycopy(ZX.get().font, 0, font, 0, font.length);
   }
 
   private void print(BufferedImage image, String s, int x, int y, int color, int bgColor, boolean withBackground,

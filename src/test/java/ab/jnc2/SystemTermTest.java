@@ -30,7 +30,7 @@ class SystemTermTest {
     TextFont textFont = TextFont.ZX.get();
     byte[] scr = new byte[6912];
 
-    new DataInputStream(getClass().getResourceAsStream("/tapeloader.scr")).readFully(scr);
+    new DataInputStream(getClass().getResourceAsStream("/jnc2/tapeloader.scr")).readFully(scr);
     zt = new SystemTerm.Tty(textFont);
     zt.title = "Tape Loader";
     zt.footer = "To cancel - press BREAK twice";
@@ -38,7 +38,7 @@ class SystemTermTest {
     zt.repaint();
     assertArrayEquals(scr, zt.zxm.toScr());
 
-    new DataInputStream(getClass().getResourceAsStream("/calculator.scr")).readFully(scr);
+    new DataInputStream(getClass().getResourceAsStream("/jnc2/calculator.scr")).readFully(scr);
     zt = new SystemTerm.Tty(textFont);
     zt.title = "Calculator";
     zt.footer = "0 OK, 0:0";

@@ -16,8 +16,6 @@
 
 package ab.jnc2;
 
-import ab.Application;
-
 import java.time.LocalTime;
 
 public class AmigaBall implements Runnable {

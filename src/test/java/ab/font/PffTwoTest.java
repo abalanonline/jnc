@@ -31,7 +31,7 @@ class PffTwoTest {
 
   @Test
   void fromFileToFile() throws IOException {
-    byte[] file = getClass().getResourceAsStream("/ascii.pf2").readAllBytes();
+    byte[] file = getClass().getResourceAsStream("/jnc2/ascii.pf2").readAllBytes();
     assertArrayEquals(file, PffTwo.fromFile(file).toFile());
 
     TextFont textFont = TextFont.VGA16.get();

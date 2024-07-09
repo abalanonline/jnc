@@ -14,15 +14,10 @@
  * limitations under the License.
  */
 
-package ab;
+package ab.jnc2;
 
-import ab.jnc.JncKeyEvent;
-import ab.jnc.Playable;
-import ab.jnc2.Basic;
-import ab.jnc2.GraphicsMode;
-import ab.jnc2.GraphicsModeZx;
-import ab.jnc2.Screen;
-import ab.jnc2.TextFont;
+import ab.jnc1.JncKeyEvent;
+import ab.jnc1.Playable;
 
 import java.awt.*;
 import java.awt.event.KeyEvent;
@@ -40,7 +35,7 @@ public class Application implements Runnable, KeyListener {
       "ab.jnc2.BasicClock",
       "ab.jnc2.AmigaBall",
       "ab.jnc2.NohzDyve",
-      "ab.jnc.g3.Game3",
+      "ab.jnc1.g3.Game3",
       "ab.jnc2.GeodesicDome",
       "ab.jnc2.TyphoonGal",
       "ab.jnc2.BmpPattern",
@@ -105,7 +100,7 @@ public class Application implements Runnable, KeyListener {
   @Override
   public void run() {
     menu("JNC2",
-        Arrays.stream(CLASSES).map(s -> s.replaceAll("ab\\.jnc2?\\.", "")).toArray(String[]::new),
+        Arrays.stream(CLASSES).map(s -> s.replaceAll("ab\\.jnc[12]\\.", "")).toArray(String[]::new),
         footer, this.selected);
     zxm.draw(screen.image);
   }

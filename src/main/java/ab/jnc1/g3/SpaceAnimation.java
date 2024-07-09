@@ -14,12 +14,11 @@
  * limitations under the License.
  */
 
-package ab.jnc.g3;
+package ab.jnc1.g3;
 
-import ab.jnc.Sprite;
+import ab.jnc1.Sprite;
 
 import java.awt.*;
-import java.util.Random;
 
 class SpaceAnimation extends SpaceSpace {
   public static final int CAT_BASELINE_Y = 12;

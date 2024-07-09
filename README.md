@@ -1,37 +1,41 @@
-# jnc2
+# jnc3
 video engine on java awt
 
-### Amiga Ball
+### [XScreenSaver](https://www.jwz.org/xscreensaver/screenshots/) Cubic Grid
 
-![amiga ball](src/test/resources/amigaball.png)
+mvn compile exec:java -Dexec.mainClass=ab.jnc2.CubicGrid
 
-### NohzDyve - java replica
-
-[video](https://youtu.be/BISPHmAuor8)
-
-![Black Mirror NohzDyve](src/test/resources/nohzdyve.png)
-
-### JNC2 Launcher
-
-mvn compile exec:java -D"exec.mainClass"="ab.Application"
-
-![JNC2 Launcher](src/test/resources/launcher.png)
-
-### Mathematical model of Nyan Cat
-
-mvn compile exec:java -Dexec.mainClass=ab.nyancat.NyanCat
-
-![Nyan Cat](src/test/resources/nyancatansi.png)
+![Cubic Grid](src/test/resources/demo/cubicgrid.png)
 
 ### Typhoon Gal (c) Taito 1985 - arcade machine emulator
 
 mvn compile exec:java -Dexec.mainClass=ab.jnc2.TyphoonGal
 
-![Typhoon Gal](src/test/resources/typhoongal.png)
+![Typhoon Gal](src/test/resources/demo/typhoongal.png)
 
-### XScreenSaver Cubic Grid
+### Mathematical model of Nyan Cat
 
-mvn compile exec:java -Dexec.mainClass=ab.jnc2.CubicGrid
+mvn compile exec:java -Dexec.mainClass=ab.nyancat.NyanCat
 
-![Cubic Grid](src/test/resources/cubicgrid.png)
+![Nyan Cat](src/test/resources/demo/nyancatansi.png)
+
+### JNC2 Launcher
+
+mvn compile exec:java -D"exec.mainClass"="ab.jnc2.Application"
+
+![JNC2 Launcher](src/test/resources/demo/launcher.png)
+
+### NohzDyve - java replica
+
+mvn compile exec:java -Dexec.mainClass=ab.jnc2.NohzDyve
+
+[video](https://youtu.be/BISPHmAuor8)
+
+![Black Mirror NohzDyve](src/test/resources/demo/nohzdyve.png)
+
+### Amiga Ball
+
+mvn compile exec:java -Dexec.mainClass=ab.jnc2.AmigaBall
+
+![amiga ball](src/test/resources/demo/amigaball.png)
 

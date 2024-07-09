@@ -16,8 +16,6 @@
 
 package ab.jnc2;
 
-import ab.Application;
-
 import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -73,7 +71,7 @@ public class GeodesicDome implements Runnable {
   }
 
   public Model3d teapot() {
-    InputStream resource = getClass().getResourceAsStream("/teapot.obj");
+    InputStream resource = getClass().getResourceAsStream("/jnc2/teapot.obj");
     List<String> lines = new BufferedReader(new InputStreamReader(resource)).lines().collect(Collectors.toList());
     double[][] vertices = lines.stream().filter(s -> s.startsWith("v "))
         .map(s -> Arrays.stream(Arrays.copyOfRange(s.split("\\s+"), 1, 4))

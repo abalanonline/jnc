@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package ab.jnc;
+package ab.jnc1;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -72,7 +72,7 @@ public class Resource {
 
   private static void readZip(Map<String, byte[]> byteMap, Class<?> cl) throws IOException {
     ZipInputStream inputStream = new ZipInputStream(
-        cl.getResourceAsStream("/" + cl.getSimpleName() + ".zip"));
+        cl.getResourceAsStream("/jnc1/" + cl.getSimpleName() + ".zip"));
     ZipEntry zipEntry;
     while ((zipEntry = inputStream.getNextEntry()) != null) {
       ByteArrayOutputStream outputStream = new ByteArrayOutputStream();

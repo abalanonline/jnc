@@ -14,13 +14,13 @@
  * limitations under the License.
  */
 
-package ab.jnc.g3;
+package ab.jnc1.g3;
 
-import ab.jnc.Font;
-import ab.jnc.JncKeyEvent;
-import ab.jnc.Playable;
-import ab.jnc.Resource;
-import ab.jnc.Sprite;
+import ab.jnc1.Font;
+import ab.jnc1.JncKeyEvent;
+import ab.jnc1.Playable;
+import ab.jnc1.Resource;
+import ab.jnc1.Sprite;
 
 import java.awt.*;
 import java.awt.event.KeyEvent;
@@ -111,8 +111,8 @@ public class Game3 implements Playable {
     spark.setTransform(r -> new Rectangle(r.x - 3, 236 - r.y, r.width, r.height));
     resetSpace();
 
-    re.setObject("font", new ab.jnc.Font(re.getSprite("font").getFrame(0)));
-    re.setObject("debugfont", new ab.jnc.Font(re.getSprite("4x6font").getFrame(0)));
+    re.setObject("font", new ab.jnc1.Font(re.getSprite("font").getFrame(0)));
+    re.setObject("debugfont", new ab.jnc1.Font(re.getSprite("4x6font").getFrame(0)));
   }
 
   public static Point toPoint(Point2D.Double pointDouble) {

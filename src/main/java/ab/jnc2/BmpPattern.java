@@ -42,7 +42,7 @@ public class BmpPattern implements Runnable, KeyListener {
 
   @SneakyThrows
   public BmpPattern(Screen screen) {
-    bytes = Files.readAllBytes(Paths.get("src/main/resources/48.rom"));
+    bytes = Files.readAllBytes(Paths.get("src/main/resources/jnc2/48.rom"));
     this.screen = screen;
     graphics = this.screen.image.createGraphics();
     graphics.setBackground(Color.BLACK);

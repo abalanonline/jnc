@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package ab;
+package ab.jnc2;
 
 import java.util.Arrays;
 import java.util.Random;

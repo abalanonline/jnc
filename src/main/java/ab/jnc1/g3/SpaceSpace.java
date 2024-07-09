@@ -14,10 +14,9 @@
  * limitations under the License.
  */
 
-package ab.jnc.g3;
+package ab.jnc1.g3;
 
-import ab.MessageDigest;
-import ab.jnc.Sprite;
+import ab.jnc1.Sprite;
 
 import java.awt.*;
 import java.util.ArrayList;
