@@ -92,9 +92,9 @@ public class Game3 implements Playable {
   @Override
   public void load() {
     re = new Resource(this);
-    re.getObjectMap().values().stream().filter(v -> v instanceof Sprite).map(v -> (Sprite) v).forEach(s -> {
-      s.setMainGraphicsSupplier(() -> worldGraphics);
-      s.setDebugGraphicsSupplier(() -> debugGraphics);
+    re.objectMap.values().stream().filter(v -> v instanceof Sprite).map(v -> (Sprite) v).forEach(s -> {
+      s.mainGraphicsSupplier = () -> worldGraphics;
+      s.debugGraphicsSupplier = () -> debugGraphics;
     });
 
 
@@ -102,13 +102,13 @@ public class Game3 implements Playable {
     // to make proper camera snapping, start x must be divisible by 7 (cat speed in pixels)
     // since everything in this universe is build with 42, let it be start x = 42
     // and cat's 0,0 is the second paw
-    cat.setTransform(r -> new Rectangle(r.x - CAT_BASELINE_X, 240 - r.height - r.y, r.width, r.height));
+    cat.transform = r -> new Rectangle(r.x - CAT_BASELINE_X, 240 - r.height - r.y, r.width, r.height);
 
     tart = re.getSprite("tart");
     tart.setLocation(50, 120);
 
     spark = re.getSprite("spark");
-    spark.setTransform(r -> new Rectangle(r.x - 3, 236 - r.y, r.width, r.height));
+    spark.transform = r -> new Rectangle(r.x - 3, 236 - r.y, r.width, r.height);
     resetSpace();
 
     re.setObject("font", new ab.jnc1.Font(re.getSprite("font").getFrame(0)));
@@ -127,7 +127,7 @@ public class Game3 implements Playable {
     spacePhysics.add(Physics.ANIMATION());
     spacePhysics.add(Physics.VANILLA());
     for (int i = 0; i < 1000; i++) {
-      spacePhysics.add(new Physics(spacePhysics.getRandom().nextLong()));
+      spacePhysics.add(new Physics(spacePhysics.random.nextLong()));
       //spacePhysics.add(Physics.VANILLA());
     }
 
@@ -165,18 +165,18 @@ public class Game3 implements Playable {
     Duration impulseDuration = Duration.ZERO;
     Instant impulseStart = catImpulse ? tickPrevious : null;
     for (JncKeyEvent key : keys) {
-      if (key.isReleased()) {
-        switch (key.getKeyCode()) {
+      if (key.released) {
+        switch (key.keyCode) {
           case KeyEvent.VK_UP:
             catImpulse = false;
             if (impulseStart == null) { break; }
-            impulseDuration = impulseDuration.plus(Duration.between(impulseStart, key.getInstant()));
+            impulseDuration = impulseDuration.plus(Duration.between(impulseStart, key.instant));
             impulseStart = null;
             break;
         }
         continue;
       }
-      switch (key.getKeyCode()) {
+      switch (key.keyCode) {
         case KeyEvent.VK_OPEN_BRACKET: debugTransition -= 0.05; break;
         case KeyEvent.VK_CLOSE_BRACKET: debugTransition += 0.05; break;
         case KeyEvent.VK_T: debugTime++; break;
@@ -191,11 +191,11 @@ public class Game3 implements Playable {
       }
 
       if (cameraZoomIn) { continue; } // disable controls in zoom
-      switch (key.getKeyCode()) {
+      switch (key.keyCode) {
         case KeyEvent.VK_UP:
           catImpulse = true;
           if (impulseStart != null) { break; }
-          impulseStart = key.getInstant();
+          impulseStart = key.instant;
           break;
         case KeyEvent.VK_LEFT: catVelocity.x -= 10; break;
         case KeyEvent.VK_RIGHT: catVelocity.x += 10; break;
@@ -217,7 +217,7 @@ public class Game3 implements Playable {
     debugText = String.format("transition: %.2f   ", debugTransition);
 
     // jittering begin - caution
-    final double tickJitterPhysics = physics.getJitter();
+    final double tickJitterPhysics = physics.jitter;
     jitterTimeFine += tickDuration;
     double jitterTime = jitterTimeFine;
     if (tickJitterPhysics > 0) { // nothing to calculate then
@@ -237,7 +237,7 @@ public class Game3 implements Playable {
 
     // motion physics
     double t = tickDuration;
-    catAcceleration.setLocation(0, -physics.getGravity() / PIXEL_SIZE);
+    catAcceleration.setLocation(0, -physics.gravity / PIXEL_SIZE);
     catVelocity.setLocation(
         catAcceleration.getX() * t + catVelocity.getX(),
         catAcceleration.getY() * t + catVelocity.getY()
@@ -258,8 +258,8 @@ public class Game3 implements Playable {
 
     int spriteFrame = (int) (catB * CAT_FRAMES + 0.1); // constant smoothing the truncation
     //assert spriteFrame % 6 * 7 == cat.x % 42 : "frame drop";
-    cat.setCurrentFrame(spriteFrame % CAT_FRAMES);
-    physics.setCurrentFrame(spriteFrame % CAT_FRAMES);
+    cat.currentFrame = spriteFrame % CAT_FRAMES;
+    physics.currentFrame = spriteFrame % CAT_FRAMES;
 
     isStopped |= ((catPosition.getY() < 0) || (catPosition.getY() > 220) ||
         (catPosition.getX() - cameraPoint.getX() < 16) || (catPosition.getX() - cameraPoint.getX() > 312));
@@ -321,15 +321,15 @@ public class Game3 implements Playable {
       final Font debugFont = re.getFont("debugfont");
       debugGraphics.setColor(Color.ORANGE);
       for (Physics p : spacePhysics) {
-        if ((p.getSpaceStop() > worldWindow.x - 100) && (p.getSpaceStart() < worldWindow.x + 500)) {
-          int x = (int) p.getSpaceStart() - worldWindow.x;
+        if ((p.getSpaceStop() > worldWindow.x - 100) && (p.spaceStart < worldWindow.x + 500)) {
+          int x = (int) p.spaceStart - worldWindow.x;
           debugGraphics.fillRect(x, 0, 1, worldWindow.height);
           debugFont.write("tr", new Point(x + 2, 2), debugGraphics);
-          x += p.getSpaceTransition();
+          x += p.spaceTransition;
           debugGraphics.fillRect(x, 0, 1, worldWindow.height);
-          debugFont.setAlignRight(p.getSpaceSustain() <= 0);
+          debugFont.alignRight = p.spaceSustain <= 0;
           debugFont.write(p.toString(), new Point(x + 2, 2), debugGraphics);
-          debugFont.setAlignRight(false);
+          debugFont.alignRight = false;
         }
       }
       debugGraphics.setColor(Color.GREEN);
@@ -351,7 +351,7 @@ public class Game3 implements Playable {
     // only zoom code beyond this line
     double camz = actZoom(cameraZoom, Math.PI);
     if (camz > 0) {
-      Point catLocation = cat.getTransform().apply(cat).getLocation();
+      Point catLocation = cat.transform.apply(cat).getLocation();
       catLocation.translate(-18, -25);
       final int CROP_WIDTH = 25;
       if (camz == 1) {
@@ -376,7 +376,7 @@ public class Game3 implements Playable {
   private void drawImage(Sprite s) {
     if (debugWorld == 2) {
       worldGraphics.setColor(Color.GRAY);
-      Rectangle r = s.getTransform().apply(s);
+      Rectangle r = s.transform.apply(s);
       worldGraphics.fillRect(r.x, r.y, r.width, r.height);
     } else s.drawImage();
   }

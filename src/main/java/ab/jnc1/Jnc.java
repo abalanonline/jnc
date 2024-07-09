@@ -51,21 +51,21 @@ public class Jnc implements Runnable {
         while (nextTick.isBefore(Instant.now())) {
           // keys processing // if key pressed before nextTick
           List<JncKeyEvent> tickKeyList = new ArrayList<>();
-          JncKeyEvent keyEvent = screen.getKeyEventQueue().peek();
-          while ((keyEvent != null) && (keyEvent.getInstant().isBefore(nextTick))) {
-            JncKeyEvent key = screen.getKeyEventQueue().take();
-            inTheLoop &= key.getKeyCode() != KeyEvent.VK_ESCAPE;
+          JncKeyEvent keyEvent = screen.keyEventQueue.peek();
+          while ((keyEvent != null) && (keyEvent.instant.isBefore(nextTick))) {
+            JncKeyEvent key = screen.keyEventQueue.take();
+            inTheLoop &= key.keyCode != KeyEvent.VK_ESCAPE;
             tickKeyList.add(key);
-            keyEvent = screen.getKeyEventQueue().peek();
+            keyEvent = screen.keyEventQueue.peek();
           }
           inTheLoop &= game.tick(nextTick, tickKeyList);
           tick++;
           nextTick = startTime.plusMillis(tick * TICK_MS);
         }
-        int activePage = screen.getActivePage() == 0 ? 1 : 0;
-        screen.setActivePage(activePage);
-        game.draw(screen.getGraphics()[activePage]);
-        screen.setVisualPage(activePage);
+        int activePage = screen.activePage == 0 ? 1 : 0;
+        screen.activePage = activePage;
+        game.draw(screen.graphics[activePage]);
+        screen.visualPage = activePage;
         screen.update();
         Thread.sleep(10); // smooth
       }

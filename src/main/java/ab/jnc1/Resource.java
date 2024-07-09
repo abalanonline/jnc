@@ -16,10 +16,6 @@
 
 package ab.jnc1;
 
-import lombok.Getter;
-import lombok.Setter;
-import lombok.SneakyThrows;
-
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -34,12 +30,10 @@ import java.util.zip.ZipInputStream;
 public class Resource {
 
   private Map<String, byte[]> byteMap = new HashMap<>();
-  @Getter
-  private Map<String, Object> objectMap = new HashMap<>();
+  public Map<String, Object> objectMap = new HashMap<>();
   private Map<String, String> nameMap = new HashMap<>();
 
-  @Getter @Setter
-  private String currentPage = "";
+  public String currentPage = "";
 
   public Resource(Object object) {
     // read archive to memory
@@ -61,7 +55,6 @@ public class Resource {
     // if there is "#" file it have aliases and numbers
   }
 
-  @SneakyThrows
   public void loadStream(String name) {
     InputStream inputStream = this.getClass().getResourceAsStream("/" + name);
     ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
@@ -82,13 +75,17 @@ public class Resource {
     inputStream.close();
   }
 
-  public static void copyStream(InputStream inputStream, OutputStream outputStream) throws IOException {
-    byte[] buffer = new byte[0x10000];
-    int bytesRead;
-    while ((bytesRead = inputStream.read(buffer)) >= 0) {
-      outputStream.write(buffer, 0, bytesRead);
+  public static void copyStream(InputStream inputStream, OutputStream outputStream) {
+    try {
+      byte[] buffer = new byte[0x10000];
+      int bytesRead;
+      while ((bytesRead = inputStream.read(buffer)) >= 0) {
+        outputStream.write(buffer, 0, bytesRead);
+      }
+      outputStream.flush();
+    } catch (IOException e) {
+      throw new UncheckedIOException(e);
     }
-    outputStream.flush();
   }
 
   public byte[] getByteArray(String key) {

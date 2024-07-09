@@ -16,11 +16,11 @@
 
 package ab.jnc2;
 
-import lombok.SneakyThrows;
-
 import java.awt.*;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
+import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 
@@ -40,9 +40,12 @@ public class BmpPattern implements Runnable, KeyListener {
   private int step = 8;
   private boolean little;
 
-  @SneakyThrows
   public BmpPattern(Screen screen) {
-    bytes = Files.readAllBytes(Paths.get("src/main/resources/jnc2/48.rom"));
+    try {
+      bytes = Files.readAllBytes(Paths.get("src/main/resources/jnc2/48.rom"));
+    } catch (IOException e) {
+      throw new UncheckedIOException(e);
+    }
     this.screen = screen;
     graphics = this.screen.image.createGraphics();
     graphics.setBackground(Color.BLACK);

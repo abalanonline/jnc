@@ -16,15 +16,16 @@
 
 package ab.jnc1;
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-
 import java.time.Instant;
 
-@AllArgsConstructor
-@Getter
 public class JncKeyEvent {
-  private Instant instant;
-  private int keyCode;
-  private boolean released;
+  public JncKeyEvent(Instant instant, int keyCode, boolean released) {
+    this.instant = instant;
+    this.keyCode = keyCode;
+    this.released = released;
+  }
+
+  public Instant instant;
+  public int keyCode;
+  public boolean released;
 }

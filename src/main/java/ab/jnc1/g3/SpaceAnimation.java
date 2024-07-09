@@ -62,9 +62,9 @@ class SpaceAnimation extends SpaceSpace {
     super.drawFg(graphics, distance, physics);
     Sprite star = new Sprite(this.star);
     for (int i = 0; i < 6; i++) {
-      final int currentFrame = physics.getCurrentFrame() % 12;
+      final int currentFrame = physics.currentFrame % 12;
       star.setLocation(x + distance.x + SPARK_X[i] + SPARK_DX[i][currentFrame], y + distance.y + SPARK_Y[i]);
-      star.setCurrentFrame((currentFrame + SPARK_F[i] + SPARK_DF[i][currentFrame]));
+      star.currentFrame = (currentFrame + SPARK_F[i] + SPARK_DF[i][currentFrame]);
       star.drawImage();
     }
   }

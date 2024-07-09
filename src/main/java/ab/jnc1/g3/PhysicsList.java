@@ -16,8 +16,6 @@
 
 package ab.jnc1.g3;
 
-import lombok.Getter;
-
 import java.io.Serializable;
 import java.util.LinkedList;
 import java.util.Random;
@@ -25,8 +23,7 @@ import java.util.Random;
 public class PhysicsList extends LinkedList<Physics> implements Serializable {
   private static final long serialVersionUID = 0x4E43506879736963L;
 
-  @Getter
-  private final Random random;
+  public final Random random;
 
   public PhysicsList(int randomSeed) {
     random = MessageDigest.MD5.newRandom(randomSeed, serialVersionUID);
@@ -34,11 +31,11 @@ public class PhysicsList extends LinkedList<Physics> implements Serializable {
 
   @Override
   public boolean add(Physics physics) {
-    physics.setSpaceStart(0);
+    physics.spaceStart = 0;
     if (!isEmpty()) {
       final Physics last = getLast();
       assert physics != last : "duplicate items in the list";
-      physics.setSpaceStart(last.getSpaceStop()); // attach start point
+      physics.spaceStart = last.getSpaceStop(); // attach start point
     }
     return super.add(physics);
   }
@@ -46,9 +43,9 @@ public class PhysicsList extends LinkedList<Physics> implements Serializable {
   public Physics get(double index) {
     for (int i = size() - 1; i >= 0; i--) {
       Physics p = get(i);
-      if ((p.getSpaceStart() <= index) && (index < p.getSpaceStop())) {
-        double t0 = p.getSpaceStart();
-        double t1 = t0 + p.getSpaceTransition();
+      if ((p.spaceStart <= index) && (index < p.getSpaceStop())) {
+        double t0 = p.spaceStart;
+        double t1 = t0 + p.spaceTransition;
         if (index < t1) { // in transition
           return p.mix(get(i-1), (t1 - index) / (t1 - t0));
         } else { // in sustain

@@ -39,7 +39,7 @@ class SpaceSpace extends Rectangle {
   }
 
   public SpaceSpace(Physics physics, SpaceSpace superSpace) {
-    random = MessageDigest.MD5.newDependentRandom(physics.getRandom());
+    random = MessageDigest.MD5.newDependentRandom(physics.random);
     color = (superSpace == null) ? Color.MAGENTA : superSpace.color;
     color = new Color(rndB(color.getRed()), rndB(color.getGreen()), rndB(color.getBlue()));
   }
@@ -57,12 +57,12 @@ class SpaceSpace extends Rectangle {
     translated.translate(distance.x, distance.y);
     for (Sprite sprite : sprites) {
       final Point starLocation = sprite.getLocation();
-      final int starCurrentFrame = sprite.getCurrentFrame();
+      final int starCurrentFrame = sprite.currentFrame;
       sprite.setLocation(sprite.x + translated.x, sprite.y + translated.y);
-      sprite.setCurrentFrame(starCurrentFrame + physics.getCurrentFrame());
+      sprite.currentFrame = starCurrentFrame + physics.currentFrame;
       sprite.drawImage();
       sprite.setLocation(starLocation);
-      sprite.setCurrentFrame(starCurrentFrame);
+      sprite.currentFrame = starCurrentFrame;
     }
     subSpace.forEach(m -> m.drawFg(graphics, translated, physics));
   }

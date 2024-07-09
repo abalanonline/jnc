@@ -16,14 +16,10 @@
 
 package ab.jnc1;
 
-import lombok.Getter;
-import lombok.Setter;
-
 import javax.sound.sampled.Clip;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 
-@Getter @Setter
 public class JncKeyListener extends KeyAdapter {
 
   boolean leftPressed;
@@ -38,8 +34,8 @@ public class JncKeyListener extends KeyAdapter {
 
   @Override
   public void keyPressed(KeyEvent e) {
-    if (e.getKeyCode() == KeyEvent.VK_LEFT) setLeftPressed(true);
-    if (e.getKeyCode() == KeyEvent.VK_RIGHT) setRightPressed(true);
+    if (e.getKeyCode() == KeyEvent.VK_LEFT) leftPressed = true;
+    if (e.getKeyCode() == KeyEvent.VK_RIGHT) rightPressed = true;
     if (e.getKeyCode() == KeyEvent.VK_DOWN) {
       soundfx.setFramePosition(0);
       soundfx.start();
@@ -52,8 +48,8 @@ public class JncKeyListener extends KeyAdapter {
 
   @Override
   public void keyReleased(KeyEvent e) {
-    if (e.getKeyCode() == KeyEvent.VK_LEFT) setLeftPressed(false);
-    if (e.getKeyCode() == KeyEvent.VK_RIGHT) setRightPressed(false);
+    if (e.getKeyCode() == KeyEvent.VK_LEFT) leftPressed = false;
+    if (e.getKeyCode() == KeyEvent.VK_RIGHT) rightPressed = false;
   }
 
 }

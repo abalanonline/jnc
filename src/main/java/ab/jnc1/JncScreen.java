@@ -16,10 +16,6 @@
 
 package ab.jnc1;
 
-import lombok.Getter;
-import lombok.Setter;
-import lombok.SneakyThrows;
-
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.KeyAdapter;
@@ -30,7 +26,6 @@ import java.time.Instant;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingDeque;
 
-@Getter @Setter
 public class JncScreen {
 
   public static final int DEFAULT_WIDTH = 320;
@@ -54,13 +49,12 @@ public class JncScreen {
 //  private final ImageIcon imageIcon;
 //  private final Sprite imageIcon2;
 
-  BlockingQueue<JncKeyEvent> keyEventQueue = new LinkedBlockingDeque<>();
+  public BlockingQueue<JncKeyEvent> keyEventQueue = new LinkedBlockingDeque<>();
 
   public JncScreen() {
     this(DEFAULT_WIDTH, DEFAULT_HEIGHT);
   }
 
-  @SneakyThrows
   public JncScreen(int width, int height) {
     for (int i = 0; i < 3; i++) {
       images[i] = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
@@ -125,11 +119,6 @@ public class JncScreen {
     images[activePage].setRGB(x, y, (enabled ? Color.BLACK : Color.WHITE).getRGB());
   }
 
-  @SneakyThrows
-  public Sprite loadSprite(String resource) {
-    return new Sprite(JncScreen.class.getResource(resource).openStream());
-  }
-
   public void putSprite(int x, int y, Sprite sprite) {
     images[activePage].getGraphics().drawImage(sprite.getFrame(0), x, y, null);
   }
@@ -169,7 +158,6 @@ public class JncScreen {
     }
   }
 
-  @Getter @Setter
   public class JncKeyListener2 extends KeyAdapter {
 
     @Override

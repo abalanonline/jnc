@@ -16,29 +16,25 @@
 
 package ab.jnc1.g3;
 
-import lombok.Getter;
-import lombok.Setter;
-
 import java.awt.*;
 import java.util.Random;
 
-@Getter @Setter
 public class Physics {
 
   public final static Color MIDNIGHT_BLUE = new Color(0x00, 0x33, 0x66);
   public final static double GRAVITY_MOON = 1.62;
 
-  private final Random random;
+  public final Random random;
   private final String hash;
 
-  private double spaceStart;
-  private double spaceTransition;
-  private double spaceSustain;
+  public double spaceStart;
+  public double spaceTransition;
+  public double spaceSustain;
 
-  private double jitter;
-  private Color color = MIDNIGHT_BLUE;
-  private double gravity = GRAVITY_MOON;
-  private int currentFrame;
+  public double jitter;
+  public Color color = MIDNIGHT_BLUE;
+  public double gravity = GRAVITY_MOON;
+  public int currentFrame;
 
   private Physics(Random random, String hash) {
     this.random = random;
@@ -55,19 +51,19 @@ public class Physics {
 
   public static Physics ANIMATION() { // starting animation
     Physics p = new Physics(0);
-    p.setSpaceTransition(0);
-    p.setSpaceSustain(168);
-    p.setColor(MIDNIGHT_BLUE);
-    p.setJitter(1);
-    p.setGravity(0);
+    p.spaceTransition = 0;
+    p.spaceSustain = 168;
+    p.color = MIDNIGHT_BLUE;
+    p.jitter = 1;
+    p.gravity = 0;
     return p;
   }
 
   public static Physics VANILLA() { // transition to real physics
     Physics p = new Physics(0);
-    p.setSpaceTransition(168);
-    p.setSpaceSustain(0);
-    p.setColor(MIDNIGHT_BLUE);
+    p.spaceTransition = 168;
+    p.spaceSustain = 0;
+    p.color = MIDNIGHT_BLUE;
     return p;
   }
 
@@ -107,8 +103,8 @@ public class Physics {
   public Physics mix(Physics ext, double ratio) {
     assert ratio >= 0; assert ratio <= 1;
     final Physics p = new Physics(random, "");
-    p.setJitter(mix(getJitter(), ext.getJitter(), ratio));
-    p.setColor(mix(getColor(), ext.getColor(), ratio));
+    p.jitter = mix(this.jitter, ext.jitter, ratio);
+    p.color = mix(this.color, ext.color, ratio);
     return p;
   }
 }

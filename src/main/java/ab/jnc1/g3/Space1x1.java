@@ -23,11 +23,11 @@ import java.awt.*;
 public class Space1x1 extends SpaceSpace {
   public Space1x1(Physics physics, Rectangle rectangle, Sprite sprite, int spriteCount) {
     super(physics, null);
-    color = physics.getColor();
+    color = physics.color;
     setBounds(rectangle);
     for (int i = 0; i < spriteCount; i++) {
       Sprite s = new Sprite(sprite);
-      s.setCurrentFrame(nextInt(6));
+      s.currentFrame = nextInt(6);
       s.x = nextInt(width);
       s.y = nextInt(height);
       sprites.add(s);

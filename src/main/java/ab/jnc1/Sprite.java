@@ -16,45 +16,41 @@
 
 package ab.jnc1;
 
-import lombok.Getter;
-import lombok.Setter;
-import lombok.SneakyThrows;
-
 import javax.imageio.ImageIO;
 import javax.imageio.ImageReader;
 import java.awt.*;
 import java.awt.image.BufferedImage;
+import java.io.IOException;
 import java.io.InputStream;
+import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-//@NoArgsConstructor
-@Getter @Setter
 public class Sprite extends Rectangle {
 
-  private final ArrayList<BufferedImage> frames;
-  private int currentFrame;
+  public final ArrayList<BufferedImage> frames;
+  public int currentFrame;
 
   private BufferedImage attr;
   private Color attrColor;
-  private Point attrTune = new Point();
+  public Point attrTune = new Point();
   private Rectangle hitbox;
 
-  private Function<Rectangle, Rectangle> transform = r -> r;
-  private Supplier<Graphics> mainGraphicsSupplier;
+  public Function<Rectangle, Rectangle> transform = r -> r;
+  public Supplier<Graphics> mainGraphicsSupplier;
   private Supplier<Graphics> attributeGraphicsSupplier;
-  private Supplier<Graphics> debugGraphicsSupplier;
+  public Supplier<Graphics> debugGraphicsSupplier;
 
   // copy constructor
   public Sprite(Sprite sprite) {
     super(sprite);
-    frames = new ArrayList<>(sprite.getFrames());
+    frames = new ArrayList<>(sprite.frames);
     if (attributeGraphicsSupplier != null) {
       // create attribute image only in attribute-aware environments
       attr = new BufferedImage(sprite.attr.getWidth(), sprite.attr.getHeight(), sprite.attr.getType());
     }
-    attrTune = new Point(sprite.getAttrTune());
+    attrTune = new Point(sprite.attrTune);
     hitbox = new Rectangle(sprite.hitbox);
 
     transform = sprite.transform;
@@ -63,18 +59,21 @@ public class Sprite extends Rectangle {
     debugGraphicsSupplier = sprite.debugGraphicsSupplier;
   }
 
-  @SneakyThrows
   public Sprite(InputStream inputStream) {
     frames = new ArrayList<>();
     //ImageReader gifImageReader = new GIFImageReader(new GIFImageReaderSpi());
     // FIXME: 2021-12-12 gif
     ImageReader gifImageReader = ImageIO.getImageReadersByFormatName("gif").next();
-    gifImageReader.setInput(ImageIO.createImageInputStream(inputStream));
-    for (int i = 0; i < gifImageReader.getNumImages(true); i++) {
-      BufferedImage image = gifImageReader.read(i);
-      frames.add(image);
-      Dimension frameSize = new Dimension(image.getWidth(null), image.getHeight(null));
-      setSize(Math.max(width, frameSize.width), Math.max(height, frameSize.height));
+    try {
+      gifImageReader.setInput(ImageIO.createImageInputStream(inputStream));
+      for (int i = 0; i < gifImageReader.getNumImages(true); i++) {
+        BufferedImage image = gifImageReader.read(i);
+        frames.add(image);
+        Dimension frameSize = new Dimension(image.getWidth(null), image.getHeight(null));
+        setSize(Math.max(width, frameSize.width), Math.max(height, frameSize.height));
+      }
+    } catch (IOException e) {
+      throw new UncheckedIOException(e);
     }
     attr = new BufferedImage((width + 7) >> 3, (height + 7) >> 3, BufferedImage.TYPE_INT_RGB);
     hitbox = new Rectangle(getSize());

@@ -16,39 +16,39 @@
 
 package ab.jnc1;
 
-import lombok.Getter;
-import lombok.Setter;
-import lombok.SneakyThrows;
-
 import javax.imageio.ImageIO;
 import javax.imageio.ImageReader;
 import java.awt.*;
 import java.awt.image.BufferedImage;
+import java.io.IOException;
 import java.io.InputStream;
+import java.io.UncheckedIOException;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-@Getter @Setter
 public class Font {
 
   private BufferedImage bitmap;
   private Dimension charDimension;
   private Function<Rectangle, Rectangle> transform = r -> r;
   private Supplier<Graphics> mainGraphicsSupplier = () -> null;
-  private boolean alignRight;
+  public boolean alignRight;
 
   public Font() {
     //setSize(256, 256);
     bitmap = new BufferedImage(0x100, 0x100, BufferedImage.TYPE_BYTE_BINARY);
   }
 
-  @SneakyThrows
   public Font(InputStream inputStream, int cw, int ch) {
     //ImageReader gifImageReader = new GIFImageReader(new GIFImageReaderSpi());
     // FIXME: 2021-12-12 gif
     ImageReader gifImageReader = ImageIO.getImageReadersByFormatName("gif").next();
-    gifImageReader.setInput(ImageIO.createImageInputStream(inputStream));
-    bitmap = gifImageReader.read(0);
+    try {
+      gifImageReader.setInput(ImageIO.createImageInputStream(inputStream));
+      bitmap = gifImageReader.read(0);
+    } catch (IOException e) {
+      throw new UncheckedIOException(e);
+    }
     charDimension = new Dimension(cw, ch);
   }
 
