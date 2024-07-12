@@ -25,24 +25,38 @@ import java.nio.ByteOrder;
 import java.nio.CharBuffer;
 import java.nio.charset.StandardCharsets;
 import java.nio.charset.UnsupportedCharsetException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.Arrays;
-import java.util.List;
-import java.util.stream.Collectors;
 import java.util.zip.GZIPInputStream;
 
 public class BitmapFont {
-  public byte[] glyph = new byte[0];
-  public final short[] unicode; // saving 128K with shorts
+  public byte[] bitmap = new byte[0];
+  public final short[][] unicode = new short[0x100][];
   public int length = 0;
   public int byteSize = 0;
   public int height = 0;
   public int width = 8;
 
-  public BitmapFont() {
-    unicode = new short[0x10000];
-    Arrays.fill(unicode, (short) -1);
+  public static void testValidCharacter(char c) {
+    if (Character.isSurrogate(c)) throw new UnsupportedCharsetException("FIXME unicode supplementary planes");
+  }
+
+  public void put(char c, int i) {
+    testValidCharacter(c);
+    int h = c >> 8 & 0xFF;
+    if (unicode[h] == null) {
+      short[] a = new short[0x100];
+      Arrays.fill(a, (short) -1);
+      unicode[h] = a;
+    }
+    unicode[h][c & 0xFF] = (short) i;
+  }
+
+  public int getAddress(char c) {
+    testValidCharacter(c);
+    int h = c >> 8 & 0xFF;
+    if (unicode[h] == null) return -1;
+    int a = unicode[h][c & 0xFF];
+    return a < 0 ? a : a * byteSize;
   }
 
   public static BitmapFont fromPsf1(byte[] b) {
@@ -53,19 +67,19 @@ public class BitmapFont {
     font.length = (b[2] & 1) == 0 ? 0x100 : 0x200;
     font.byteSize = b[3];
     font.height = b[3];
-    // glyph
+    // bitmap
     int end = 4 + font.length * font.byteSize;
     assert b.length >= end + (isUnicode ? font.length * 2 : 0): "PSF1 file size";
-    font.glyph = Arrays.copyOfRange(b, 4, end);
+    font.bitmap = Arrays.copyOfRange(b, 4, end);
     // unicode
     CharBuffer buffer = ByteBuffer.wrap(Arrays.copyOfRange(b, end, b.length))
         .order(ByteOrder.LITTLE_ENDIAN).asCharBuffer();
     if (isUnicode) for (short i = 0; i < font.length; i++) {
       for (char c = buffer.get(); c != '\uFFFF'; c = buffer.get()) {
-        if (c == '\uFFFE') throw new UnsupportedCharsetException("series of characters");
-        font.unicode[c] = i;
+        if (c == '\uFFFE') throw new UnsupportedCharsetException("FIXME series of characters");
+        font.put(c, i);
       }
-    } else for (short i = 0; i < 0x100; i++) font.unicode[i] = i;
+    } else for (short i = 0; i < 0x100; i++) font.put((char) i, i);
     assert !buffer.hasRemaining() : "PSF1 file size";
     return font;
   }
@@ -82,25 +96,25 @@ public class BitmapFont {
     font.height = header[6];
     font.width = header[7];
     assert font.byteSize == font.height * ((font.width + 7) >> 3) : "PSF2 height width";
-    // glyph
+    // bitmap
     int end = 0x20 + font.length * font.byteSize;
     assert b.length >= end + (isUnicode ? font.length : 0) : "PSF2 file size";
-    font.glyph = Arrays.copyOfRange(b, 0x20, end);
+    font.bitmap = Arrays.copyOfRange(b, 0x20, end);
     // unicode
     if (isUnicode) for (short i = 0; i < font.length; i++) {
       int s0 = end;
       for (byte c = b[end++]; c != -1; c = b[end++]) {
-        if (c == (byte) 0xFE) throw new UnsupportedCharsetException("series of characters");
+        if (c == (byte) 0xFE) throw new UnsupportedCharsetException("FIXME series of characters");
       }
-      for (char c : new String(Arrays.copyOfRange(b, s0, end - 1), StandardCharsets.UTF_8).toCharArray()) {
-        font.unicode[c] = i;
-      }
-    } else for (short i = 0; i < 0x100; i++) font.unicode[i] = i;
+      String s = new String(Arrays.copyOfRange(b, s0, end - 1), StandardCharsets.UTF_8);
+      for (char c : s.toCharArray()) font.put(c, i);
+    } else for (short i = 0; i < 0x100; i++) font.put((char) i, i);
     assert end == b.length : "PSF2 file size";
     return font;
   }
 
   public static BitmapFont fromPsf(byte[] b) {
+    if (b.length > 2 && b[0] == 0x1F && b[1] == (byte) 0x8B) b = gunzip(b);
     if (b.length > 2 && b[0] == 0x36 && b[1] == 0x04) return fromPsf1(b);
     if (b.length > 4 && b[0] == 0x72 && b[1] == (byte) 0xB5 && b[2] == 0x4A && b[3] == (byte) 0x86)
       return fromPsf2(b);
@@ -119,17 +133,6 @@ public class BitmapFont {
     }
   }
 
-  public static void main(String[] args) throws IOException {
-    List<Path> paths = Files.find(Path.of("/usr/share/kbd/consolefonts/"), 3, (path, attributes) -> {
-      String s = path.getFileName().toString();
-      if (s.equals("README.psfu")) return false;
-      if (s.endsWith(".gz")) s = s.substring(0, s.length() - 3);
-      return s.endsWith(".psf") || s.endsWith(".psfu");
-    }).collect(Collectors.toList());
-    for (Path path : paths) {
-      byte[] bytes = Files.readAllBytes(path);
-      if (path.toString().toLowerCase().endsWith(".gz")) bytes = gunzip(bytes);
-      BitmapFont.fromPsf(bytes);
-    }
+  public static void main(String[] args) {
   }
 }
