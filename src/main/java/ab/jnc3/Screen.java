@@ -27,6 +27,7 @@ import java.util.function.Consumer;
 public class Screen implements AutoCloseable {
 
   public Consumer<String> keyListener;
+  public final Component eventSupplier; // provides addKeyListener with keyReleased event, addMouseListener, etc
   public BufferedImage image = new BufferedImage(320, 240, BufferedImage.TYPE_INT_RGB);
   private final Dimension preferredSize = new Dimension(640, 480);
   public boolean interpolation;
@@ -51,6 +52,7 @@ public class Screen implements AutoCloseable {
     frame.addKeyListener(windowListener);
     frame.setFocusTraversalKeysEnabled(false); // enable Tab
     resetFrame();
+    eventSupplier = frame; // TODO: 2024-07-13 replace with a proxy Component
   }
 
   private void setFullScreenWindow(Window window) {
@@ -73,6 +75,10 @@ public class Screen implements AutoCloseable {
     if (fullScreen == this.fullScreen) return;
     this.fullScreen = fullScreen;
     resetFrame();
+  }
+
+  public void setBackground(int rgb) {
+    canvas.setBackground(new Color(rgb));
   }
 
   public void update() {
@@ -156,7 +162,7 @@ public class Screen implements AutoCloseable {
     private static String fromKeyChar(char c) {
       switch (c) {
         case KeyEvent.VK_ENTER: return "Enter";
-        case KeyEvent.VK_ESCAPE: return "Escape";
+        case KeyEvent.VK_ESCAPE: return "Esc";
         case KeyEvent.VK_TAB: return "Tab";
         case KeyEvent.VK_BACK_SPACE: return "Backspace";
         case KeyEvent.VK_DELETE: return "Delete";
@@ -213,6 +219,10 @@ public class Screen implements AutoCloseable {
         case KeyEvent.VK_DOWN: return "Down";
         case KeyEvent.VK_UP: return "Up";
         case KeyEvent.VK_RIGHT: return "Right";
+        case KeyEvent.VK_HOME: return "Home";
+        case KeyEvent.VK_PAGE_UP: return "PageUp";
+        case KeyEvent.VK_PAGE_DOWN: return "PageDown";
+        case KeyEvent.VK_END: return "End";
         default: return String.format("pressed %04X", keyCode);
       }
     }
