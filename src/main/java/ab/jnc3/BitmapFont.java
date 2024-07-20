@@ -42,6 +42,7 @@ import java.util.zip.GZIPInputStream;
 public class BitmapFont {
   public static final String BROWN_FOX = "The quick brown fox jumps over the lazy dog";
   public byte[] bitmap = new byte[0];
+  public int[] bitmapCache = new int[0];
   public final short[][] unicode = new short[0x100][];
   public int length = 0;
   public int byteSize = 0;
@@ -92,6 +93,7 @@ public class BitmapFont {
       }
     } else for (short i = 0; i < 0x100; i++) font.put((char) i, i);
     assert !buffer.hasRemaining() : "PSF1 file size";
+    font.cacheBitmap();
     return font;
   }
 
@@ -121,7 +123,19 @@ public class BitmapFont {
       for (char c : s.toCharArray()) font.put(c, i);
     } else for (short i = 0; i < 0x100; i++) font.put((char) i, i);
     assert end == b.length : "PSF2 file size";
+    font.cacheBitmap();
     return font;
+  }
+
+  public void cacheBitmap() {
+    int cacheSize = this.length * this.height;
+    this.bitmapCache = new int[cacheSize];
+    int bytesPerLine = this.byteSize / this.height;
+    for (int i = 0; i < cacheSize; i++) {
+      for (int x = Math.min(bytesPerLine, 4), j = i * bytesPerLine, s = 24; x > 0; x--, j++, s -= 8) {
+        this.bitmapCache[i] |= (this.bitmap[j] & 0xFF) << s;
+      }
+    }
   }
 
   public static BitmapFont fromPsf(byte[] b) {
@@ -181,7 +195,8 @@ public class BitmapFont {
   }
 
   /**
-   * Draws chars without clipping, doesn't support BufferedImage.TYPE_BYTE_BINARY with more than 1 pixel per byte.
+   * Draws chars without clipping, width limit 32 pixels,
+   * doesn't support BufferedImage.TYPE_BYTE_BINARY with more than 1 pixel per byte.
    */
   public void drawStringSimple(String s, int x, int y, BufferedImage image, int color) {
     int w = image.getWidth();
@@ -208,13 +223,14 @@ public class BitmapFont {
    * @param xy = x + y * w
    * @param ww = w - this.width
    */
-  public void drawCharSimple(int i, int xy, int ww, DataBuffer buffer, int color) {
-    i *= this.byteSize;
-    byte b = 0;
+  public void drawCharSimple(int i, int xy, int ww, DataBuffer buffer, int color, int... bgColor) {
+    boolean bg = bgColor.length > 0;
+    int bgc = bg ? bgColor[0] : 0;
+    i *= this.height;
     for (int y = 0; y < this.height; y++, xy += ww) {
+      int b = this.bitmapCache[i++];
       for (int x = 0; x < this.width; x++, xy++, b <<= 1) {
-        if ((x & 7) == 0) b = this.bitmap[i++];
-        if ((b & 0x80) != 0) buffer.setElem(xy, color);
+        if (b < 0) buffer.setElem(xy, color); else if (bg) buffer.setElem(xy, bgc);
       }
     }
   }
@@ -224,22 +240,12 @@ public class BitmapFont {
     int h = screen.image.getHeight();
     DataBuffer buffer = screen.image.getRaster().getDataBuffer();
     for (int i = buffer.getSize() - 1; i >= 0; i--) buffer.setElem(i, 0);
-    int chars = font.bitmap.length / font.byteSize;
-    for (int i = 0; i < chars; i++) {
-      int b = 0;
+    for (int i = 0; i < font.length; i++) {
       int cx = i % 32 * font.width;
       int cy = (i / 32 + 1) * font.height;
-      int ci = i * font.byteSize;
-      for (int y = 0; y < font.height; y++, cy++) {
-        int xi = cy * w + cx;
-        if (xi + font.width > buffer.getSize()) break;
-        for (int x = 0; x < font.width; x++) {
-          if (cx + x >= w) break;
-          if (x % 8 == 0) b = font.bitmap[ci++];
-          buffer.setElem(xi++, (b & 0x80) == 0 ? 0x333333 : 0xFFCCCCCC);
-          b <<= 1;
-        }
-      }
+      if (cx + font.width > w || cy + font.height > h) continue;
+      //font.drawChar(i, cx, cy, screen.image, 0xFFCCCCCC);
+      font.drawCharSimple(i, cx + cy * w, w - font.width, buffer, 0xFFCCCCCC, 0xFF333333);
     }
   }
 
