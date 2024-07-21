@@ -46,11 +46,13 @@ public class Spectrogram {
     return result;
   }
 
-  public static void drawDoubles(BufferedImage image, double[] doubles, double mul, int di,
-      int x, int xi, int y, int yi, int color) {
-    for (int i0 = doubles.length / di, i = 0; i0 > 0; i0--) {
-      double sum = 0;
-      for (int i1 = 0; i1 < di; i1++) sum += Math.abs(doubles[i++]);
+  public static void drawDoubles(BufferedImage image, double[] doubles, double mul,
+      int x, int xi, int y, int yi, int w, int color) {
+    int di = Math.max(1, doubles.length / w);
+    for (int i0 = 0; i0 < w; i0++) {
+      int i = i0 * doubles.length / w;
+      double sum = Math.abs(doubles[i]);
+      for (int i1 = 1; i1 < di; i1++) sum += Math.abs(doubles[++i]);
       sum = Math.min(sum * mul / di, 1);
       int c = (int) ((color & 0xFF0000) * sum) & 0xFF0000
           | (int) ((color & 0x00FF00) * sum) & 0x00FF00
@@ -103,17 +105,17 @@ public class Spectrogram {
       if (sp.mode == 0) fft = logarithmic(fft);
       graphics.drawImage(image, -1, 0, null);
       if (sp.mode == 0) {
-        drawDoubles(image, fft, 0.05, 1, w1, 0, FFT_HEIGHT - 1, -1, 0xFF8080);
-        drawDoubles(image, Arrays.copyOf(audio, h - FFT_HEIGHT), 1.0, 1, w1, 0, FFT_HEIGHT, 1, 0xFF8080);
+        drawDoubles(image, fft, 0.05, w1, 0, FFT_HEIGHT - 1, -1, FFT_HEIGHT, 0xFF8080);
+        drawDoubles(image, Arrays.copyOf(audio, h - FFT_HEIGHT), 1.0, w1, 0, FFT_HEIGHT, 1, h - FFT_HEIGHT, 0xFF8080);
       } else {
-        drawDoubles(image, Arrays.copyOf(fft, fft.length / 2), 0.05, fftSize / 256, w1, 0, 127, -1, 0xFFFF80);
-        drawDoubles(image, Arrays.copyOf(audio, h - 128), 1.0, 1, w1, 0, 128, 1, 0xFFFF80);
+        drawDoubles(image, Arrays.copyOf(fft, fft.length / 2), 0.05, w1, 0, 127, -1, 128, 0xFFFF80);
+        drawDoubles(image, Arrays.copyOf(audio, h - 128), 1.0, w1, 0, 128, 1, h - 128, 0xFFFF80);
       }
       screen.update();
       switch (sp.mode) {
         case 0: fftSize = FFT_LENGTH; break;
-        case 1: fftSize = 512; break;
-        case 2: fftSize = 1024; break;
+        case 1: fftSize = 128; break;
+        case 2: fftSize = 512; break;
         case 3: fftSize = 2048; break;
         case 4: fftSize = 4096; break;
         case 5: fftSize = 8192; break;
