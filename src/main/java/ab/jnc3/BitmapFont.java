@@ -198,7 +198,7 @@ public class BitmapFont {
    * Draws chars without clipping, width limit 32 pixels,
    * doesn't support BufferedImage.TYPE_BYTE_BINARY with more than 1 pixel per byte.
    */
-  public void drawStringSimple(String s, int x, int y, BufferedImage image, int color) {
+  public void drawStringSimple(String s, int x, int y, BufferedImage image, int color, int... bgColor) {
     int w = image.getWidth();
     int h = image.getHeight();
     final int ww = w - this.width;
@@ -213,7 +213,7 @@ public class BitmapFont {
       if (x < 0) continue;
       if (xn > w) break;
       int i = get(c);
-      if (i >= 0) drawCharSimple(i, xy, ww, buffer, color);
+      if (i >= 0) drawCharSimple(i, xy, ww, buffer, color, bgColor);
       xy += this.width;
     }
   }

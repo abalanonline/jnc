@@ -69,7 +69,11 @@ public class Spectrogram {
     int n2 = n / 2;
     Complex[] fftComplex = FFT.transform(audio, TransformType.FORWARD);
     double[] fft = new double[n];
-    for (int i = 0; i < n2; i++) fft[i] = fftComplex[i].abs();
+    for (int i = 0; i < n2; i++) {
+      Complex complex = fftComplex[i];
+      fft[i] = complex.abs();
+      fft[n2 + i] = complex.getArgument() / (2 * Math.PI);
+    }
     return fft;
   }
 
