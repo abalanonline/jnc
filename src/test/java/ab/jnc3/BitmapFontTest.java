@@ -18,16 +18,26 @@ package ab.jnc3;
 
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
+import org.opentest4j.AssertionFailedError;
 
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseMotionListener;
+import java.awt.image.BufferedImage;
+import java.awt.image.DataBuffer;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 class BitmapFontTest {
+
+  public static final String BROWN_FOX = "The quick brown fox jumps over the lazy dog";
 
   @Disabled
   @Test
@@ -38,9 +48,111 @@ class BitmapFontTest {
       if (s.endsWith(".gz")) s = s.substring(0, s.length() - 3);
       return s.endsWith(".psf") || s.endsWith(".psfu");
     }).collect(Collectors.toList());
+    int passed = 0;
+    int failed = 0;
     for (Path path : paths) {
       byte[] bytes = Files.readAllBytes(path);
-      BitmapFont.fromPsf(bytes);
+      BitmapFont font = BitmapFont.fromPsf(bytes);
+      if (bytes[0] == 0x1F) bytes = BitmapFont.gunzip(bytes);
+      byte[] psf = bytes[0] == 0x72 ? font.toPsf2() : font.toPsf();
+      try {
+        assertArrayEquals(bytes, psf);
+        passed++;
+      } catch (AssertionFailedError e) {
+        failed++;
+      }
     }
+    System.out.println(String.format("passed %d, failed %d", passed, failed));
+  }
+
+  public static void testFont(Screen screen, BitmapFont font) {
+    int w = screen.image.getWidth();
+    int h = screen.image.getHeight();
+    DataBuffer buffer = screen.image.getRaster().getDataBuffer();
+    for (int i = buffer.getSize() - 1; i >= 0; i--) buffer.setElem(i, 0);
+    for (int i = 0; i < font.length; i++) {
+      int cx = i % 32 * font.width;
+      int cy = (i / 32 + 1) * font.height;
+      if (cx + font.width > w || cy + font.height > h) continue;
+      //font.drawChar(i, cx, cy, screen.image, 0xFFCCCCCC);
+      font.drawCharSimple(i, cx + cy * w, w - font.width, buffer, 0xFFCCCCCC, 0xFF333333);
+    }
+  }
+
+  @Disabled
+  @Test
+  void testPerformance() throws IOException {
+    Screen screen = new Screen();
+    List<Path> paths = Files.find(Path.of("/usr/share/kbd/consolefonts/"), 3, (path, attributes) -> {
+      String s = path.getFileName().toString();
+      if (s.equals("README.psfu")) return false;
+      if (s.endsWith(".gz")) s = s.substring(0, s.length() - 3);
+      return s.endsWith(".psf") || s.endsWith(".psfu");
+    }).collect(Collectors.toList());
+    final AtomicInteger iFont = new AtomicInteger();
+    final AtomicInteger xText = new AtomicInteger();
+    final AtomicInteger yText = new AtomicInteger();
+    final AtomicLong ts0 = new AtomicLong();
+    final AtomicLong tf0 = new AtomicLong();
+    AtomicReference<BitmapFont> font = new AtomicReference<>();
+    font.set(BitmapFont.fromPsf(Files.readAllBytes(paths.get(0))));
+    Runnable update = () -> {
+      testFont(screen, font.get());
+      //font.get().drawStringSimple(BROWN_FOX, xText.get() / 3, yText.get() / 3, screen.image, 0xFF8000);
+      BitmapFont font1 = font.get();
+      BufferedImage image1 = screen.image;
+      int iter1 = 100;
+      int iter2 = 2000;
+      for (int j = 0; j < iter1; j++) font1.drawStringSimple(BROWN_FOX, 0, 100, image1, 1);
+      long timeSimple = System.nanoTime();
+      for (int j = 0; j < iter2; j++) font1.drawStringSimple(BROWN_FOX, 0, 100, image1, 1);
+      timeSimple -= System.nanoTime();
+      for (int j = 0; j < iter1; j++) font1.drawString(BROWN_FOX, 0, 100, image1, 1);
+      long timeFull = System.nanoTime();
+      for (int j = 0; j < iter2; j++) font1.drawString(BROWN_FOX, 0, 100, image1, 1);
+      timeFull -= System.nanoTime();
+      ts0.addAndGet(timeSimple);
+      tf0.addAndGet(timeFull);
+      font1.drawStringSimple(
+          String.format("%d / %d = %.3f", -timeSimple / 1_000_000, -timeFull / 1_000_000,
+              (double) timeSimple / timeFull), 160, 0, image1, 0x00FF00);
+      font1.drawStringSimple(
+          String.format("%d / %d = %.3f", -ts0.get() / 1_000_000, -tf0.get() / 1_000_000,
+              (double) ts0.get() / tf0.get()), 0, 0, image1, 0xFFFF00);
+      screen.update();
+    };
+    screen.eventSupplier.addMouseMotionListener(new MouseMotionListener() {
+      int x;
+      int y;
+      @Override
+      public void mouseMoved(MouseEvent e) {
+        x = e.getX();
+        y = e.getY();
+      }
+      @Override
+      public void mouseDragged(MouseEvent e) {
+        xText.addAndGet(e.getX() - x);
+        yText.addAndGet(e.getY() - y);
+        x = e.getX();
+        y = e.getY();
+        update.run();
+      }
+    });
+    screen.keyListener = k -> {
+      switch (k) {
+        case "PageUp": if (iFont.decrementAndGet() < 0) iFont.incrementAndGet(); break;
+        case "PageDown": if (iFont.incrementAndGet() >= paths.size()) iFont.decrementAndGet(); break;
+        case "Esc": System.exit(0); break;
+      }
+      try {
+        font.set(BitmapFont.fromPsf(Files.readAllBytes(paths.get(iFont.get()))));
+        update.run();
+      } catch (IOException ignore) {}
+    };
+    for (int i = 0; i < paths.size(); i++) {
+      font.set(BitmapFont.fromPsf(Files.readAllBytes(paths.get(i))));
+      update.run();
+    }
+    //update.run();
   }
 }
