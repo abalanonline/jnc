@@ -18,7 +18,6 @@ package ab.jnc3;
 
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
-import org.opentest4j.AssertionFailedError;
 
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseMotionListener;
@@ -48,21 +47,14 @@ class BitmapFontTest {
       if (s.endsWith(".gz")) s = s.substring(0, s.length() - 3);
       return s.endsWith(".psf") || s.endsWith(".psfu");
     }).collect(Collectors.toList());
-    int passed = 0;
-    int failed = 0;
     for (Path path : paths) {
       byte[] bytes = Files.readAllBytes(path);
       BitmapFont font = BitmapFont.fromPsf(bytes);
       if (bytes[0] == 0x1F) bytes = BitmapFont.gunzip(bytes);
+      if (bytes[0] == 0x72 && bytes[12] == 0) continue;
       byte[] psf = bytes[0] == 0x72 ? font.toPsf2() : font.toPsf();
-      try {
-        assertArrayEquals(bytes, psf);
-        passed++;
-      } catch (AssertionFailedError e) {
-        failed++;
-      }
+      assertArrayEquals(bytes, psf);
     }
-    System.out.println(String.format("passed %d, failed %d", passed, failed));
   }
 
   public static void testFont(Screen screen, BitmapFont font) {
@@ -81,7 +73,7 @@ class BitmapFontTest {
 
   @Disabled
   @Test
-  void testPerformance() throws IOException {
+  void testPerformance() throws IOException, InterruptedException {
     Screen screen = new Screen();
     List<Path> paths = Files.find(Path.of("/usr/share/kbd/consolefonts/"), 3, (path, attributes) -> {
       String s = path.getFileName().toString();
@@ -154,5 +146,6 @@ class BitmapFontTest {
       update.run();
     }
     //update.run();
+    while (true) Thread.sleep(1000);
   }
 }

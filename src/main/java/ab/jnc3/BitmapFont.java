@@ -34,6 +34,7 @@ public class BitmapFont {
   public byte[] bitmap = new byte[0];
   public int[] bitmapCache = new int[0];
   public final short[][] unicode = new short[0x100][];
+  private char[] unicodeCache;
   public int length = 0;
   public int byteSize = 0;
   public int height = 0;
@@ -52,6 +53,7 @@ public class BitmapFont {
       unicode[h] = a;
     }
     unicode[h][c & 0xFF] = (short) i;
+    unicodeCache = null;
   }
 
   public int get(char c) {
@@ -59,6 +61,12 @@ public class BitmapFont {
     int h = c >> 8 & 0xFF;
     if (unicode[h] == null) return -1;
     return unicode[h][c & 0xFF];
+  }
+
+  private void fromPsf1Unicode(char[] chars) {
+    int i = 0;
+    for (char c : chars) if (c == '\uFFFF') i++; else put(c, i);
+    unicodeCache = chars;
   }
 
   public static BitmapFont fromPsf1(byte[] b) {
@@ -76,13 +84,50 @@ public class BitmapFont {
     // unicode
     CharBuffer buffer = ByteBuffer.wrap(Arrays.copyOfRange(b, end, b.length))
         .order(ByteOrder.LITTLE_ENDIAN).asCharBuffer();
-    if (isUnicode) for (short i = 0; i < font.length; i++) {
-      for (char c = buffer.get(); c != '\uFFFF'; c = buffer.get()) {
+    if (isUnicode) {
+      StringBuilder s = new StringBuilder();
+      for (int i = 0; i < font.length;) {
+        char c = buffer.get();
+        s.append(c);
         if (c == '\uFFFE') throw new UnsupportedCharsetException("FIXME series of characters");
-        font.put(c, i);
+        if (c == '\uFFFF') i++;
       }
+      font.fromPsf1Unicode(s.toString().toCharArray());
     } else throw new UnsupportedCharsetException("default charset not defined");
     assert !buffer.hasRemaining() : "PSF1 file size";
+    font.cacheBitmap();
+    return font;
+  }
+
+  public static BitmapFont fromPsf2(byte[] b) {
+    int[] header = new int[8];
+    ByteBuffer.wrap(b).order(ByteOrder.LITTLE_ENDIAN).asIntBuffer().get(header);
+    assert header[0] == 0x864AB572 && header[1] == 0 && header[2] == 0x20 : "PSF2 header";
+    // font
+    BitmapFont font = new BitmapFont();
+    boolean isUnicode = (header[3] & 1) == 1;
+    font.length = header[4];
+    font.byteSize = header[5];
+    font.height = header[6];
+    font.width = header[7];
+    assert font.byteSize == font.height * ((font.width + 7) >> 3) : "PSF2 height width";
+    // bitmap
+    int end = 0x20 + font.length * font.byteSize;
+    assert b.length >= end + (isUnicode ? font.length : 0) : "PSF2 file size";
+    font.bitmap = Arrays.copyOfRange(b, 0x20, end);
+    // unicode
+    if (isUnicode) {
+      StringBuilder s = new StringBuilder();
+      for (int i = 0; i < font.length; i++) {
+        int s0 = end;
+        for (byte c = b[end++]; c != -1; c = b[end++]) {
+          if (c == (byte) 0xFE) throw new UnsupportedCharsetException("FIXME series of characters");
+        }
+        s.append(new String(Arrays.copyOfRange(b, s0, end - 1), StandardCharsets.UTF_8)).append('\uFFFF');
+      }
+      font.fromPsf1Unicode(s.toString().toCharArray());
+    } else for (short i = 0; i < 0x100; i++) font.put((char) i, i);
+    assert end == b.length : "PSF2 file size";
     font.cacheBitmap();
     return font;
   }
@@ -112,9 +157,9 @@ public class BitmapFont {
 
   public byte[] toPsf() {
     if (width != 8 || (length != 0x100 && length != 0x200) || height != byteSize) return toPsf2();
-    char[] chars = toPsf1Unicode();
+    char[] chars = unicodeCache == null ? toPsf1Unicode() : unicodeCache;
     ByteBuffer buffer = ByteBuffer.allocate(chars.length * 2).order(ByteOrder.LITTLE_ENDIAN);
-    for (int i = 0; i < chars.length; i++) buffer.putChar(chars[i]);
+    for (char c : chars) buffer.putChar(c);
     byte[] bytes = new byte[4 + bitmap.length + chars.length * 2];
     bytes[0] = 0x36;
     bytes[1] = 0x04;
@@ -126,38 +171,8 @@ public class BitmapFont {
     return bytes;
   }
 
-  public static BitmapFont fromPsf2(byte[] b) {
-    int[] header = new int[8];
-    ByteBuffer.wrap(b).order(ByteOrder.LITTLE_ENDIAN).asIntBuffer().get(header);
-    assert header[0] == 0x864AB572 && header[1] == 0 && header[2] == 0x20 : "PSF2 header";
-    // font
-    BitmapFont font = new BitmapFont();
-    boolean isUnicode = (header[3] & 1) == 1;
-    font.length = header[4];
-    font.byteSize = header[5];
-    font.height = header[6];
-    font.width = header[7];
-    assert font.byteSize == font.height * ((font.width + 7) >> 3) : "PSF2 height width";
-    // bitmap
-    int end = 0x20 + font.length * font.byteSize;
-    assert b.length >= end + (isUnicode ? font.length : 0) : "PSF2 file size";
-    font.bitmap = Arrays.copyOfRange(b, 0x20, end);
-    // unicode
-    if (isUnicode) for (short i = 0; i < font.length; i++) {
-      int s0 = end;
-      for (byte c = b[end++]; c != -1; c = b[end++]) {
-        if (c == (byte) 0xFE) throw new UnsupportedCharsetException("FIXME series of characters");
-      }
-      String s = new String(Arrays.copyOfRange(b, s0, end - 1), StandardCharsets.UTF_8);
-      for (char c : s.toCharArray()) font.put(c, i);
-    } else for (short i = 0; i < 0x100; i++) font.put((char) i, i);
-    assert end == b.length : "PSF2 file size";
-    font.cacheBitmap();
-    return font;
-  }
-
   public byte[] toPsf2() {
-    char[] chars = toPsf1Unicode();
+    char[] chars = unicodeCache == null ? toPsf1Unicode() : unicodeCache;
     ByteArrayOutputStream stream = new ByteArrayOutputStream();
     try {
       for (char c : chars) stream.write(c == '\uFFFF' ? new byte[]{-1}
@@ -289,6 +304,32 @@ public class BitmapFont {
         if (b < 0) buffer.setElem(xy, color); else if (bg) buffer.setElem(xy, bgc);
       }
     }
+  }
+
+  public void multiply(int mw, int mh) {
+    int byteSize = (width * mw + 7) / 8;
+    byte[] bitmap = new byte[length * height * mh * byteSize];
+    for (int c = 0, bmi = 0, bmo = 0; c < length; c++) {
+      for (int y = 0; y < height; y++) {
+        byte[] bity = new byte[byteSize];
+        byte b = 0;
+        for (int x = 0, mx = 0; x < width; x++) {
+          int x0 = x & 7;
+          if (x0 == 0) b = this.bitmap[bmi++];
+          boolean on = (b & (1 << 7 - x0)) != 0;
+          for (int i = 0; i < mw; i++, mx++) bity[mx >> 3] |= (on ? 1 : 0) << 7 - (mx & 7);
+        }
+        for (int i = 0; i < mh; i++) {
+          System.arraycopy(bity, 0, bitmap, bmo, byteSize);
+          bmo += byteSize;
+        }
+      }
+    }
+    this.bitmap = bitmap;
+    width *= mw;
+    height *= mh;
+    this.byteSize = byteSize * height;
+    cacheBitmap();
   }
 
 }
