@@ -54,10 +54,7 @@ class LicenseTest {
       Matcher matcher = pattern.matcher(s);
       String year = matcher.matches() ? matcher.group("year") : Instant.now().toString().substring(0, 4);
       String body = matcher.matches() ? matcher.group("body") : s;
-      if (!matcher.matches()) {
-        Files.writeString(path, String.format(copyright, year, body));
-        s =s;
-      }
+      Files.writeString(path, String.format(copyright, year, body));
     }
   }
 }
