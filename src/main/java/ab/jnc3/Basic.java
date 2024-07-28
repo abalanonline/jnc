@@ -31,4 +31,11 @@ public interface Basic {
   void circle(int x, int y, int radius);
   void cls();
   void update();
+  void pause(int milliseconds);
+  void paper(int color);
+  void ink(int color);
+  int getColorFromRgb(int rgb);
+  void printAt(int x, int y, String s);
+  String inkey();
+  String inkey(int milliseconds);
 }

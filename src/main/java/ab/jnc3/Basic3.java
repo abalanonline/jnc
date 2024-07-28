@@ -25,45 +25,86 @@ import java.awt.geom.Line2D;
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBuffer;
 import java.awt.image.IndexColorModel;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
 
-public class Basic3 implements Basic {
+public class Basic3 implements Basic { // FIXME: 2024-07-28 delete and redesign
 
   public static final GraphicsMode DEFAULT_MODE = GraphicsMode.ZX;
+  private final BitmapFont font;
   private final Screen screen;
   private GraphicsMode mode;
+  private GraphicsMode switchMode;
   private int paper;
   private int color;
   private int x = 0;
   private int y = 0;
   private double pixelHeight;
   private int ymax = 0;
+  private final BlockingQueue<String> inkey = new LinkedBlockingQueue<>();
+  private BasicApp runningApp;
 
   public Basic3(Screen screen) {
     this.screen = screen;
+    screen.keyListener = this::keyListener;
+    font = new BitmapFont(8, 8);
+    font.bitmap = ab.jnc2.TextFont.ZX.get().font;
+    font.cacheBitmap();
+  }
+
+  private void keyListener(String s) {
+    boolean close = false;
+    switch (s) {
+      case "Close":
+        BasicApp app = this.runningApp;
+        if (app != null) app.close();
+        System.exit(0);
+      case "Esc":
+      case "Alt+Backspace": close = true; break;
+      case "Alt+1": switchMode = GraphicsMode.ZX; break;
+      case "Alt+2": switchMode = GraphicsMode.C64; break;
+      case "Alt+3": switchMode = GraphicsMode.CGA_16; break;
+      case "Alt+4": switchMode = GraphicsMode.CGA_HIGH; break;
+      case "Alt+5": switchMode = GraphicsMode.CGA_4; break;
+      case "Alt+0": switchMode = GraphicsMode.DEFAULT; break;
+    }
+    if (close || switchMode != null) {
+      BasicApp app = this.runningApp;
+      if (app != null) app.close();
+    }
+    inkey.add(s);
   }
 
   @Override
   public int load(BasicApp app) {
     GraphicsMode mode = app.preferredMode();
-    if (mode != null) this.mode = mode;
-    if (this.mode == null) this.mode = DEFAULT_MODE;
-    setMode();
-    app.open(this);
-    app.run();
+    switchMode = mode == null ? DEFAULT_MODE : mode;
+    while (switchMode != null) {
+      setMode(switchMode);
+      switchMode = null;
+      app.open(this);
+      runningApp = app;
+      inkey.clear();
+      app.run();
+      runningApp = null;
+    }
     return 0;
   }
 
-  private void setMode() {
+  private void setMode(GraphicsMode mode) {
+    this.mode = mode;
     Dimension r = mode.resolution;
     IndexColorModel colorModel = mode.colorMap == null ? null : new IndexColorModel(
         8, mode.colorMap.length, mode.colorMap, 0, false, -1, DataBuffer.TYPE_BYTE);
     screen.image = colorModel == null
         ? new BufferedImage(r.width, r.height, BufferedImage.TYPE_INT_RGB)
         : new BufferedImage(r.width, r.height, BufferedImage.TYPE_BYTE_INDEXED, colorModel);
-    paper = mode.getRgbColor(mode.bgColor);
-    color = mode.getRgbColor(mode.fgColor);
+    paper = mode.bgColor;
+    color = mode.fgColor;
     pixelHeight = (double) (r.width * mode.aspectRatio.height) / (r.height * mode.aspectRatio.width);
     ymax = r.height - 1;
+    cls();
   }
 
   @Override
@@ -83,7 +124,7 @@ public class Basic3 implements Basic {
 
   @Override
   public void plot(int x, int y) {
-    screen.image.setRGB(x, ymax - y, color);
+    screen.image.setRGB(x, ymax - y, mode.getRgbColor(color));
     this.x = x;
     this.y = y;
   }
@@ -91,7 +132,7 @@ public class Basic3 implements Basic {
   @Override
   public void draw(int x, int y) {
     Graphics2D graphics = screen.image.createGraphics();
-    graphics.setColor(new Color(color));
+    graphics.setColor(new Color(mode.getRgbColor(color)));
     graphics.draw(new Line2D.Double(this.x, ymax - this.y, x, ymax - y));
     this.x = x;
     this.y = y;
@@ -102,20 +143,67 @@ public class Basic3 implements Basic {
     double rx = Math.min(r * pixelHeight, r);
     double ry = Math.min(r / pixelHeight, r);
     Graphics2D graphics = this.screen.image.createGraphics();
-    graphics.setColor(new Color(color));
+    graphics.setColor(new Color(mode.getRgbColor(color)));
     graphics.draw(new Ellipse2D.Double(x - rx, ymax - y - ry, rx + rx, ry + ry));
   }
 
   @Override
   public void cls() {
     Graphics2D graphics = screen.image.createGraphics();
-    this.screen.setBackground(paper);
-    graphics.setBackground(new Color(paper));
+    int rgb = mode.getRgbColor(paper);
+    this.screen.setBackground(rgb);
+    graphics.setBackground(new Color(rgb));
     graphics.clearRect(0, 0, mode.resolution.width, mode.resolution.height);
   }
 
   @Override
   public void update() {
     screen.update();
+  }
+
+  @Override
+  public void pause(int milliseconds) {
+    try {
+      Thread.sleep(milliseconds);
+    } catch (InterruptedException ignore) {}
+  }
+
+  @Override
+  public void paper(int color) {
+    paper = color;
+  }
+
+  @Override
+  public void ink(int color) {
+    this.color = color;
+  }
+
+  @Override
+  public int getColorFromRgb(int rgb) {
+    return mode.getIndexedColor(rgb);
+  }
+
+  @Override
+  public void printAt(int x, int y, String s) {
+    font.drawString(s, x * 8, screen.image.getHeight() - (y + 1) * 8, screen.image,
+        mode.getRgbColor(color), mode.getRgbColor(paper));
+  }
+
+  @Override
+  public String inkey() {
+    try {
+      return inkey.take();
+    } catch (InterruptedException e) {
+      return null;
+    }
+  }
+
+  @Override
+  public String inkey(int milliseconds) {
+    try {
+      return inkey.poll(milliseconds, TimeUnit.MILLISECONDS);
+    } catch (InterruptedException e) {
+      return null;
+    }
   }
 }

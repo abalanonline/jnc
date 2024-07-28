@@ -36,10 +36,22 @@ public class BitmapFont {
   public int[] bitmapCache = new int[0];
   public final short[][] unicode = new short[0x100][];
   private char[] unicodeCache;
-  public int length = 0;
-  public int byteSize = 0;
-  public int height = 0;
-  public int width = 8;
+  public int length;
+  public int byteSize;
+  public int height;
+  public int width;
+
+  public BitmapFont(int width, int height) {
+    length = 0x100;
+    byteSize = (width + 7) / 8 * height;
+    this.height = height;
+    this.width = width;
+    for (int i = 0x20; i < 0x7F; i++) put((char) i, i); // default ascii
+  }
+
+  public BitmapFont() {
+    this(8, 0);
+  }
 
   public static void testValidCharacter(char c) {
     if (Character.isSurrogate(c)) throw new UnsupportedCharsetException("FIXME unicode supplementary planes");
@@ -73,11 +85,9 @@ public class BitmapFont {
   public static BitmapFont fromPsf1(byte[] b) {
     assert b.length >= 4 && b[0] == 0x36 && b[1] == 0x04 : "PSF1 header";
     // font
-    BitmapFont font = new BitmapFont();
+    BitmapFont font = new BitmapFont(8, b[3]);
     boolean isUnicode = (b[2] & 6) != 0;
     font.length = (b[2] & 1) == 0 ? 0x100 : 0x200;
-    font.byteSize = b[3];
-    font.height = b[3];
     // bitmap
     int end = 4 + font.length * font.byteSize;
     assert b.length >= end + (isUnicode ? font.length * 2 : 0): "PSF1 file size";
@@ -105,13 +115,13 @@ public class BitmapFont {
     ByteBuffer.wrap(b).order(ByteOrder.LITTLE_ENDIAN).asIntBuffer().get(header);
     assert header[0] == 0x864AB572 && header[1] == 0 && header[2] == 0x20 : "PSF2 header";
     // font
-    BitmapFont font = new BitmapFont();
+    BitmapFont font = new BitmapFont(header[7], header[6]);
     boolean isUnicode = (header[3] & 1) == 1;
     font.length = header[4];
     font.byteSize = header[5];
     font.height = header[6];
     font.width = header[7];
-    assert font.byteSize == font.height * ((font.width + 7) >> 3) : "PSF2 height width";
+    assert font.byteSize == (font.width + 7) / 8 * font.height : "PSF2 height width";
     // bitmap
     int end = 0x20 + font.length * font.byteSize;
     assert b.length >= end + (isUnicode ? font.length : 0) : "PSF2 file size";
@@ -127,7 +137,7 @@ public class BitmapFont {
         s.append(new String(Arrays.copyOfRange(b, s0, end - 1), StandardCharsets.UTF_8)).append('\uFFFF');
       }
       font.fromPsf1Unicode(s.toString().toCharArray());
-    } else for (short i = 0; i < 0x100; i++) font.put((char) i, i);
+    }
     assert end == b.length : "PSF2 file size";
     font.cacheBitmap();
     return font;
@@ -233,7 +243,7 @@ public class BitmapFont {
   /**
    * upper left corner coordinate of (0, 0)
    */
-  public void drawString(String s, int x, int y, BufferedImage image, int rgb) {
+  public void drawString(String s, int x, int y, BufferedImage image, int rgb, int... bgColor) {
     int w = image.getWidth();
     int h = image.getHeight();
     char[] chars = s.toCharArray();
@@ -245,11 +255,13 @@ public class BitmapFont {
       if (xn <= 0) continue;
       if (x >= w) break;
       int i = get(c);
-      if (i >= 0) drawChar(i, x, y, image, rgb);
+      if (i >= 0) drawChar(i, x, y, image, rgb, bgColor);
     }
   }
 
-  private void drawChar(int i, int x, int y, BufferedImage image, int rgb) {
+  private void drawChar(int i, int x, int y, BufferedImage image, int rgb, int... bgColor) {
+    boolean bg = bgColor.length > 0;
+    int bgc = bg ? bgColor[0] : 0;
     i *= this.byteSize;
     int yn = Math.min(y + this.height, image.getHeight()); // next
     if (y < 0) {
@@ -261,7 +273,7 @@ public class BitmapFont {
     for (; y < yn; y++) {
       for (int xi = 0, xx = x; xi < this.width; xi++, xx++, b <<= 1) {
         if ((xi & 7) == 0) b = this.bitmap[i++];
-        if ((b & 0x80) != 0 && xx >= 0 && xx < w) image.setRGB(xx, y, rgb);
+        if ((b & 0x80) != 0 && xx >= 0 && xx < w) image.setRGB(xx, y, rgb); else if (bg) image.setRGB(xx, y, bgc);
       }
     }
   }

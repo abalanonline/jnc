@@ -91,7 +91,7 @@ public class Screen implements AutoCloseable {
       case "F11": case "Alt+Enter": setFullScreen(!fullScreen); return;
       case "Maximize": setFullScreen(true); return;
       case "Restore": setFullScreen(false); return;
-      case "Close": close(); return;
+      case "Close": close(); // then notify keylistener
     }
     Consumer<String> keyListener = this.keyListener;
     if (keyListener != null) keyListener.accept(event);

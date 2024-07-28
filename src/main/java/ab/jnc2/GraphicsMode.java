@@ -23,6 +23,7 @@ import java.awt.image.IndexColorModel;
 
 /**
  * Graphics mode is a pojo. The windows and buffers management belongs to the Screen class
+ * TODO: 2024-07-28 immutable
  */
 public class GraphicsMode {
 
@@ -48,6 +49,8 @@ public class GraphicsMode {
       new GraphicsMode(256, 192).withColorMap(COLOR_MAP_ZX_GAMMA_025).withDefaultColors(7, 0);
   public static final GraphicsMode C64 =
       new GraphicsMode(320, 200).withColorMap(COLOR_MAP_VIC2).withDefaultColors(6, 14);
+  public static final GraphicsMode CGA_4 = new GraphicsMode(320, 200).withDefaultColors(0, 1)
+      .withColorMap(new int[]{COLOR_MAP_CGA[0], COLOR_MAP_CGA[3], COLOR_MAP_CGA[5], COLOR_MAP_CGA[7]});
   public static final GraphicsMode DEFAULT = new GraphicsMode(320, 240);
 
   public Dimension aspectRatio = new Dimension(4, 3);

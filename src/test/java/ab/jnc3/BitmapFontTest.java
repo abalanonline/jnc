@@ -17,7 +17,6 @@
 
 package ab.jnc3;
 
-import ab.jnc2.TextFont;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
@@ -162,13 +161,8 @@ class BitmapFontTest {
   @Disabled
   @Test
   void vga14x3() throws IOException {
-    TextFont vga14 = ab.jnc2.TextFont.VGA14.get();
-    BitmapFont font = new BitmapFont();
-    font.bitmap = vga14.font;
-    font.length = 0x100;
-    font.byteSize = 14;
-    font.height = 14;
-    font.width = 8;
+    BitmapFont font = new BitmapFont(8, 14);
+    font.bitmap = ab.jnc2.TextFont.VGA14.get().font;
     Charset charset = Charset.forName("IBM437");
     for (int i = 0; i < 0x100; i++) font.put(new String(new byte[]{(byte) i}, charset).charAt(0), i);
     font.multiply(3, 3);

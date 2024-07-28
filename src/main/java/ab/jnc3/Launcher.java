@@ -19,6 +19,8 @@ package ab.jnc3;
 
 public class Launcher {
   public static void main(String[] args) {
-    new Basic3(new Screen()).load(new BasicClock());
+    Screen screen = new Screen();
+    new Basic3(screen).load(new BasicClock());
+    screen.close();
   }
 }

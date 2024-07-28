@@ -156,6 +156,7 @@ public class Application implements Runnable, KeyListener {
       case '2': newMode = GraphicsMode.C64; break;
       case '3': newMode = GraphicsMode.CGA_16; break;
       case '4': newMode = GraphicsMode.CGA_HIGH; break;
+      case '5': newMode = GraphicsMode.CGA_4; break;
       case '0': newMode = GraphicsMode.DEFAULT; break;
       case KeyEvent.VK_ENTER:
         if (newApplication == null) {
