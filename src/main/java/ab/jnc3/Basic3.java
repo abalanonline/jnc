@@ -25,7 +25,9 @@ import java.awt.geom.Line2D;
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBuffer;
 import java.awt.image.IndexColorModel;
+import java.util.Optional;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
@@ -44,6 +46,7 @@ public class Basic3 implements Basic { // FIXME: 2024-07-28 delete and redesign
   private int ymax = 0;
   private final BlockingQueue<String> inkey = new LinkedBlockingQueue<>();
   private BasicApp runningApp;
+  private final CancellationException stop = new CancellationException();
 
   public Basic3(Screen screen) {
     this.screen = screen;
@@ -57,8 +60,7 @@ public class Basic3 implements Basic { // FIXME: 2024-07-28 delete and redesign
     boolean close = false;
     switch (s) {
       case "Close":
-        BasicApp app = this.runningApp;
-        if (app != null) app.close();
+        Optional.ofNullable(runningApp).ifPresent(BasicApp::close);
         System.exit(0);
       case "Esc":
       case "Alt+Backspace": close = true; break;
@@ -70,8 +72,10 @@ public class Basic3 implements Basic { // FIXME: 2024-07-28 delete and redesign
       case "Alt+0": switchMode = GraphicsMode.DEFAULT; break;
     }
     if (close || switchMode != null) {
-      BasicApp app = this.runningApp;
+      BasicApp app = runningApp;
       if (app != null) app.close();
+      runningApp = null;
+      s = "Close";
     }
     inkey.add(s);
   }
@@ -83,10 +87,14 @@ public class Basic3 implements Basic { // FIXME: 2024-07-28 delete and redesign
     while (switchMode != null) {
       setMode(switchMode);
       switchMode = null;
-      app.open(this);
       runningApp = app;
       inkey.clear();
-      app.run();
+      try {
+        app.open(this);
+        app.run();
+      } catch (CancellationException e) {
+        if (e != stop) throw e;
+      }
       runningApp = null;
     }
     return 0;
@@ -158,11 +166,13 @@ public class Basic3 implements Basic { // FIXME: 2024-07-28 delete and redesign
 
   @Override
   public void update() {
+    if (runningApp == null) throw stop;
     screen.update();
   }
 
   @Override
   public void pause(int milliseconds) {
+    if (runningApp == null) throw stop;
     try {
       Thread.sleep(milliseconds);
     } catch (InterruptedException ignore) {}
@@ -185,12 +195,12 @@ public class Basic3 implements Basic { // FIXME: 2024-07-28 delete and redesign
 
   @Override
   public void printAt(int x, int y, String s) {
-    font.drawString(s, x * 8, screen.image.getHeight() - (y + 1) * 8, screen.image,
-        mode.getRgbColor(color), mode.getRgbColor(paper));
+    font.drawString(s, x * 8, y * 8, screen.image, mode.getRgbColor(color), mode.getRgbColor(paper));
   }
 
   @Override
   public String inkey() {
+    if (runningApp == null) throw stop;
     try {
       return inkey.take();
     } catch (InterruptedException e) {
@@ -200,6 +210,7 @@ public class Basic3 implements Basic { // FIXME: 2024-07-28 delete and redesign
 
   @Override
   public String inkey(int milliseconds) {
+    if (runningApp == null) throw stop;
     try {
       return inkey.poll(milliseconds, TimeUnit.MILLISECONDS);
     } catch (InterruptedException e) {

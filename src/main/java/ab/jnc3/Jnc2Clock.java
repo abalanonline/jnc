@@ -24,7 +24,6 @@ import java.time.LocalTime;
 public class Jnc2Clock implements BasicApp {
 
   private Basic basic;
-  boolean stop;
   int centerx;
   int centery;
   double radius;
@@ -62,12 +61,7 @@ public class Jnc2Clock implements BasicApp {
     radius = basic.getHeight() * basic.getPixelHeight() / 2;
     rx = Math.min(radius, radius * basic.getPixelHeight());
     ry = Math.min(radius, radius / basic.getPixelHeight());
-    //basic.paper(basic.getColorFromRgb(0x999900));
-  }
-
-  @Override
-  public void run() {
-    while (!stop) {
+    while (true) {
       basic.cls();
       basic.circle(centerx, centery, (int) Math.round(radius * 0.95));
       LocalTime now = LocalTime.now();
@@ -75,15 +69,13 @@ public class Jnc2Clock implements BasicApp {
       drawHand((now.getMinute() * 60 + now.getSecond()) / 60.0, 0.8, 2);
       drawHand(now.getSecond(), 0.9, 1);
       basic.update();
-      try {
-        Thread.sleep(500); // FIXME: 2024-07-25 use basic PAUSE
-      } catch (InterruptedException e) {
-      }
+      basic.pause(200);
     }
   }
 
   @Override
-  public void close() {
-    stop = true;
-  }
+  public void run() {}
+
+  @Override
+  public void close() {} // dumb app that ignores close() method and expects that basic will force-close it
 }

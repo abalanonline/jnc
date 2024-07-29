@@ -17,10 +17,64 @@
 
 package ab.jnc3;
 
-public class Launcher {
+import ab.jnc2.GraphicsMode;
+
+public class Launcher implements BasicApp {
+
+  private static final BasicApp[] APPS = {new Jnc2Clock(), new BasicClock()};
+  private boolean stop;
+
+  @Override
+  public GraphicsMode preferredMode() {
+    return GraphicsMode.C64;
+  }
+
+  @Override
+  public void open(Basic basic) {
+    int w = basic.getWidth() / 8;
+    int h = basic.getHeight() / 8;
+    for (int y = 0; y < h; y++) for (int x = y % 2 * 2; x < w; x += 4) basic.printAt(x, y, ":");
+    int mw = Math.min(w, 20);
+    int mh = Math.min(h, 10);
+    int mx = (w - mw) / 2;
+    int my = (h - mh) / 2;
+    for (int y = my; y < my + mh; y++) {
+      boolean fl = y == my || y == my + mh - 1;
+      basic.printAt(mx, y, fl ? "+" : "|");
+      for (int x = mx + 1; x < mx + mw - 1; x++) basic.printAt(x, y, fl ? "-" : " ");
+      basic.printAt(mx + mw - 1, y, fl ? "+" : "|");
+    }
+    basic.printAt(mx + 2, my, " JNC3 ");
+    int ai = 0;
+    for (BasicApp app : APPS) basic.printAt(mx + 2, my + 2 + ai,
+        String.format("%d. %s", ++ai, app.getClass().getSimpleName()));
+    basic.printAt(mx + 2, my + 2 + ai, "Q. Quit");
+    basic.update();
+    while (true) {
+      String s = basic.inkey();
+      if ("q".equals(s) || "Q".equals(s) || "Close".equals(s)) {
+        stop = true;
+        break;
+      }
+      int i = s.length() == 1 ? s.charAt(0) - '0' : 0;
+      if (i > 0 && i <= APPS.length) {
+        basic.load(APPS[i - 1]);
+        break; // needs to exit to restart
+      }
+    }
+  }
+
+  @Override
+  public void close() {}
+
+  @Override
+  public void run() {}
+
   public static void main(String[] args) {
     Screen screen = new Screen();
-    new Basic3(screen).load(new BasicClock());
+    Basic basic = new Basic3(screen);
+    Launcher launcher = new Launcher();
+    while (!launcher.stop) basic.load(launcher);
     screen.close();
   }
 }

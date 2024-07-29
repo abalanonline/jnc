@@ -82,27 +82,16 @@ public class BasicClock implements BasicApp {
       30, 63, 51, 51, 51, 51, 63, 27, 3, 51, 51, 63, 30, }, {}};
   private static final int LCD_BRIGHT = 0xAAAAAA;
 
-  private final BufferedImage png;
-  private final int pngw;
-  private final int pngh;
-  private final int[][] indexed;
+  private BufferedImage png;
+  private int pngw;
+  private int pngh;
+  private int[][] indexed;
   private Basic basic;
   private int w;
   private int h;
   private int dx;
   private int dy;
   boolean stop;
-
-  public BasicClock() {
-    try {
-      png = ImageIO.read(getClass().getResourceAsStream("/jnc3/garmin.png"));
-      pngw = png.getWidth();
-      pngh = png.getHeight();
-      indexed = new int[pngh][pngw];
-    } catch (IOException e) {
-      throw new UncheckedIOException(e);
-    }
-  }
 
   @Override
   public GraphicsMode preferredMode() {
@@ -111,6 +100,15 @@ public class BasicClock implements BasicApp {
 
   @Override
   public void open(Basic basic) {
+    if (png == null) try {
+      png = ImageIO.read(getClass().getResourceAsStream("/jnc3/garmin.png"));
+      pngw = png.getWidth();
+      pngh = png.getHeight();
+      indexed = new int[pngh][pngw];
+    } catch (IOException e) {
+      throw new UncheckedIOException(e);
+    }
+
     this.basic = basic;
     w = basic.getWidth();
     h = basic.getHeight();
@@ -151,19 +149,19 @@ public class BasicClock implements BasicApp {
   @Override
   public void run() {
     int color = basic.getColorFromRgb(0xAA5500);
-    int x = basic.getWidth() / 8 - 5;
-    boolean quit = false;
-    while (!stop && !quit) {
+    int x = basic.getWidth() / 8;
+    int y = basic.getHeight() / 8 - 1;
+    while (!stop) {
       LocalTime now = LocalTime.now();
       drawDigits(DIGIT2043, 20, 43, 112, 105, 10,
           70, now.getHour() / 10, 95, now.getHour() % 10,
           129, now.getMinute() / 10, 154, now.getMinute() % 10);
       drawDigits(DIGIT0613, 6, 13, 112, 178, now.getSecond() / 10, 185, now.getSecond() % 10);
       basic.ink(color);
-      basic.printAt(x, 1, " JNC3");
-      basic.printAt(x, 0, now.toString().substring(0, 5));
+      basic.printAt(x - 4, y - 1, "JNC3");
+      basic.printAt(x - 5, y, now.toString().substring(0, 5));
       basic.update();
-      quit = "q".equals(basic.inkey(100));
+      if ("q".equals(basic.inkey(100))) stop = true;
     }
   }
 

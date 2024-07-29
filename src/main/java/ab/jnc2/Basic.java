@@ -81,6 +81,7 @@ public class Basic {
 
   /**
    * PRINT AT as implemented in Sinclair BASIC.
+   * FIXME: 2024-07-28 PRINT and ATTR lines are numbered from the top, opposite to PLOT and DRAW
    */
   public void printAt(int x, int y, String s) {
     textFont.print(screen.image, s, x * textFont.width, cy + 1 - (y + 1) * textFont.height, color, paper);
