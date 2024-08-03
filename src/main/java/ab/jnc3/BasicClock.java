@@ -20,6 +20,7 @@ package ab.jnc3;
 import ab.jnc2.GraphicsMode;
 
 import javax.imageio.ImageIO;
+import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -110,8 +111,9 @@ public class BasicClock implements BasicApp {
     }
 
     this.basic = basic;
-    w = basic.getWidth();
-    h = basic.getHeight();
+    Dimension size = basic.getSize();
+    w = size.width;
+    h = size.height;
     dx = (w - pngw) / 2;
     dy = h - 1 - (h - pngh) / 2;
     for (int y = 0; y < pngh; y++) {
@@ -149,8 +151,9 @@ public class BasicClock implements BasicApp {
   @Override
   public void run() {
     int color = basic.getColorFromRgb(0xAA5500);
-    int x = basic.getWidth() / 8;
-    int y = basic.getHeight() / 8 - 1;
+    Dimension textSize = basic.getTextSize();
+    int x = textSize.width;
+    int y = textSize.height - 1;
     while (!stop) {
       LocalTime now = LocalTime.now();
       drawDigits(DIGIT2043, 20, 43, 112, 105, 10,

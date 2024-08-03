@@ -19,6 +19,8 @@ package ab.jnc3;
 
 import ab.jnc2.GraphicsMode;
 
+import java.awt.*;
+
 public class Launcher implements BasicApp {
 
   private static final BasicApp[] APPS = {new Jnc2Clock(), new BasicClock()};
@@ -31,8 +33,9 @@ public class Launcher implements BasicApp {
 
   @Override
   public void open(Basic basic) {
-    int w = basic.getWidth() / 8;
-    int h = basic.getHeight() / 8;
+    Dimension textSize = basic.getTextSize();
+    int w = textSize.width;
+    int h = textSize.height;
     for (int y = 0; y < h; y++) for (int x = y % 2 * 2; x < w; x += 4) basic.printAt(x, y, ":");
     int mw = Math.min(w, 20);
     int mh = Math.min(h, 10);

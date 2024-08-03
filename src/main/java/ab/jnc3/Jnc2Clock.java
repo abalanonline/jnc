@@ -19,6 +19,7 @@ package ab.jnc3;
 
 import ab.jnc2.GraphicsMode;
 
+import java.awt.*;
 import java.time.LocalTime;
 
 public class Jnc2Clock implements BasicApp {
@@ -56,11 +57,15 @@ public class Jnc2Clock implements BasicApp {
   @Override
   public void open(Basic basic) {
     this.basic = basic;
-    centerx = basic.getWidth() / 2;
-    centery = basic.getHeight() / 2;
-    radius = basic.getHeight() * basic.getPixelHeight() / 2;
-    rx = Math.min(radius, radius * basic.getPixelHeight());
-    ry = Math.min(radius, radius / basic.getPixelHeight());
+    Dimension size = basic.getSize();
+    Dimension displayAspectRatio = basic.getDisplayAspectRatio();
+    centerx = size.width / 2;
+    centery = size.height / 2;
+    double pixelAspectRatio = (double) (size.height * displayAspectRatio.width) / (size.width * displayAspectRatio.height);
+
+    radius = size.height / pixelAspectRatio / 2;
+    rx = Math.min(radius, radius / pixelAspectRatio);
+    ry = Math.min(radius, radius * pixelAspectRatio);
     while (true) {
       basic.cls();
       basic.circle(centerx, centery, (int) Math.round(radius * 0.95));

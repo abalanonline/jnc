@@ -17,14 +17,17 @@
 
 package ab.jnc3;
 
+import java.awt.*;
+
 public interface Basic {
   /**
    * Loads a program, deleting any existing program.
    */
   int load(BasicApp app);
+  Dimension getSize();
+  Dimension getTextSize();
+  Dimension getDisplayAspectRatio();
   // FIXME: 2024-07-25 temp copy of jnc2.Basic, delete and redesign
-  int getWidth();
-  int getHeight();
   double getPixelHeight();
   void plot(int x, int y);
   void draw(int x, int y);

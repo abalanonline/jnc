@@ -116,16 +116,6 @@ public class Basic3 implements Basic { // FIXME: 2024-07-28 delete and redesign
   }
 
   @Override
-  public int getWidth() {
-    return screen.image.getWidth();
-  }
-
-  @Override
-  public int getHeight() {
-    return screen.image.getHeight();
-  }
-
-  @Override
   public double getPixelHeight() {
     return pixelHeight;
   }
@@ -216,5 +206,20 @@ public class Basic3 implements Basic { // FIXME: 2024-07-28 delete and redesign
     } catch (InterruptedException e) {
       return null;
     }
+  }
+
+  @Override
+  public Dimension getSize() {
+    return new Dimension(mode.resolution);
+  }
+
+  @Override
+  public Dimension getTextSize() {
+    return new Dimension(mode.resolution.width / font.width, mode.resolution.height / font.height);
+  }
+
+  @Override
+  public Dimension getDisplayAspectRatio() {
+    return new Dimension(mode.aspectRatio);
   }
 }
