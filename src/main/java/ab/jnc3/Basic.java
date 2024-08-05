@@ -24,11 +24,16 @@ public interface Basic {
    * Loads a program, deleting any existing program.
    */
   int load(BasicApp app);
+
+  /**
+   * Loads program, runs, then close screen and exit.
+   * Usually, basic shouldn't close the screen, but this method is made for convenience.
+   */
+  void loadAndClose(BasicApp app);
   Dimension getSize();
   Dimension getTextSize();
   Dimension getDisplayAspectRatio();
   // FIXME: 2024-07-25 temp copy of jnc2.Basic, delete and redesign
-  double getPixelHeight();
   void plot(int x, int y);
   void draw(int x, int y);
   void circle(int x, int y, int radius);

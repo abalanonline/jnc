@@ -160,7 +160,7 @@ public class Triis implements BasicApp {
               }
             }
             newPiece();
-            if (remove) nanoTime += pauseNs * 4;
+            if (remove) nanoTime += pauseNs;
             update = true;
           }
         }
@@ -193,19 +193,11 @@ public class Triis implements BasicApp {
   }
 
   @Override
-  public void run() {
-
-  }
-
-  @Override
   public void close() {
 
   }
 
   public static void main(String[] args) {
-    Screen screen = new Screen();
-    Basic basic = new Basic3(screen);
-    basic.load(new Triis());
-    screen.close();
+    new Basic3(new Screen(), null).loadAndClose(new Triis());
   }
 }

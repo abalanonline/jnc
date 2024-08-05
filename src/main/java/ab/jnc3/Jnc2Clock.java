@@ -79,8 +79,5 @@ public class Jnc2Clock implements BasicApp {
   }
 
   @Override
-  public void run() {}
-
-  @Override
   public void close() {} // dumb app that ignores close() method and expects that basic will force-close it
 }

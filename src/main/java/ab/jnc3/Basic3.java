@@ -18,6 +18,7 @@
 package ab.jnc3;
 
 import ab.jnc2.GraphicsMode;
+import ab.tui.Tui;
 
 import java.awt.*;
 import java.awt.geom.Ellipse2D;
@@ -25,6 +26,7 @@ import java.awt.geom.Line2D;
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBuffer;
 import java.awt.image.IndexColorModel;
+import java.util.Arrays;
 import java.util.Optional;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CancellationException;
@@ -36,21 +38,23 @@ public class Basic3 implements Basic { // FIXME: 2024-07-28 delete and redesign
   public static final GraphicsMode DEFAULT_MODE = GraphicsMode.ZX;
   private final BitmapFont font;
   private final Screen screen;
+  private final Tui tui;
   private GraphicsMode mode;
   private GraphicsMode switchMode;
   private int paper;
   private int color;
   private int x = 0;
   private int y = 0;
-  private double pixelHeight;
   private int ymax = 0;
   private final BlockingQueue<String> inkey = new LinkedBlockingQueue<>();
   private BasicApp runningApp;
   private final CancellationException stop = new CancellationException();
+  private int[] toAnsi;
 
-  public Basic3(Screen screen) {
+  public Basic3(Screen screen, Tui tui) {
     this.screen = screen;
-    screen.keyListener = this::keyListener;
+    this.tui = tui;
+    if (screen == null) tui.setKeyListener(this::keyListener); else screen.keyListener = this::keyListener;
     font = new BitmapFont(8, 8);
     font.bitmap = ab.jnc2.TextFont.ZX.get().font;
     font.cacheBitmap();
@@ -91,13 +95,21 @@ public class Basic3 implements Basic { // FIXME: 2024-07-28 delete and redesign
       inkey.clear();
       try {
         app.open(this);
-        app.run();
       } catch (CancellationException e) {
         if (e != stop) throw e;
+      } catch (NullPointerException e) {
+        // TODO: 2024-08-04 throw a dedicated exception for null screen
       }
       runningApp = null;
     }
     return 0;
+  }
+
+  @Override
+  public void loadAndClose(BasicApp app) {
+    load(app);
+    if (screen != null) screen.close();
+    if (tui != null) tui.close();
   }
 
   private void setMode(GraphicsMode mode) {
@@ -105,19 +117,97 @@ public class Basic3 implements Basic { // FIXME: 2024-07-28 delete and redesign
     Dimension r = mode.resolution;
     IndexColorModel colorModel = mode.colorMap == null ? null : new IndexColorModel(
         8, mode.colorMap.length, mode.colorMap, 0, false, -1, DataBuffer.TYPE_BYTE);
-    screen.image = colorModel == null
-        ? new BufferedImage(r.width, r.height, BufferedImage.TYPE_INT_RGB)
-        : new BufferedImage(r.width, r.height, BufferedImage.TYPE_BYTE_INDEXED, colorModel);
     paper = mode.bgColor;
     color = mode.fgColor;
-    pixelHeight = (double) (r.width * mode.aspectRatio.height) / (r.height * mode.aspectRatio.width);
     ymax = r.height - 1;
+    if (screen != null) screen.image = colorModel == null
+        ? new BufferedImage(r.width, r.height, BufferedImage.TYPE_INT_RGB)
+        : new BufferedImage(r.width, r.height, BufferedImage.TYPE_BYTE_INDEXED, colorModel);
+    if (mode.colorMap != null) toAnsi = findAnsiColors(mode.colorMap);
     cls();
   }
 
-  @Override
-  public double getPixelHeight() {
-    return pixelHeight;
+  public static int colorDistanceSquared(int rgb0, int rgb1) {
+    // https://en.wikipedia.org/wiki/Color_difference#sRGB
+    int r0 = rgb0 >> 16 & 0xFF;
+    int r1 = rgb1 >> 16 & 0xFF;
+    int r = r0 - r1;
+    int g = (rgb0 >> 8 & 0xFF) - (rgb1 >> 8 & 0xFF);
+    int b = (rgb0 & 0xFF) - (rgb1 & 0xFF);
+    int ri = r0 + r1; // interval [0, 510]
+    return (2 * 510 + ri) * r * r + 4 * 510 * g * g + (3 * 510 - ri) * b * b;
+  }
+
+  public static int[] findAnsiColors(int[] colorMap) {
+    int[] ansiMap = new int[16];
+    for (int i = 0; i < 16; i++) {
+      int c = 0;
+      if ((i & 1) != 0) c += 0xAA0000;
+      if ((i & 2) != 0) c += 0x00AA00;
+      if ((i & 4) != 0) c += 0x0000AA;
+      if ((i & 8) != 0) c += 0x555555;
+      ansiMap[i] = c;
+    }
+    int n = colorMap.length;
+    int[][] d = new int[n][16];
+    int lost = (1 << n) - 1;
+    int lostAnsi = 0xFFFF;
+    for (int i0 = 0; i0 < n; i0++) {
+      for (int i1 = 0; i1 < 16; i1++) d[i0][i1] = colorDistanceSquared(colorMap[i0], ansiMap[i1]);
+    }
+    int[] result = new int[n];
+    while (lost > 0) {
+      for (int c = 0; c < n; c++) {
+        if ((lost & 1 << c) == 0) continue;
+        int error = Integer.MAX_VALUE;
+        int best = 0;
+        for (int a = 0; a < 16; a++) {
+          if ((lostAnsi & 1 << a) == 0) continue;
+          if (error > d[c][a]) {
+            error = d[c][a];
+            best = a;
+          }
+        }
+        result[c] = best;
+      }
+      // closest best
+      for (int a = 0; a < 16; a++) {
+        if ((lostAnsi & 1 << a) == 0) continue;
+        int error = Integer.MAX_VALUE;
+        int best = 0;
+        for (int c = 0; c < n; c++) {
+          if ((lost & 1 << c) == 0) continue;
+          if (result[c] == a && error > d[c][a]) {
+            error = d[c][a];
+            best = c;
+          }
+        }
+        if (error != Integer.MAX_VALUE) {
+          lost ^= 1 << best;
+          lostAnsi ^= 1 << a;
+        }
+      }
+    }
+    return result;
+  }
+
+  public int getAnsiAttr(int color) {
+    if (mode.colorMap != null) return toAnsi[color];
+    int error = Integer.MAX_VALUE;
+    int best = 0;
+    for (int i = 0; i < 16; i++) {
+      int c = 0;
+      if ((i & 1) != 0) c += 0xAA0000;
+      if ((i & 2) != 0) c += 0x00AA00;
+      if ((i & 4) != 0) c += 0x0000AA;
+      if ((i & 8) != 0) c += 0x555555;
+      int d = colorDistanceSquared(c, color);
+      if (error > d) {
+        error = d;
+        best = i;
+      }
+    }
+    return best;
   }
 
   @Override
@@ -138,8 +228,10 @@ public class Basic3 implements Basic { // FIXME: 2024-07-28 delete and redesign
 
   @Override
   public void circle(int x, int y, int r) {
-    double rx = Math.min(r * pixelHeight, r);
-    double ry = Math.min(r / pixelHeight, r);
+    double pixelAspectRatio =
+        (double) (mode.resolution.height * mode.aspectRatio.width) / (mode.resolution.width * mode.aspectRatio.height);
+    double rx = Math.min(r / pixelAspectRatio, r);
+    double ry = Math.min(r * pixelAspectRatio, r);
     Graphics2D graphics = this.screen.image.createGraphics();
     graphics.setColor(new Color(mode.getRgbColor(color)));
     graphics.draw(new Ellipse2D.Double(x - rx, ymax - y - ry, rx + rx, ry + ry));
@@ -147,17 +239,26 @@ public class Basic3 implements Basic { // FIXME: 2024-07-28 delete and redesign
 
   @Override
   public void cls() {
-    Graphics2D graphics = screen.image.createGraphics();
-    int rgb = mode.getRgbColor(paper);
-    this.screen.setBackground(rgb);
-    graphics.setBackground(new Color(rgb));
-    graphics.clearRect(0, 0, mode.resolution.width, mode.resolution.height);
+    if (screen == null) {
+      Dimension size = tui.getSize();
+      char[] chars = new char[size.width];
+      Arrays.fill(chars, ' ');
+      String empty = new String(chars);
+      int attr = getAnsiAttr(paper) << 4 | getAnsiAttr(color);
+      for (int y = 0; y < size.height; y++) tui.print(0, y, empty, attr);
+    } else {
+      Graphics2D graphics = screen.image.createGraphics();
+      int rgb = mode.getRgbColor(paper);
+      this.screen.setBackground(rgb);
+      graphics.setBackground(new Color(rgb));
+      graphics.clearRect(0, 0, mode.resolution.width, mode.resolution.height);
+    }
   }
 
   @Override
   public void update() {
     if (runningApp == null) throw stop;
-    screen.update();
+    if (screen == null) tui.update(); else screen.update();
   }
 
   @Override
@@ -185,7 +286,8 @@ public class Basic3 implements Basic { // FIXME: 2024-07-28 delete and redesign
 
   @Override
   public void printAt(int x, int y, String s) {
-    font.drawString(s, x * 8, y * 8, screen.image, mode.getRgbColor(color), mode.getRgbColor(paper));
+    if (tui == null) font.drawString(s, x * 8, y * 8, screen.image, mode.getRgbColor(color), mode.getRgbColor(paper));
+    else tui.print(x, y, s, getAnsiAttr(paper) << 4 | getAnsiAttr(color));
   }
 
   @Override
@@ -215,7 +317,8 @@ public class Basic3 implements Basic { // FIXME: 2024-07-28 delete and redesign
 
   @Override
   public Dimension getTextSize() {
-    return new Dimension(mode.resolution.width / font.width, mode.resolution.height / font.height);
+    return tui == null ? new Dimension(mode.resolution.width / font.width, mode.resolution.height / font.height)
+        : tui.getSize();
   }
 
   @Override

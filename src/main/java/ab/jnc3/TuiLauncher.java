@@ -17,17 +17,17 @@
 
 package ab.jnc3;
 
-import ab.jnc2.GraphicsMode;
+import ab.tui.Tui;
+import ab.tui.TuiConsole;
 
-public interface BasicApp extends AutoCloseable {
-  /**
-   * @return null if no preferences
-   */
-  GraphicsMode preferredMode();
-  /**
-   * After closing, the app can be re-opened with a different basic.
-   * Preserving the internal state is not required.
-   */
-  void open(Basic basic);
-  void close();
+public class TuiLauncher {
+
+  public static void main(String[] args) {
+    Tui tui = new TuiConsole();
+    Basic basic = new Basic3(null, tui);
+    Launcher launcher = new Launcher();
+    while (!launcher.stop) basic.load(launcher);
+    tui.close();
+  }
+
 }

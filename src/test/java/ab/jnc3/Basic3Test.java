@@ -18,16 +18,18 @@
 package ab.jnc3;
 
 import ab.jnc2.GraphicsMode;
+import org.junit.jupiter.api.Test;
 
-public interface BasicApp extends AutoCloseable {
-  /**
-   * @return null if no preferences
-   */
-  GraphicsMode preferredMode();
-  /**
-   * After closing, the app can be re-opened with a different basic.
-   * Preserving the internal state is not required.
-   */
-  void open(Basic basic);
-  void close();
+import static org.junit.jupiter.api.Assertions.*;
+
+class Basic3Test {
+
+  @Test
+  void findAnsiColors() {
+    assertArrayEquals(new int[]{0, 15}, Basic3.findAnsiColors(GraphicsMode.COLOR_MAP_BW));
+    assertArrayEquals(new int[]{0, 4, 1, 5, 2, 6, 3, 7,
+        8, 12, 9, 13, 10, 14, 11, 15}, Basic3.findAnsiColors(GraphicsMode.COLOR_MAP_ZX));
+    assertArrayEquals(new int[]{0, 4, 2, 6, 1, 5, 3, 7,
+        8, 12, 10, 14, 9, 13, 11, 15}, Basic3.findAnsiColors(GraphicsMode.COLOR_MAP_CGA));
+  }
 }

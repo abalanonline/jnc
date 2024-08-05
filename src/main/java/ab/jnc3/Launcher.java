@@ -18,13 +18,15 @@
 package ab.jnc3;
 
 import ab.jnc2.GraphicsMode;
+import ab.tui.Tui;
+import ab.tui.TuiConsole;
 
 import java.awt.*;
 
 public class Launcher implements BasicApp {
 
-  private static final BasicApp[] APPS = {new Jnc2Clock(), new BasicClock()};
-  private boolean stop;
+  private static final BasicApp[] APPS = {new Triis(), new Jnc2Clock(), new BasicClock()};
+  boolean stop;
 
   @Override
   public GraphicsMode preferredMode() {
@@ -70,12 +72,9 @@ public class Launcher implements BasicApp {
   @Override
   public void close() {}
 
-  @Override
-  public void run() {}
-
   public static void main(String[] args) {
     Screen screen = new Screen();
-    Basic basic = new Basic3(screen);
+    Basic basic = new Basic3(screen, null);
     Launcher launcher = new Launcher();
     while (!launcher.stop) basic.load(launcher);
     screen.close();

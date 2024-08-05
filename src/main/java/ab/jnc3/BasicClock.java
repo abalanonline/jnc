@@ -99,6 +99,23 @@ public class BasicClock implements BasicApp {
     return new GraphicsMode(320, 240);
   }
 
+  private void drawDigits(int[][] font, int width, int height, int y, int... x) {
+    final int bright = basic.getColorFromRgb(LCD_BRIGHT);
+    for (int i = 0; i < x.length; i++) {
+      int cx = x[i++];
+      int[] c = font[x[i]];
+      for (int iy = 0, by = dy - y; iy < height; iy++, by--) {
+        if (by < 0 || by >= h) continue;
+        for (int ix = cx, cy = c[iy] << Integer.SIZE - width; ix < cx + width; ix++, cy <<= 1) {
+          int bx = dx + ix;
+          if (bx < 0 || bx >= w) continue;
+          basic.ink(cy < 0 ? bright : indexed[iy + y][ix]);
+          basic.plot(bx, by);
+        }
+      }
+    }
+  }
+
   @Override
   public void open(Basic basic) {
     if (png == null) try {
@@ -129,27 +146,7 @@ public class BasicClock implements BasicApp {
       }
     }
     stop = false;
-  }
 
-  private void drawDigits(int[][] font, int width, int height, int y, int... x) {
-    final int bright = basic.getColorFromRgb(LCD_BRIGHT);
-    for (int i = 0; i < x.length; i++) {
-      int cx = x[i++];
-      int[] c = font[x[i]];
-      for (int iy = 0, by = dy - y; iy < height; iy++, by--) {
-        if (by < 0 || by >= h) continue;
-        for (int ix = cx, cy = c[iy] << Integer.SIZE - width; ix < cx + width; ix++, cy <<= 1) {
-          int bx = dx + ix;
-          if (bx < 0 || bx >= w) continue;
-          basic.ink(cy < 0 ? bright : indexed[iy + y][ix]);
-          basic.plot(bx, by);
-        }
-      }
-    }
-  }
-
-  @Override
-  public void run() {
     int color = basic.getColorFromRgb(0xAA5500);
     Dimension textSize = basic.getTextSize();
     int x = textSize.width;
