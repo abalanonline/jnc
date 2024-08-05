@@ -30,7 +30,7 @@ public class Screen implements AutoCloseable {
   public Consumer<String> keyListener;
   public final Component eventSupplier; // provides addKeyListener with keyReleased event, addMouseListener, etc
   public BufferedImage image = new BufferedImage(320, 240, BufferedImage.TYPE_INT_RGB);
-  private final Dimension preferredSize = new Dimension(640, 480);
+  public Dimension preferredSize = new Dimension(640, 480); // display aspect ratio
   public boolean interpolation;
 
   private final Canvas canvas;
