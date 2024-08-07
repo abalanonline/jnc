@@ -35,7 +35,7 @@ public class BitmapFont {
   public byte[] bitmap = new byte[0];
   public int[] bitmapCache = new int[0];
   public final short[][] unicode = new short[0x100][];
-  private char[] unicodeCache;
+  public char[] unicodeCache;
   public int length;
   public int byteSize;
   public int height;

@@ -17,6 +17,7 @@
 
 package ab.jnc3;
 
+import ab.font.DifferentCharsets;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
@@ -29,11 +30,18 @@ import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -57,6 +65,52 @@ class BitmapFontTest {
       if (bytes[0] == 0x72 && bytes[12] == 0) continue;
       byte[] psf = bytes[0] == 0x72 ? font.toPsf2() : font.toPsf();
       assertArrayEquals(bytes, psf);
+    }
+  }
+
+  @Disabled
+  @Test
+  void testIbm437() throws IOException {
+    Charset charset = DifferentCharsets.IBM437;
+    Map<Character, Set<Character>> map = new LinkedHashMap<>();
+    for (int i = 0; i < 0x100; i++) map.put(new String(new byte[]{(byte) i}, charset).charAt(0), new LinkedHashSet<>());
+    HashSet<Character> exclude = new HashSet<>();
+    for (char c = '\uE000'; c < '\uF800'; c++) exclude.add(c);
+    List<Path> paths = Files.find(Path.of("/usr/share/kbd/consolefonts/"), 3, (path, attributes) -> {
+      String s = path.getFileName().toString();
+      if (s.equals("README.psfu")) return false;
+      if (s.endsWith(".gz")) s = s.substring(0, s.length() - 3);
+      return s.endsWith(".psf") || s.endsWith(".psfu");
+    }).collect(Collectors.toList());
+    for (Path path : paths) {
+      byte[] bytes = Files.readAllBytes(path);
+      BitmapFont font = BitmapFont.fromPsf(bytes);
+      ArrayList<Character> list = new ArrayList<>();
+      char keyChar = 0;
+      int keyChars = 0;
+      if (font.unicodeCache == null) continue;
+      if (IntStream.range(0, font.unicodeCache.length).anyMatch(i -> exclude.contains(font.unicodeCache[i]))) {
+        System.out.println(path);
+        continue;
+      }
+      for (char c : font.unicodeCache) {
+        if (c == '\uFFFF') {
+          if (keyChars == 1) map.get(keyChar).addAll(list);
+          list.clear();
+          keyChars = 0;
+          continue;
+        }
+        if (map.containsKey(c)) {
+          keyChar = c;
+          keyChars++;
+        }
+        list.add(c);
+      }
+    }
+    for (Map.Entry<Character, Set<Character>> entry : map.entrySet()) {
+      Set<Character> set = entry.getValue();
+      if (set.size() > 1) System.out.println("" + entry.getKey()
+          + set.stream().map(Object::toString).collect(Collectors.joining()));
     }
   }
 
