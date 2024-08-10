@@ -38,8 +38,8 @@ public class Basic3 implements Basic { // FIXME: 2024-07-28 delete and redesign
   private final Tui tui;
   private TextMode mode;
   private TextMode switchMode;
-  private int paper;
-  private int color;
+  protected int paper;
+  protected int color;
   private int x = 0;
   private int y = 0;
   private int ymax = 0;
@@ -51,7 +51,8 @@ public class Basic3 implements Basic { // FIXME: 2024-07-28 delete and redesign
   public Basic3(Screen screen, Tui tui) {
     this.screen = screen;
     this.tui = tui;
-    if (screen == null) tui.setKeyListener(this::keyListener); else screen.keyListener = this::keyListener;
+    if (screen != null) screen.keyListener = this::keyListener;
+        else if (tui != null) tui.setKeyListener(this::keyListener);
   }
 
   private void keyListener(String s) {
