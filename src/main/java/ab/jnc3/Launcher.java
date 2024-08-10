@@ -17,10 +17,6 @@
 
 package ab.jnc3;
 
-import ab.jnc2.GraphicsMode;
-import ab.tui.Tui;
-import ab.tui.TuiConsole;
-
 import java.awt.*;
 
 public class Launcher implements BasicApp {
@@ -29,8 +25,8 @@ public class Launcher implements BasicApp {
   boolean stop;
 
   @Override
-  public GraphicsMode preferredMode() {
-    return GraphicsMode.C64;
+  public TextMode preferredMode() {
+    return TextMode.c64();
   }
 
   @Override

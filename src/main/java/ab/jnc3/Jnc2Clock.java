@@ -17,8 +17,6 @@
 
 package ab.jnc3;
 
-import ab.jnc2.GraphicsMode;
-
 import java.awt.*;
 import java.time.LocalTime;
 
@@ -50,7 +48,7 @@ public class Jnc2Clock implements BasicApp {
   }
 
   @Override
-  public GraphicsMode preferredMode() {
+  public TextMode preferredMode() {
     return null;
   }
 

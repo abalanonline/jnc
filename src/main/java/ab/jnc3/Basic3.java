@@ -17,7 +17,6 @@
 
 package ab.jnc3;
 
-import ab.jnc2.GraphicsMode;
 import ab.tui.Tui;
 
 import java.awt.*;
@@ -35,12 +34,10 @@ import java.util.concurrent.TimeUnit;
 
 public class Basic3 implements Basic { // FIXME: 2024-07-28 delete and redesign
 
-  public static final GraphicsMode DEFAULT_MODE = GraphicsMode.ZX;
-  private final BitmapFont font;
   private final Screen screen;
   private final Tui tui;
-  private GraphicsMode mode;
-  private GraphicsMode switchMode;
+  private TextMode mode;
+  private TextMode switchMode;
   private int paper;
   private int color;
   private int x = 0;
@@ -55,9 +52,6 @@ public class Basic3 implements Basic { // FIXME: 2024-07-28 delete and redesign
     this.screen = screen;
     this.tui = tui;
     if (screen == null) tui.setKeyListener(this::keyListener); else screen.keyListener = this::keyListener;
-    font = new BitmapFont(8, 8);
-    font.bitmap = ab.jnc2.TextFont.ZX.get().font;
-    font.cacheBitmap();
   }
 
   private void keyListener(String s) {
@@ -68,12 +62,12 @@ public class Basic3 implements Basic { // FIXME: 2024-07-28 delete and redesign
         System.exit(0);
       case "Esc":
       case "Alt+Backspace": close = true; break;
-      case "Alt+1": switchMode = GraphicsMode.ZX; break;
-      case "Alt+2": switchMode = GraphicsMode.C64; break;
-      case "Alt+3": switchMode = GraphicsMode.CGA_16; break;
-      case "Alt+4": switchMode = GraphicsMode.CGA_HIGH; break;
-      case "Alt+5": switchMode = GraphicsMode.CGA_4; break;
-      case "Alt+0": switchMode = GraphicsMode.DEFAULT; break;
+      case "Alt+1": switchMode = TextMode.zx(); break;
+      case "Alt+2": switchMode = TextMode.c64(); break;
+      case "Alt+3": switchMode = TextMode.cga16(); break;
+      case "Alt+4": switchMode = TextMode.cgaHigh(); break;
+      case "Alt+5": switchMode = TextMode.cga4(); break;
+      case "Alt+0": switchMode = TextMode.defaultMode(); break;
     }
     if (close || switchMode != null) {
       BasicApp app = runningApp;
@@ -86,8 +80,8 @@ public class Basic3 implements Basic { // FIXME: 2024-07-28 delete and redesign
 
   @Override
   public int load(BasicApp app) {
-    GraphicsMode mode = app.preferredMode();
-    switchMode = mode == null ? DEFAULT_MODE : mode;
+    TextMode mode = app.preferredMode();
+    switchMode = mode == null ? TextMode.zx() : mode;
     while (switchMode != null) {
       setMode(switchMode);
       switchMode = null;
@@ -112,9 +106,9 @@ public class Basic3 implements Basic { // FIXME: 2024-07-28 delete and redesign
     if (tui != null) tui.close();
   }
 
-  private void setMode(GraphicsMode mode) {
+  private void setMode(TextMode mode) {
     this.mode = mode;
-    Dimension r = mode.resolution;
+    Dimension r = mode.size;
     IndexColorModel colorModel = mode.colorMap == null ? null : new IndexColorModel(
         8, mode.colorMap.length, mode.colorMap, 0, false, -1, DataBuffer.TYPE_BYTE);
     paper = mode.bgColor;
@@ -229,7 +223,7 @@ public class Basic3 implements Basic { // FIXME: 2024-07-28 delete and redesign
   @Override
   public void circle(int x, int y, int r) {
     double pixelAspectRatio =
-        (double) (mode.resolution.height * mode.aspectRatio.width) / (mode.resolution.width * mode.aspectRatio.height);
+        (double) (mode.size.height * mode.aspectRatio.width) / (mode.size.width * mode.aspectRatio.height);
     double rx = Math.min(r / pixelAspectRatio, r);
     double ry = Math.min(r * pixelAspectRatio, r);
     Graphics2D graphics = this.screen.image.createGraphics();
@@ -251,7 +245,7 @@ public class Basic3 implements Basic { // FIXME: 2024-07-28 delete and redesign
       int rgb = mode.getRgbColor(paper);
       this.screen.setBackground(rgb);
       graphics.setBackground(new Color(rgb));
-      graphics.clearRect(0, 0, mode.resolution.width, mode.resolution.height);
+      graphics.clearRect(0, 0, mode.size.width, mode.size.height);
     }
   }
 
@@ -286,7 +280,8 @@ public class Basic3 implements Basic { // FIXME: 2024-07-28 delete and redesign
 
   @Override
   public void printAt(int x, int y, String s) {
-    if (tui == null) font.drawString(s, x * 8, y * 8, screen.image, mode.getRgbColor(color), mode.getRgbColor(paper));
+    if (tui == null) mode.font.drawString(s, x * mode.font.width, y * mode.font.height, screen.image,
+        mode.getRgbColor(color), mode.getRgbColor(paper));
     else tui.print(x, y, s, getAnsiAttr(paper) << 4 | getAnsiAttr(color));
   }
 
@@ -312,12 +307,12 @@ public class Basic3 implements Basic { // FIXME: 2024-07-28 delete and redesign
 
   @Override
   public Dimension getSize() {
-    return new Dimension(mode.resolution);
+    return new Dimension(mode.size);
   }
 
   @Override
   public Dimension getTextSize() {
-    return tui == null ? new Dimension(mode.resolution.width / font.width, mode.resolution.height / font.height)
+    return tui == null ? new Dimension(mode.size.width / mode.font.width, mode.size.height / mode.font.height)
         : tui.getSize();
   }
 

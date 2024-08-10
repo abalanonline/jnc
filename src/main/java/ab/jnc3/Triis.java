@@ -17,8 +17,6 @@
 
 package ab.jnc3;
 
-import ab.jnc2.GraphicsMode;
-
 import java.awt.*;
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -42,8 +40,8 @@ public class Triis implements BasicApp {
   boolean wide;
 
   @Override
-  public GraphicsMode preferredMode() {
-    return GraphicsMode.ZX;
+  public TextMode preferredMode() {
+    return TextMode.zx();
   }
 
   void drawScreen() {

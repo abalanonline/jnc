@@ -17,8 +17,6 @@
 
 package ab.jnc3;
 
-import ab.jnc2.GraphicsMode;
-
 import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.image.BufferedImage;
@@ -95,8 +93,8 @@ public class BasicClock implements BasicApp {
   boolean stop;
 
   @Override
-  public GraphicsMode preferredMode() {
-    return new GraphicsMode(320, 240);
+  public TextMode preferredMode() {
+    return new TextMode(320, 240);
   }
 
   private void drawDigits(int[][] font, int width, int height, int y, int... x) {

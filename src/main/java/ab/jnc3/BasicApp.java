@@ -17,13 +17,11 @@
 
 package ab.jnc3;
 
-import ab.jnc2.GraphicsMode;
-
 public interface BasicApp extends AutoCloseable {
   /**
    * @return null if no preferences
    */
-  GraphicsMode preferredMode();
+  TextMode preferredMode();
   /**
    * After closing, the app can be re-opened with a different basic.
    * Preserving the internal state is not required.

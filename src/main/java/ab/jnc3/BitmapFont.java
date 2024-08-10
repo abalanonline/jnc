@@ -32,7 +32,7 @@ import java.util.Arrays;
 import java.util.zip.GZIPInputStream;
 
 public class BitmapFont {
-  public byte[] bitmap = new byte[0];
+  public byte[] bitmap;
   public int[] bitmapCache = new int[0];
   public final short[][] unicode = new short[0x100][];
   public char[] unicodeCache;
@@ -46,6 +46,7 @@ public class BitmapFont {
     byteSize = (width + 7) / 8 * height;
     this.height = height;
     this.width = width;
+    this.bitmap = new byte[length * byteSize];
     for (int i = 0x20; i < 0x7F; i++) put((char) i, i); // default ascii
   }
 
