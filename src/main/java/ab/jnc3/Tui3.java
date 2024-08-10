@@ -29,26 +29,24 @@ public class Tui3 implements Tui {
 
   private final boolean closeScreen;
   private final BitmapFont font;
-  private final Screen screen;
   private final Dimension size;
+  private final Screen screen;
 
   public Tui3(BitmapFont font, Screen screen) {
     closeScreen = false;
     this.font = font;
-    this.screen = screen;
     size = new Dimension(screen.image.getWidth() / font.width, screen.image.getHeight() / font.height);
+    this.screen = screen;
   }
 
-  public Tui3(BitmapFont font, Dimension size, int[] colorMap) {
+  public Tui3(BitmapFont font, Dimension pixelSize, int[] colorMap) {
     closeScreen = true;
     this.font = font;
-    this.size = new Dimension(size);
+    size = new Dimension(pixelSize.width / font.width, pixelSize.height / font.height);
 
-    int w = size.width * font.width;
-    int h = size.height * font.height;
     screen = new Screen();
-    screen.preferredSize = new Dimension(w, h);
-    screen.image = new BufferedImage(w, h, BufferedImage.TYPE_BYTE_INDEXED,
+    screen.preferredSize = new Dimension(pixelSize.width, pixelSize.height);
+    screen.image = new BufferedImage(pixelSize.width, pixelSize.height, BufferedImage.TYPE_BYTE_INDEXED,
         new IndexColorModel(8, colorMap.length, colorMap, 0, false, -1, DataBuffer.TYPE_BYTE));
   }
 
