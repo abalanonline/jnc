@@ -19,6 +19,7 @@ package ab.jnc3;
 
 import org.junit.jupiter.api.Test;
 
+import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBuffer;
 import java.io.IOException;
@@ -31,20 +32,22 @@ class LauncherTest {
 
   @Test
   void menu() throws IOException {
-    ZxBasic basic = new ZxBasic(new Launcher().preferredMode());
-    Launcher.calculator(basic);
+    Launcher launcher = new Launcher();
+    ZxBasic basic = new ZxBasic(launcher.preferredMode());
+    launcher.basic = basic;
+    launcher.calculator();
     byte[] calculator = getClass().getResourceAsStream("/jnc2/calculator.scr").readAllBytes();
     calculator[0x1821] = 0x38; // remove blinking cursor
     assertArrayEquals(calculator, basic.getScr());
     basic.cls();
 
-    Launcher.menu(basic, "128", "\u00A9 1986 Sinclair Research Ltd",
+    launcher.menu("128", "\u00A9 1986 Sinclair Research Ltd",
         List.of("Tape Loader", "128 BASIC", "Calculator", "48 BASIC", "Tape Tester"), 0);
     byte[] zx128 = getClass().getResourceAsStream("/jnc2/zx128.scr").readAllBytes();
     assertArrayEquals(zx128, basic.getScr());
     basic.cls();
 
-    Launcher.menu(basic, "128 +3", "\u00A91982, 1986, 1987 Amstrad Plc.\nDrives A:, B: and M: available.",
+    launcher.menu("128 +3", "\u00A91982, 1986, 1987 Amstrad Plc.\nDrives A:, B: and M: available.",
         List.of("Loader", "+3 BASIC", "Calculator", "48 BASIC"), 3);
     byte[] zxplus3 = getClass().getResourceAsStream("/jnc2/zxplus3.scr").readAllBytes();
     assertArrayEquals(zxplus3, basic.getScr());
@@ -70,6 +73,11 @@ class LauncherTest {
       mode.font.drawString(s, x * mode.font.width, y * mode.font.height, image, 0xFFFFFF, 0);
       byte a = (byte) (this.paper << 3 & 0x78 | this.color & 7 | this.color << 3 & 0x40);
       for (int i = s.length(), p = y * 32 + x; i > 0; i--) attr[p++] = a;
+    }
+
+    @Override
+    public Dimension getTextSize() {
+      return new Dimension(32, 24);
     }
 
     public byte[] getScr() {
