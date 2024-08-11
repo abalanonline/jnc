@@ -22,6 +22,7 @@ import java.awt.image.DataBuffer;
 import java.awt.image.IndexColorModel;
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.nio.charset.Charset;
 
 public class TextMode {
 
@@ -103,6 +104,8 @@ public class TextMode {
   private static BitmapFont cgaFont() {
     BitmapFont font = new BitmapFont(8, 8);
     System.arraycopy(resource("/jnc2/vga.fnt"), 0, font.bitmap, 0, 0x0800);
+    Charset charset = Charset.forName("IBM437");
+    for (int i = 0; i < 0x100; i++) font.put(new String(new byte[]{(byte) i}, charset).charAt(0), i);
     font.cacheBitmap();
     return font;
   }

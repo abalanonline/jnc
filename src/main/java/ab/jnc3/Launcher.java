@@ -27,6 +27,13 @@ import java.util.stream.Collectors;
 public class Launcher implements BasicApp {
 
   private static final BasicApp[] APPS = {new Triis(), new Jnc2Clock(), new BasicClock()};
+  public static final char SLASH_LEFT = '\u2592';
+  public static final char SLASH_RIGHT = '\u2591';
+  public static final char FRAME_LEFT = '\u2551';
+  public static final char FRAME_DOWN_LEFT = '\u255A';
+  public static final char FRAME_DOWN = '\u2550';
+  public static final char FRAME_DOWN_RIGHT = '\u255D';
+  public static final char FRAME_RIGHT = '\u2562';
   private final int[] CM = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15};
   Basic basic;
   boolean stop;
@@ -45,13 +52,13 @@ public class Launcher implements BasicApp {
     System.arraycopy(new byte[]{x80, x80, x80, x80, x80, x80, x80, -1}, 0, font.bitmap, 0xC0 * 8, 8);
     System.arraycopy(new byte[]{1, 1, 1, 1, 1, 1, 1, -1}, 0, font.bitmap, 0xD9 * 8, 8);
     System.arraycopy(new byte[]{0, 0, 0, 0, 0, 0, 0, -1}, 0, font.bitmap, 0xC4 * 8, 8);
-    font.put('\u25E4', 0xDD);
-    font.put('\u25E2', 0xDE);
-    font.put('\u258F', 0xD0);
-    font.put('\u2595', 0xD1);
-    font.put('\u2514', 0xC0);
-    font.put('\u2518', 0xD9);
-    font.put('\u2500', 0xC4);
+    font.put(SLASH_RIGHT, 0xDD);
+    font.put(SLASH_LEFT, 0xDE);
+    font.put(FRAME_LEFT, 0xD0);
+    font.put(FRAME_RIGHT, 0xD1);
+    font.put(FRAME_DOWN_LEFT, 0xC0);
+    font.put(FRAME_DOWN_RIGHT, 0xD9);
+    font.put(FRAME_DOWN, 0xC4);
     font.put('\u00A9', 0x7F); // (c)
     font.cacheBitmap();
     return mode;
@@ -63,11 +70,10 @@ public class Launcher implements BasicApp {
   }
 
   private void slashes(int x, int y) {
-    String s = "\u25E2\u25E4\u25E2\u25E4\u25E2 ";
-    int[] colors = new int[]{0, 10, 14, 10, 14, 12, 13, 12, 13, 0, 8, 8};
+    int[] colors = new int[]{0, 10, 14, 10, 14, 12, 13, 12, 13, 0, 0, 8};
     for (int i = 0; i < colors.length / 2; i++) {
       attr(colors[i * 2], colors[i * 2 + 1]);
-      basic.printAt(x + i, y, s.substring(i, i + 1));
+      basic.printAt(x + i, y, i < 5 ? Character.toString(i % 2 == 0 ? SLASH_LEFT : SLASH_RIGHT) : " ");
     }
   }
 
@@ -100,17 +106,17 @@ public class Launcher implements BasicApp {
     for (int i = 0; i < height; i++) {
       int y = top + i;
       attr(i == selected ? 13 : 15, 0);
-      basic.printAt(left - 1, y, "\u258F");
+      basic.printAt(left - 1, y, Character.toString(FRAME_LEFT));
       String item = i < items.size() ? items.get(i) : "";
       basic.printAt(left, y, item);
       for (int x = left + item.length(); x < xm; x++) basic.printAt(x, y, " ");
-      basic.printAt(xm, y, "\u2595");
+      basic.printAt(xm, y, Character.toString(FRAME_RIGHT));
     }
     attr(15, 0);
     int y = top + height;
-    basic.printAt(left - 1, y, "\u2514");
-    for (int x = left; x < xm; x++) basic.printAt(x, y, "\u2500");
-    basic.printAt(xm, y, "\u2518");
+    basic.printAt(left - 1, y, Character.toString(FRAME_DOWN_LEFT));
+    for (int x = left; x < xm; x++) basic.printAt(x, y, Character.toString(FRAME_DOWN));
+    basic.printAt(xm, y, Character.toString(FRAME_DOWN_RIGHT));
     attr(7, 0);
     String[] f = footer.split("\r?\n");
     for (int i = 0; i < f.length; i++) {
@@ -140,7 +146,7 @@ public class Launcher implements BasicApp {
       for (int i = 0; i < padding.width; i++) s0 = " " + s0;
       list.add(0, s0);
       for (int i = 0; i < padding.height; i++) list.add(0, "");
-      menu("Loader", "(C) 2024 GPLv3 JNC3", list, cursor);
+      menu("Loader", "(C) 2024 GPLv3 JNC3", list, cursor + padding.height);
       basic.update();
       String s = basic.inkey();
       if ("Alt+Right".equals(s)) padding.width++;
