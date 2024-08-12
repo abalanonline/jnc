@@ -17,7 +17,6 @@
 
 package ab.jnc3;
 
-
 import java.awt.*;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -27,41 +26,23 @@ import java.util.stream.Collectors;
 public class Launcher implements BasicApp {
 
   private static final BasicApp[] APPS = {new Triis(), new Jnc2Clock(), new BasicClock()};
-  public static final char SLASH_LEFT = '\u2592';
-  public static final char SLASH_RIGHT = '\u2591';
-  public static final char FRAME_LEFT = '\u2551';
-  public static final char FRAME_DOWN_LEFT = '\u255A';
-  public static final char FRAME_DOWN = '\u2550';
-  public static final char FRAME_DOWN_RIGHT = '\u255D';
-  public static final char FRAME_RIGHT = '\u2562';
+  public static final char LOWER_RIGHT_TRIANGLE = '\u25E2';
+  public static final char UPPER_LEFT_TRIANGLE = '\u25E4';
+  char slashLeft;
+  char slashRight;
+  // TODO: 2024-08-11 do not modify these fields until unicode provides Left / Right and Lower One Quarter Block
+  char frameLeft = '\u2551';
+  char frameDownLeft = '\u255A';
+  char frameDown = '\u2550';
+  char frameDownRight = '\u255D';
+  char frameRight = '\u2562';
   private final int[] CM = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15};
   Basic basic;
   boolean stop;
 
   @Override
   public TextMode preferredMode() {
-    TextMode mode = TextMode.zx();
-    BitmapFont font = mode.font;
-    System.arraycopy(
-        new byte[]{(byte) 0xFE, (byte) 0xFC, (byte) 0xF8, (byte) 0xF0, (byte) 0xE0, (byte) 0xC0, (byte) 0x80, 0}, 0,
-        font.bitmap, 0xDD * 8, 8);
-    System.arraycopy(new byte[]{0x01, 0x03, 0x07, 0x0F, 0x1F, 0x3F, 0x7F, (byte) 0xFF}, 0, font.bitmap, 0xDE * 8, 8);
-    byte x80 = (byte) 0x80;
-    System.arraycopy(new byte[]{x80, x80, x80, x80, x80, x80, x80, x80}, 0, font.bitmap, 0xD0 * 8, 8);
-    System.arraycopy(new byte[]{1, 1, 1, 1, 1, 1, 1, 1}, 0, font.bitmap, 0xD1 * 8, 8);
-    System.arraycopy(new byte[]{x80, x80, x80, x80, x80, x80, x80, -1}, 0, font.bitmap, 0xC0 * 8, 8);
-    System.arraycopy(new byte[]{1, 1, 1, 1, 1, 1, 1, -1}, 0, font.bitmap, 0xD9 * 8, 8);
-    System.arraycopy(new byte[]{0, 0, 0, 0, 0, 0, 0, -1}, 0, font.bitmap, 0xC4 * 8, 8);
-    font.put(SLASH_RIGHT, 0xDD);
-    font.put(SLASH_LEFT, 0xDE);
-    font.put(FRAME_LEFT, 0xD0);
-    font.put(FRAME_RIGHT, 0xD1);
-    font.put(FRAME_DOWN_LEFT, 0xC0);
-    font.put(FRAME_DOWN_RIGHT, 0xD9);
-    font.put(FRAME_DOWN, 0xC4);
-    font.put('\u00A9', 0x7F); // (c)
-    font.cacheBitmap();
-    return mode;
+    return TextMode.zx();
   }
 
   private void attr(int paper, int ink) {
@@ -73,7 +54,7 @@ public class Launcher implements BasicApp {
     int[] colors = new int[]{0, 10, 14, 10, 14, 12, 13, 12, 13, 0, 0, 8};
     for (int i = 0; i < colors.length / 2; i++) {
       attr(colors[i * 2], colors[i * 2 + 1]);
-      basic.printAt(x + i, y, i < 5 ? Character.toString(i % 2 == 0 ? SLASH_LEFT : SLASH_RIGHT) : " ");
+      basic.printAt(x + i, y, i < 5 ? Character.toString(i % 2 == 0 ? slashLeft : slashRight) : " ");
     }
   }
 
@@ -106,17 +87,17 @@ public class Launcher implements BasicApp {
     for (int i = 0; i < height; i++) {
       int y = top + i;
       attr(i == selected ? 13 : 15, 0);
-      basic.printAt(left - 1, y, Character.toString(FRAME_LEFT));
+      basic.printAt(left - 1, y, Character.toString(frameLeft));
       String item = i < items.size() ? items.get(i) : "";
       basic.printAt(left, y, item);
       for (int x = left + item.length(); x < xm; x++) basic.printAt(x, y, " ");
-      basic.printAt(xm, y, Character.toString(FRAME_RIGHT));
+      basic.printAt(xm, y, Character.toString(frameRight));
     }
     attr(15, 0);
     int y = top + height;
-    basic.printAt(left - 1, y, Character.toString(FRAME_DOWN_LEFT));
-    for (int x = left; x < xm; x++) basic.printAt(x, y, Character.toString(FRAME_DOWN));
-    basic.printAt(xm, y, Character.toString(FRAME_DOWN_RIGHT));
+    basic.printAt(left - 1, y, Character.toString(frameDownLeft));
+    for (int x = left; x < xm; x++) basic.printAt(x, y, Character.toString(frameDown));
+    basic.printAt(xm, y, Character.toString(frameDownRight));
     attr(7, 0);
     String[] f = footer.split("\r?\n");
     for (int i = 0; i < f.length; i++) {
@@ -124,17 +105,18 @@ public class Launcher implements BasicApp {
     }
   }
 
+  private char displayableChar(char... chars) {
+    for (char c : chars) if (basic.canDisplay(c)) return c;
+    return chars[chars.length - 1];
+  }
+
   @Override
   public void open(Basic basic) {
     this.basic = basic;
-    for (int i = 0; i < 16; i++) {
-      int c = 0;
-      if ((i & 1) != 0) c += 0x0000AA;
-      if ((i & 2) != 0) c += 0xAA0000;
-      if ((i & 4) != 0) c += 0x00AA00;
-      if ((i & 8) != 0) c += 0x555555;
-      CM[i] = basic.getColorFromRgb(c);
-    }
+    slashLeft = displayableChar(LOWER_RIGHT_TRIANGLE, '\u2592');
+    slashRight = displayableChar(UPPER_LEFT_TRIANGLE, '\u2591');
+    for (int i = 0; i < 16; i++) CM[i] =
+        basic.getColorFromRgb((i & 1 | i << 15 & 0x10000 | i << 6 & 0x100) * (i < 8 ? 0xC0 : 0xFF));
     List<String> appList = Arrays.stream(APPS).map(a -> a.getClass().getSimpleName()).collect(Collectors.toList());
     Dimension padding = new Dimension();
     int cursor = 0;
@@ -159,13 +141,13 @@ public class Launcher implements BasicApp {
         stop = true;
         break;
       }
-      if ("Enter".equals(s)) {
-        basic.load(APPS[cursor]);
-        break; // needs to exit to restart
-      }
+      int basicLoad = 0;
+      if ("Enter".equals(s)) basicLoad = cursor + 1;
       int i = s.length() == 1 ? s.charAt(0) - '0' : 0;
-      if (i > 0 && i <= APPS.length) {
-        basic.load(APPS[i - 1]);
+      if (i > 0 && i <= APPS.length) basicLoad = i;
+      if (basicLoad > 0) {
+        basic.load(APPS[basicLoad - 1]);
+        stop = false;
         break; // needs to exit to restart
       }
     }

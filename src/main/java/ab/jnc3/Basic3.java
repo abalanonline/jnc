@@ -65,9 +65,10 @@ public class Basic3 implements Basic { // FIXME: 2024-07-28 delete and redesign
       case "Alt+Backspace": close = true; break;
       case "Alt+1": switchMode = TextMode.zx(); break;
       case "Alt+2": switchMode = TextMode.c64(); break;
-      case "Alt+3": switchMode = TextMode.cga16(); break;
-      case "Alt+4": switchMode = TextMode.cgaHigh(); break;
-      case "Alt+5": switchMode = TextMode.cga4(); break;
+      case "Alt+6": switchMode = TextMode.cga16(); break;
+      case "Alt+7": switchMode = TextMode.cgaHigh(); break;
+      case "Alt+8": switchMode = TextMode.cga4(); break;
+      case "Alt+9": switchMode = TextMode.vgaHigh(); break;
       case "Alt+0": switchMode = TextMode.defaultMode(); break;
     }
     if (close || switchMode != null) {
@@ -277,6 +278,11 @@ public class Basic3 implements Basic { // FIXME: 2024-07-28 delete and redesign
   @Override
   public int getColorFromRgb(int rgb) {
     return mode.getIndexedColor(rgb);
+  }
+
+  @Override
+  public boolean canDisplay(char c) {
+    return tui == null && mode.font.canDisplay(c);
   }
 
   @Override

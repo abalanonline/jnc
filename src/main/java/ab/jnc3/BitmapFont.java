@@ -320,6 +320,10 @@ public class BitmapFont {
     }
   }
 
+  public boolean canDisplay(char c) {
+    return get(c) >= 0;
+  }
+
   public void multiply(int mw, int mh) {
     int byteSize = (width * mw + 7) / 8;
     byte[] bitmap = new byte[length * height * mh * byteSize];

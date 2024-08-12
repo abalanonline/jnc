@@ -71,6 +71,14 @@ public class TextMode {
   private static BitmapFont zxFont() {
     BitmapFont font = new BitmapFont(8, 8);
     System.arraycopy(resource("/jnc2/48.rom"), 0x3D00, font.bitmap, 0x100, 0x0300);
+    int[] bitmap = {0x01, 0x03, 0x07, 0x0F, 0x1F, 0x3F, 0x7F, 0xFF, 0xFE, 0xFC, 0xF8, 0xF0, 0xE0, 0xC0, 0x80, 0x00,
+        0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0xFF,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0xFF,
+        0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01};
+    for (int i = 0; i < bitmap.length; i++) font.bitmap[i + 0x80] = (byte) bitmap[i];
+    char[] charset = {'\u25E2', '\u25E4', '\u2551', '\u255A', '\u2550', '\u255D', '\u2562'};
+    for (int i = 0; i < charset.length; i++) font.put(charset[i], i + 0x10);
+    font.put('\u00A9', 0x7F); // (c)
     font.cacheBitmap();
     return font;
   }
@@ -81,13 +89,25 @@ public class TextMode {
         0x000000, 0x0000FF, 0xFF0000, 0xFF00FF, 0x00FF00, 0x00FFFF, 0xFFFF00, 0xFFFFFF}, 7, 0);
   }
 
+  private static void arraycopy8(byte[] src, int srcPos, byte[] dest, int destPos, int length) {
+    System.arraycopy(src, srcPos * 8, dest, destPos * 8, length * 8);
+  }
+
   private static BitmapFont c64Font() {
     BitmapFont font = new BitmapFont(8, 8);
     byte[] b = resource("/jnc2/901225-01.u5");
-    System.arraycopy(b, 0, font.bitmap, 0x200, 0x0100);
-    System.arraycopy(b, 0x100, font.bitmap, 0x100, 0x0100);
-    System.arraycopy(b, 0x800, font.bitmap, 0x300, 0x0100);
+    arraycopy8(b, 0x020, font.bitmap, 0x20, 0x20); // 20-3F
+    arraycopy8(b, 0x000, font.bitmap, 0x40, 0x20); // 40-5F lower mapped to ascii
+    arraycopy8(b, 0x100, font.bitmap, 0x60, 0x20); // 60-7F
+    arraycopy8(b, 0x060, font.bitmap, 0xA0, 0x20); // A0-BF unshifted upper
+    arraycopy8(b, 0x040, font.bitmap, 0xC0, 0x20); // C0-DF
+    arraycopy8(b, 0xE9, font.bitmap, 0x10, 1);
+    arraycopy8(b, 0xDF, font.bitmap, 0x11, 1);
     font.cacheBitmap();
+    int[] charset = {'\u25E2', 0x10, '\u25E3', 0x11, '\u25E4', 0xA9, '\u25E5', 0xDF, // triangles
+        '\u2551', 0xA5, '\u255A', 0xCC, '\u2550', 0xAF, '\u255D', 0xBA, '\u2562', 0xA7, // this line is wrong
+    };
+    for (int i = 0; i < charset.length; i += 2) font.put((char) charset[i], charset[i + 1]);
     return font;
   }
 
@@ -102,8 +122,19 @@ public class TextMode {
       0x555555, 0x5555FF, 0x55FF55, 0x55FFFF, 0xFF5555, 0xFF55FF, 0xFFFF55, 0xFFFFFF};
 
   private static BitmapFont cgaFont() {
-    BitmapFont font = new BitmapFont(8, 8);
-    System.arraycopy(resource("/jnc2/vga.fnt"), 0, font.bitmap, 0, 0x0800);
+    return vgaFont(8);
+  }
+
+  private static BitmapFont vgaFont(int height) {
+    int srcPos;
+    switch (height) {
+      case 8: srcPos = 0; break;
+      case 14: srcPos = 0x0800; break;
+      case 16: srcPos = 0x172D; break;
+      default: throw new IllegalArgumentException();
+    }
+    BitmapFont font = new BitmapFont(8, height);
+    System.arraycopy(resource("/jnc2/vga.fnt"), srcPos, font.bitmap, 0, height * 0x100);
     Charset charset = Charset.forName("IBM437");
     for (int i = 0; i < 0x100; i++) font.put(new String(new byte[]{(byte) i}, charset).charAt(0), i);
     font.cacheBitmap();
@@ -121,6 +152,10 @@ public class TextMode {
   public static TextMode cga4() {
     return new TextMode(cgaFont(), 320, 200,
         new int[]{COLOR_MAP_CGA[0], COLOR_MAP_CGA[3], COLOR_MAP_CGA[5], COLOR_MAP_CGA[7]}, 0, 1);
+  }
+
+  public static TextMode vgaHigh() {
+    return new TextMode(vgaFont(16), 640, 480, COLOR_MAP_CGA, 0, 7);
   }
 
   public static TextMode defaultMode() {

@@ -33,6 +33,13 @@ public interface Basic {
   Dimension getSize();
   Dimension getTextSize();
   Dimension getDisplayAspectRatio();
+
+  /**
+   * Checks if basic has a glyph for the specified character.
+   * Similar to java.awt.Font.canDisplay();
+   * @return false if no glyph, or unknown (terminals don't provide this information)
+   */
+  boolean canDisplay(char c);
   // FIXME: 2024-07-25 temp copy of jnc2.Basic, delete and redesign
   void plot(int x, int y);
   void draw(int x, int y);
