@@ -159,10 +159,10 @@ public class TextMode {
 
   public static TextMode msx() {
     BitmapFont font = new BitmapFont(6, 8);
-    int[] charset = {'\u25E2', 0x84, '\u25E4', 0x85,
-        '\u2551', 0x16, '\u255A', 0x1A, '\u2550', 0x17, '\u255D', 0x1B, '\u2562', 0x13};
-    for (int i = 0; i < charset.length; i += 2) font.put((char) charset[i], charset[i + 1]);
     System.arraycopy(resource("/jnc2/hb10bios.ic12"), 0x1BBF, font.bitmap, 0, 0x800);
+    int[] charset = {'\u25E2', 0x84, '\u25E4', 0x85,
+        '\u2551', 0x16, '\u255A', 0x1A, '\u2550', 0x17, '\u255D', 0x1B, '\u2562', 0x16};
+    for (int i = 0; i < charset.length; i += 2) font.put((char) charset[i], charset[i + 1]);
     // https://en.wikipedia.org/wiki/List_of_8-bit_computer_hardware_graphics
     return new TextMode(font, 240, 192, new int[]{
         0x010101, 0x000000, 0x3EB849, 0x74D07D, 0x5955E0, 0x8076F1, 0xB95E51, 0x65DBEF,
