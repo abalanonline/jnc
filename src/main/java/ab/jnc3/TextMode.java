@@ -93,7 +93,7 @@ public class TextMode {
     System.arraycopy(src, srcPos * 8, dest, destPos * 8, length * 8);
   }
 
-  private static BitmapFont c64Font() {
+  public static TextMode c64() {
     BitmapFont font = new BitmapFont(8, 8);
     byte[] b = resource("/jnc2/901225-01.u5");
     arraycopy8(b, 0x020, font.bitmap, 0x20, 0x20); // 20-3F
@@ -105,14 +105,9 @@ public class TextMode {
     arraycopy8(b, 0xDF, font.bitmap, 0x11, 1);
     font.cacheBitmap();
     int[] charset = {'\u25E2', 0x10, '\u25E3', 0x11, '\u25E4', 0xA9, '\u25E5', 0xDF, // triangles
-        '\u2551', 0xA5, '\u255A', 0xCC, '\u2550', 0xAF, '\u255D', 0xBA, '\u2562', 0xA7, // this line is wrong
-    };
+        '\u2551', 0xA5, '\u255A', 0xCC, '\u2550', 0xAF, '\u255D', 0xBA, '\u2562', 0xA7};
     for (int i = 0; i < charset.length; i += 2) font.put((char) charset[i], charset[i + 1]);
-    return font;
-  }
-
-  public static TextMode c64() {
-    return new TextMode(c64Font(), 320, 200, new int[]{
+    return new TextMode(font, 320, 200, new int[]{
         0x000000, 0xFFFFFF, 0x9F4E44, 0x6ABFC6, 0xA057A3, 0x5CAB5E, 0x50459B, 0xC9D487,
         0xA1683C, 0x6D5412, 0xCB7E75, 0x626262, 0x898989, 0x9AE29B, 0x887ECB, 0xADADAD}, 6, 14);
   }
@@ -160,6 +155,18 @@ public class TextMode {
 
   public static TextMode defaultMode() {
     return new TextMode(320, 240);
+  }
+
+  public static TextMode msx() {
+    BitmapFont font = new BitmapFont(6, 8);
+    int[] charset = {'\u25E2', 0x84, '\u25E4', 0x85,
+        '\u2551', 0x16, '\u255A', 0x1A, '\u2550', 0x17, '\u255D', 0x1B, '\u2562', 0x13};
+    for (int i = 0; i < charset.length; i += 2) font.put((char) charset[i], charset[i + 1]);
+    System.arraycopy(resource("/jnc2/hb10bios.ic12"), 0x1BBF, font.bitmap, 0, 0x800);
+    // https://en.wikipedia.org/wiki/List_of_8-bit_computer_hardware_graphics
+    return new TextMode(font, 240, 192, new int[]{
+        0x010101, 0x000000, 0x3EB849, 0x74D07D, 0x5955E0, 0x8076F1, 0xB95E51, 0x65DBEF,
+        0xDB6559, 0xFF897D, 0xCCC35E, 0xDED087, 0x3AA241, 0xB766B5, 0xCCCCCC, 0xFFFFFF}, 4, 15);
   }
 
 }
