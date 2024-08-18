@@ -99,8 +99,8 @@ public class Screen implements AutoCloseable {
 
   @Override
   public void close() {
+    frame.removeWindowStateListener(windowListener);
     frame.dispose();
-    frame.dispose(); // FIXME: 2024-06-16 not always disposing from the first attempt
   }
 
   private class Canvas extends Component {

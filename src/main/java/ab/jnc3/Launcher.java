@@ -28,8 +28,8 @@ public class Launcher implements BasicApp {
   private static final BasicApp[] APPS = {new Triis(), new Jnc2Clock(), new BasicClock()};
   public static final char LOWER_RIGHT_TRIANGLE = '\u25E2';
   public static final char UPPER_LEFT_TRIANGLE = '\u25E4';
-  char slashLeft;
-  char slashRight;
+  char slashLeft = LOWER_RIGHT_TRIANGLE;
+  char slashRight = UPPER_LEFT_TRIANGLE;
   // TODO: 2024-08-11 do not modify these fields until unicode provides Left / Right and Lower One Quarter Block
   char frameLeft = '\u2551';
   char frameDownLeft = '\u255A';
