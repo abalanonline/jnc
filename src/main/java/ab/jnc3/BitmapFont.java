@@ -32,6 +32,9 @@ import java.util.Arrays;
 import java.util.zip.GZIPInputStream;
 
 public class BitmapFont {
+  // .notdef = box, checkbox, checkbox x, box ?, diamond ?, ?
+  public static final char[] NOTDEF = new char[]{'\u25A1', '\u2610', '\u2612', '\u2370', '\uFFFD', '?'};
+  public int notdef;
   public byte[] bitmap;
   public int[] bitmapCache = new int[0];
   public final short[][] unicode = new short[0x100][];
@@ -68,6 +71,11 @@ public class BitmapFont {
     }
     unicode[h][c & 0xFF] = (short) i;
     unicodeCache = null;
+    for (char nd : NOTDEF) {
+      notdef = get(nd);
+      if (notdef >= 0) break;
+    }
+    if (notdef < 0) notdef = 0;
   }
 
   public int get(char c) {
@@ -75,6 +83,11 @@ public class BitmapFont {
     int h = c >> 8 & 0xFF;
     if (unicode[h] == null) return -1;
     return unicode[h][c & 0xFF];
+  }
+
+  public int getCode(char c) {
+    int i = get(c);
+    return i < 0 ? notdef : i;
   }
 
   private void fromPsf1Unicode(char[] chars) {
@@ -255,8 +268,7 @@ public class BitmapFont {
       xn = x + this.width;
       if (xn <= 0) continue;
       if (x >= w) break;
-      int i = get(c);
-      if (i >= 0) drawChar(i, x, y, image, rgb, bgColor);
+      drawChar(getCode(c), x, y, image, rgb, bgColor);
     }
   }
 
@@ -297,8 +309,7 @@ public class BitmapFont {
       xn += this.width;
       if (x < 0) continue;
       if (xn > w) break;
-      int i = get(c);
-      if (i >= 0) drawCharSimple(i, xy, ww, buffer, color, bgColor);
+      drawCharSimple(getCode(c), xy, ww, buffer, color, bgColor);
       xy += this.width;
     }
   }

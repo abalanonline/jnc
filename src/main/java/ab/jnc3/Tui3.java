@@ -27,24 +27,33 @@ import java.util.function.Consumer;
 
 public class Tui3 implements Tui {
 
-  private final boolean closeScreen;
   private final BitmapFont font;
   private final Dimension size;
   private final Screen screen;
+  private boolean closeScreen;
+  private boolean update;
+  private boolean close;
+  private final int[] frontBuffer;
+  private final int[] middleBuffer;
+  private final int[] backBuffer;
+
+  private Tui3(BitmapFont font, Dimension pixelSize, Screen screen) {
+    this.font = font;
+    size = new Dimension(pixelSize.width / font.width, pixelSize.height / font.height);
+    this.screen = screen;
+    frontBuffer = new int[size.height * size.width];
+    middleBuffer = new int[size.height * size.width];
+    backBuffer = new int[size.height * size.width];
+    new Thread(this::thread, "tui3").start();
+  }
 
   public Tui3(BitmapFont font, Screen screen) {
-    closeScreen = false;
-    this.font = font;
-    size = new Dimension(screen.image.getWidth() / font.width, screen.image.getHeight() / font.height);
-    this.screen = screen;
+    this(font, new Dimension(screen.image.getWidth(), screen.image.getHeight()), screen);
   }
 
   public Tui3(BitmapFont font, Dimension pixelSize, int[] colorMap) {
+    this(font, pixelSize, new Screen());
     closeScreen = true;
-    this.font = font;
-    size = new Dimension(pixelSize.width / font.width, pixelSize.height / font.height);
-
-    screen = new Screen();
     screen.preferredSize = new Dimension(pixelSize.width, pixelSize.height);
     screen.image = new BufferedImage(pixelSize.width, pixelSize.height, BufferedImage.TYPE_BYTE_INDEXED,
         new IndexColorModel(8, colorMap.length, colorMap, 0, false, -1, DataBuffer.TYPE_BYTE));
@@ -55,14 +64,50 @@ public class Tui3 implements Tui {
     return new Dimension(size);
   }
 
+  private void thread() {
+    while (!close) {
+      if (update) {
+        update = false;
+        int width = screen.image.getWidth();
+        int ww = width - font.width;
+        DataBuffer buffer = screen.image.getRaster().getDataBuffer();
+        for (int y = 0, i = 0; y < size.height; y++) {
+          int yy = y * font.height * width;
+          for (int x = 0; x < size.width; x++, i++) {
+            int c = middleBuffer[i];
+            if (frontBuffer[i] == c) continue;
+            frontBuffer[i] = c;
+            font.drawCharSimple(c & 0xFFFFFF, x * font.width + yy, ww, buffer, c >> 24 & 0xF, c >>> 28);
+          }
+        }
+        screen.update();
+        continue;
+      }
+      synchronized (middleBuffer) {
+        try {
+          middleBuffer.wait(250);
+          update = true; // low rate update
+        } catch (InterruptedException e) {
+          close = true;
+        }
+      }
+    }
+  }
+
   @Override
   public void print(int x, int y, String s, int attr) {
-    font.drawStringSimple(s, x * font.width, y * font.height, screen.image, attr & 15, attr >> 4 & 15);
+    attr <<= 24;
+    x += y * size.width;
+    for (int i = 0; i < s.length(); i++) backBuffer[x + i] = attr | font.getCode(s.charAt(i));
   }
 
   @Override
   public void update() {
-    screen.update();
+    System.arraycopy(backBuffer, 0, middleBuffer, 0, middleBuffer.length);
+    update = true;
+    synchronized (middleBuffer) {
+      middleBuffer.notify();
+    }
   }
 
   @Override
@@ -72,6 +117,10 @@ public class Tui3 implements Tui {
 
   @Override
   public void close() {
+    close = true;
+    synchronized (middleBuffer) {
+      middleBuffer.notify();
+    }
     if (closeScreen) screen.close();
   }
 
