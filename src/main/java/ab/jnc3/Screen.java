@@ -171,6 +171,9 @@ public class Screen implements AutoCloseable {
       }
     }
 
+    /**
+     * @return 0 if it is not possible to find the primary level
+     */
     private static char primaryLevelUnicode(KeyEvent e) {
       // TODO: 2024-06-20 find a legit way of distinguishing between Ctrl+j and Ctrl+Enter in X11
       String es = e.toString();
@@ -189,7 +192,7 @@ public class Screen implements AutoCloseable {
       char c = e.getKeyChar();
       String key;
       if (c < 0x20 || c == 0x7F) {
-        key = plu == c ? fromKeyChar(c) : new String(new char[]{plu});
+        key = plu == 0 || plu == c ? fromKeyChar(c) : new String(new char[]{plu});
         if (e.isShiftDown()) key = key.length() < 2 ? key.toUpperCase() : "Shift+" + key;
       } else key = new String(new char[]{c});
       StringBuilder keyNotation = new StringBuilder();
@@ -224,6 +227,7 @@ public class Screen implements AutoCloseable {
         case KeyEvent.VK_PAGE_UP: return "PageUp";
         case KeyEvent.VK_PAGE_DOWN: return "PageDown";
         case KeyEvent.VK_END: return "End";
+        case KeyEvent.VK_INSERT: return "Insert";
         default: return String.format("pressed %04X", keyCode);
       }
     }
