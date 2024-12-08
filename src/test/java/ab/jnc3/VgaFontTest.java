@@ -159,13 +159,14 @@ class VgaFontTest {
         if (v < 0) similarity--;
         if (v == (testBytes[i] & 0xFF)) similarity++;
       }
-      top.computeIfAbsent(similarity, a -> new ArrayList<>()).add(path.toString());
+      top.computeIfAbsent(similarity, a -> new ArrayList<>()).add((font.bitmap.length / font.byteSize) + " " + path);
     }
     Map.Entry<Integer, List<String>> entry = top.entrySet().iterator().next();
-    System.out.printf("%d/%d %s%n", entry.getKey(), testChars.length, String.join(", ", entry.getValue()));
-    // /usr/share/kbd/consolefonts/ter-i32b.psf.gz
-    // /usr/share/kbd/consolefonts/default8x9.psfu.gz,
-    // /usr/share/kbd/consolefonts/default8x16.psfu.gz,
+    int diff = entry.getKey() - testChars.length;
+    entry.getValue().forEach(v -> System.out.println(diff == 0 ? v : diff + " " + v));
+    //256 /usr/share/kbd/consolefonts/ter-i32b.psf.gz
+    //256 /usr/share/kbd/consolefonts/default8x9.psfu.gz
+    //256 /usr/share/kbd/consolefonts/default8x16.psfu.gz
   }
 
 }
