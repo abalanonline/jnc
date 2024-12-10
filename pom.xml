@@ -25,7 +25,7 @@
 
   <groupId>ab</groupId>
   <artifactId>jnc</artifactId>
-  <version>0.3.0</version>
+  <version>3.0</version>
 
   <properties>
     <java.version>11</java.version>
