@@ -53,7 +53,7 @@ public class Help implements BasicApp {
   @Override
   public TextMode preferredMode() {
     TextMode mode = TextMode.ega();
-    return new TextMode(mode.font, 360, 175, mode.colorMap, 0, 7);
+    return new TextMode(mode.font, 320, 175, mode.colorMap, 0, 7);
   }
 
   @Override
