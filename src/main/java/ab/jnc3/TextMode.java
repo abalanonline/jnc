@@ -149,6 +149,10 @@ public class TextMode {
         new int[]{COLOR_MAP_CGA[0], COLOR_MAP_CGA[3], COLOR_MAP_CGA[5], COLOR_MAP_CGA[7]}, 0, 1);
   }
 
+  public static TextMode ega() {
+    return new TextMode(vgaFont(14), 640, 350, COLOR_MAP_CGA, 0, 7);
+  }
+
   public static TextMode vgaHigh() {
     return new TextMode(vgaFont(16), 640, 480, COLOR_MAP_CGA, 0, 7);
   }
