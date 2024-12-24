@@ -28,6 +28,8 @@ public class Help implements BasicApp {
   private final String[] help;
   private final Dimension size;
   private int page;
+  private Basic basic;
+  private Point start;
 
   public Help() {
     InputStream stream = getClass().getResourceAsStream("/jnc3/help.txt");
@@ -56,22 +58,23 @@ public class Help implements BasicApp {
     return new TextMode(mode.font, 320, 175, mode.colorMap, 0, 7);
   }
 
+  public void update() {
+    basic.cls();
+    String[] h = help[page].split("\r?\n");
+    for (int i = 0; i < h.length; i++) basic.printAt(start.x, start.y + i, h[i]);
+    basic.update();
+  }
+
   @Override
   public void open(Basic basic) {
+    this.basic = basic;
     Dimension size = basic.getTextSize();
-    Point start = new Point((size.width - this.size.width + 1) / 2, (size.height - this.size.height) / 2);
-    boolean update = true;
+    start = new Point((size.width - this.size.width + 1) / 2, (size.height - this.size.height) / 2);
+    update();
     while (true) {
-      if (update) {
-        basic.cls();
-        String[] h = help[page].split("\r?\n");
-        for (int i = 0; i < h.length; i++) basic.printAt(start.x, start.y + i, h[i]);
-        basic.update();
-        update = false;
-      }
       switch (basic.inkey()) {
-        case "Left": case "Up": case "PageUp": page = Math.max(0, page - 1); update = true; break;
-        case "Right": case "Down": case "PageDown": page = Math.min(page + 1, help.length - 1); update = true; break;
+        case "Left": case "Up": case "PageUp": page = Math.max(0, page - 1); update(); break;
+        case "Right": case "Down": case "PageDown": page = Math.min(page + 1, help.length - 1); update(); break;
       }
     }
   }
