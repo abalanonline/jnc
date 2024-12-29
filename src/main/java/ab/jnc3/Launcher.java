@@ -39,6 +39,7 @@ public class Launcher implements BasicApp {
   private final int[] CM = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15};
   Basic basic;
   boolean stop;
+  private Screen screen; // FIXME: 2024-12-29 test, delete this
 
   @Override
   public TextMode preferredMode() {
@@ -137,6 +138,7 @@ public class Launcher implements BasicApp {
       if ("Alt+Up".equals(s)) padding.height--;
       if ("Down".equals(s)) cursor = (cursor + 1) % appList.size();
       if ("Up".equals(s)) cursor = cursor > 0 ? cursor - 1 : appList.size() - 1;
+      if ("p".equals(s) && screen != null) screen.enablePointer();
       if ("q".equals(s) || "Q".equals(s) || "Close".equals(s) || "Esc".equals(s)) {
         stop = true;
         break;
@@ -160,6 +162,7 @@ public class Launcher implements BasicApp {
     Screen screen = new Screen();
     Basic basic = new Basic3(screen, null);
     Launcher launcher = new Launcher();
+    launcher.screen = screen;
     while (!launcher.stop) basic.load(launcher);
     screen.close();
   }

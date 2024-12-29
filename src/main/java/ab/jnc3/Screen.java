@@ -36,6 +36,7 @@ public class Screen implements AutoCloseable {
   private final Canvas canvas;
   private final Frame frame;
   private final WindowListener windowListener;
+  private final Cursor cursor;
   private boolean fullScreen = true;
 
   public Screen() {
@@ -52,6 +53,9 @@ public class Screen implements AutoCloseable {
     frame.addWindowListener(windowListener);
     frame.addKeyListener(windowListener);
     frame.setFocusTraversalKeysEnabled(false); // enable Tab
+    cursor = frame.getCursor();
+    frame.setCursor(frame.getToolkit().createCustomCursor(
+        new BufferedImage(1, 1, BufferedImage.TYPE_INT_ARGB), new Point(), null));
     resetFrame();
     eventSupplier = frame; // TODO: 2024-07-13 replace with a proxy Component
   }
@@ -84,6 +88,13 @@ public class Screen implements AutoCloseable {
 
   public void update() {
     canvas.repaint();
+  }
+
+  /**
+   * The pointer is disabled by default, this method enables it back.
+   */
+  public void enablePointer() {
+    frame.setCursor(cursor);
   }
 
   private void onEvent(String event) {
