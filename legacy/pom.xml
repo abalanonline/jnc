@@ -23,9 +23,9 @@
 
   <modelVersion>4.0.0</modelVersion>
 
-  <groupId>ab</groupId>
-  <artifactId>jnc</artifactId>
-  <version>3.0</version>
+  <groupId>ab.jnc</groupId>
+  <artifactId>legacy</artifactId>
+  <version>0.0</version>
 
   <properties>
     <java.version>11</java.version>
