@@ -5,25 +5,25 @@ video engine on java awt
 
 mvn compile exec:java -Dexec.mainClass=ab.jnc2.CubicGrid
 
-![Cubic Grid](src/test/resources/demo/cubicgrid.png)
+![Cubic Grid](legacy/src/test/resources/demo/cubicgrid.png)
 
 ### Typhoon Gal (c) Taito 1985 - arcade machine emulator
 
 mvn compile exec:java -Dexec.mainClass=ab.jnc2.TyphoonGal
 
-![Typhoon Gal](src/test/resources/demo/typhoongal.png)
+![Typhoon Gal](legacy/src/test/resources/demo/typhoongal.png)
 
 ### Mathematical model of Nyan Cat
 
 mvn compile exec:java -Dexec.mainClass=ab.nyancat.NyanCat
 
-![Nyan Cat](src/test/resources/demo/nyancatansi.png)
+![Nyan Cat](legacy/src/test/resources/demo/nyancatansi.png)
 
 ### JNC2 Launcher
 
 mvn compile exec:java -D"exec.mainClass"="ab.jnc2.Application"
 
-![JNC2 Launcher](src/test/resources/demo/launcher.png)
+![JNC2 Launcher](legacy/src/test/resources/demo/launcher.png)
 
 ### NohzDyve - java replica
 
@@ -31,11 +31,10 @@ mvn compile exec:java -Dexec.mainClass=ab.jnc2.NohzDyve
 
 [video](https://youtu.be/BISPHmAuor8)
 
-![Black Mirror NohzDyve](src/test/resources/demo/nohzdyve.png)
+![Black Mirror NohzDyve](legacy/src/test/resources/demo/nohzdyve.png)
 
 ### Amiga Ball
 
 mvn compile exec:java -Dexec.mainClass=ab.jnc2.AmigaBall
 
-![amiga ball](src/test/resources/demo/amigaball.png)
-
+![amiga ball](legacy/src/test/resources/demo/amigaball.png)
