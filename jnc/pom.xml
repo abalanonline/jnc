@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  ~ Copyright (C) 2020 Aleksei Balan
+  ~ Copyright (C) 2025 Aleksei Balan
   ~
   ~ This program is free software: you can redistribute it and/or modify
   ~ it under the terms of the GNU General Public License as published by
@@ -23,9 +23,9 @@
 
   <modelVersion>4.0.0</modelVersion>
 
-  <groupId>ab.jnc</groupId>
-  <artifactId>legacy</artifactId>
-  <version>2.0</version>
+  <groupId>ab</groupId>
+  <artifactId>jnc</artifactId>
+  <version>3.0</version>
 
   <properties>
     <java.version>11</java.version>
@@ -33,41 +33,39 @@
     <maven.compiler.target>${java.version}</maven.compiler.target>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-    <exec.mainClass>ab.jnc2.NohzDyve</exec.mainClass>
   </properties>
 
   <dependencies>
+    <dependency>
+      <groupId>ab.jnc</groupId>
+      <artifactId>screen</artifactId>
+      <version>3.0</version>
+    </dependency>
+    <dependency>
+      <groupId>ab</groupId>
+      <artifactId>tui</artifactId>
+      <version>1.0.0</version>
+    </dependency>
+    <dependency>
+      <!-- FIXME remove 2.0 dependency -->
+      <groupId>ab.jnc</groupId>
+      <artifactId>legacy</artifactId>
+      <version>2.0</version>
+      <scope>test</scope>
+    </dependency>
     <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter</artifactId>
       <version>5.8.2</version>
       <scope>test</scope>
     </dependency>
-    <dependency>
-      <groupId>com.codingrodent.microprocessor</groupId>
-      <artifactId>Z80Processor</artifactId>
-      <version>3.2.0</version>
-    </dependency>
   </dependencies>
 
   <build>
-    <defaultGoal>compile exec:java</defaultGoal>
     <plugins>
       <plugin>
         <artifactId>maven-surefire-plugin</artifactId>
         <version>2.22.1</version>
-      </plugin>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-jar-plugin</artifactId>
-        <version>2.4</version>
-        <configuration>
-          <archive>
-            <manifest>
-              <mainClass>${exec.mainClass}</mainClass>
-            </manifest>
-          </archive>
-        </configuration>
       </plugin>
     </plugins>
   </build>
