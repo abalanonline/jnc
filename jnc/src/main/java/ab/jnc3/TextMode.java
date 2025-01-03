@@ -94,16 +94,7 @@ public class TextMode {
   }
 
   public static TextMode c64() {
-    BitmapFont font = new BitmapFont(8, 8);
-    byte[] b = resource("/jnc2/901225-01.u5");
-    arraycopy8(b, 0x020, font.bitmap, 0x20, 0x20); // 20-3F
-    arraycopy8(b, 0x000, font.bitmap, 0x40, 0x20); // 40-5F lower mapped to ascii
-    arraycopy8(b, 0x100, font.bitmap, 0x60, 0x20); // 60-7F
-    arraycopy8(b, 0x060, font.bitmap, 0xA0, 0x20); // A0-BF unshifted upper
-    arraycopy8(b, 0x040, font.bitmap, 0xC0, 0x20); // C0-DF
-    arraycopy8(b, 0xE9, font.bitmap, 0x10, 1);
-    arraycopy8(b, 0xDF, font.bitmap, 0x11, 1);
-    font.cacheBitmap();
+    BitmapFont font = BitmapFont.fromPsf(resource("/jnc3/c64.psf"));
     int[] charset = {'\u25E2', 0x10, '\u25E3', 0x11, '\u25E4', 0xA9, '\u25E5', 0xDF, // triangles
         '\u2551', 0xA5, '\u255A', 0xCC, '\u2550', 0xAF, '\u255D', 0xBA, '\u2562', 0xA7};
     for (int i = 0; i < charset.length; i += 2) font.put((char) charset[i], charset[i + 1]);

@@ -34,7 +34,7 @@ class PetsciiTest {
 
   @BeforeEach
   void setUp() throws IOException {
-    bytes = getClass().getResourceAsStream("/jnc2/901225-01.u5").readAllBytes();
+    bytes = Files.readAllBytes(Paths.get("../assets/901225-01.u5"));
   }
 
   private void assertShifted(int sf, int st, int us) { // shifted from, shifted to, unshifted shift
@@ -91,6 +91,6 @@ class PetsciiTest {
     }
     font.put('\u2713', 0xFA); // check mark
     font.multiply(3, 3);
-    Files.write(Paths.get("assets/c64x3.psfu"), font.toPsf());
+    Files.write(Paths.get("../assets/c64x3.psfu"), font.toPsf());
   }
 }
