@@ -55,11 +55,21 @@ public class FontBuilder {
     return font;
   }
 
+  public static BitmapFont zx(byte[] b_spectrum_rom) {
+    // https://github.com/mamedev/mame/blob/master/src/mame/sinclair/spectrum.cpp
+    byte[] b = sha1check(b_spectrum_rom, "5ea7c2b824672e914525d1d5c419d71b84a426a2");
+    BitmapFont font = new BitmapFont(8, 8);
+    System.arraycopy(b, 0x3D00, font.bitmap, 0x100, 0x0300);
+    font.cacheBitmap();
+    return font;
+  }
+
   @Disabled
   @Test
   void run() throws IOException {
     Files.write(Paths.get("../assets/c64.psf"), c64(Files.readAllBytes(Paths.get("../assets/901225-01.u5"))).toPsf());
     Files.write(Paths.get("../assets/msx.psf"), msx(Files.readAllBytes(Paths.get("../assets/hb10bios.ic12"))).toPsf());
+    Files.write(Paths.get("../assets/zx.psf"), zx(Files.readAllBytes(Paths.get("../assets/spectrum.rom"))).toPsf());
   }
 
 }

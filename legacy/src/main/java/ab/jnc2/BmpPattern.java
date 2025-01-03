@@ -43,7 +43,7 @@ public class BmpPattern implements Runnable, KeyListener {
 
   public BmpPattern(Screen screen) {
     try {
-      bytes = Files.readAllBytes(Paths.get("src/main/resources/jnc2/48.rom"));
+      bytes = Files.readAllBytes(Paths.get("legacy/src/main/resources/jnc2/48.rom"));
     } catch (IOException e) {
       throw new UncheckedIOException(e);
     }
