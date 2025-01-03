@@ -92,6 +92,17 @@ public class FontBuilder {
       font.unicodeCache = default8x16.unicodeCache;
       fonts[i] = font;
     }
+    BitmapFont font = new BitmapFont(9, 16);
+    int p = 0x6993;
+    for (int i = 0; i < 0x1000; i++) font.bitmap[i * 2] = b[p++];
+    while (true) {
+      int c = b[p++] << 4 & 0xFF0;
+      if (c == 0) break;
+      for (int i = 0; i < 16; i++) font.bitmap[(i + c) * 2] = b[p++];
+    }
+    for (int i = 0xC00; i < 0xE00; i++) font.bitmap[i * 2 + 1] = (byte) (font.bitmap[i * 2] << 7);
+    font.unicodeCache = default8x16.unicodeCache;
+    fonts[3] = font;
     return fonts;
   }
 
@@ -107,6 +118,7 @@ public class FontBuilder {
     Files.write(Paths.get("../assets/vga8.psf"), fonts[0].toPsf());
     Files.write(Paths.get("../assets/vga14.psf"), fonts[1].toPsf());
     Files.write(Paths.get("../assets/vga16.psf"), fonts[2].toPsf());
+    Files.write(Paths.get("../assets/vga9x16.psf"), fonts[3].toPsf());
   }
 
 }

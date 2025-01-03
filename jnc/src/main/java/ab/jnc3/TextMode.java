@@ -17,12 +17,11 @@
 
 package ab.jnc3;
 
-import java.awt.*;
+import java.awt.Dimension;
 import java.awt.image.DataBuffer;
 import java.awt.image.IndexColorModel;
 import java.io.IOException;
 import java.io.UncheckedIOException;
-import java.nio.charset.Charset;
 
 public class TextMode {
 
@@ -60,16 +59,16 @@ public class TextMode {
     return colorModel == null ? rgb : ((byte[]) colorModel.getDataElements(rgb, null))[0];
   }
 
-  private static byte[] resource(String resource) {
+  private static BitmapFont fontResource(String resource) {
     try {
-      return TextMode.class.getResourceAsStream(resource).readAllBytes();
+      return BitmapFont.fromPsf(TextMode.class.getResourceAsStream(resource).readAllBytes());
     } catch (IOException e) {
       throw new UncheckedIOException(e);
     }
   }
 
   private static BitmapFont zxFont() {
-    BitmapFont font = BitmapFont.fromPsf(resource("/jnc3/zx.psf"));
+    BitmapFont font = fontResource("/jnc3/zx.psf");
     int[] bitmap = {0x01, 0x03, 0x07, 0x0F, 0x1F, 0x3F, 0x7F, 0xFF, 0xFE, 0xFC, 0xF8, 0xF0, 0xE0, 0xC0, 0x80, 0x00,
         0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0xFF,
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0xFF,
@@ -88,12 +87,8 @@ public class TextMode {
         0x000000, 0x0000FF, 0xFF0000, 0xFF00FF, 0x00FF00, 0x00FFFF, 0xFFFF00, 0xFFFFFF}, 7, 0);
   }
 
-  private static void arraycopy8(byte[] src, int srcPos, byte[] dest, int destPos, int length) {
-    System.arraycopy(src, srcPos * 8, dest, destPos * 8, length * 8);
-  }
-
   public static TextMode c64() {
-    BitmapFont font = BitmapFont.fromPsf(resource("/jnc3/c64.psf"));
+    BitmapFont font = fontResource("/jnc3/c64.psf");
     int[] charset = {'\u25E2', 0x10, '\u25E3', 0x11, '\u25E4', 0xA9, '\u25E5', 0xDF, // triangles
         '\u2551', 0xA5, '\u255A', 0xCC, '\u2550', 0xAF, '\u255D', 0xBA, '\u2562', 0xA7};
     for (int i = 0; i < charset.length; i += 2) font.put((char) charset[i], charset[i + 1]);
@@ -107,11 +102,7 @@ public class TextMode {
       0x555555, 0x5555FF, 0x55FF55, 0x55FFFF, 0xFF5555, 0xFF55FF, 0xFFFF55, 0xFFFFFF};
 
   private static BitmapFont cgaFont() {
-    return vgaFont(8);
-  }
-
-  private static BitmapFont vgaFont(int height) {
-    return BitmapFont.fromPsf(resource("/jnc3/vga" + height + ".psf"));
+    return fontResource("/jnc3/vga8.psf");
   }
 
   public static TextMode cga16() {
@@ -128,11 +119,15 @@ public class TextMode {
   }
 
   public static TextMode ega() {
-    return new TextMode(vgaFont(14), 640, 350, COLOR_MAP_CGA, 0, 7);
+    return new TextMode(fontResource("/jnc3/vga14.psf"), 640, 350, COLOR_MAP_CGA, 0, 7);
   }
 
   public static TextMode vgaHigh() {
-    return new TextMode(vgaFont(16), 640, 480, COLOR_MAP_CGA, 0, 7);
+    return new TextMode(fontResource("/jnc3/vga16.psf"), 640, 480, COLOR_MAP_CGA, 0, 7);
+  }
+
+  public static TextMode vgaText() {
+    return new TextMode(fontResource("/jnc3/vga9x16.psf"), 720, 480, COLOR_MAP_CGA, 0, 7);
   }
 
   public static TextMode defaultMode() {
@@ -140,7 +135,7 @@ public class TextMode {
   }
 
   public static TextMode msx() {
-    BitmapFont font = BitmapFont.fromPsf(resource("/jnc3/msx.psf"));
+    BitmapFont font = fontResource("/jnc3/msx.psf");
     int[] charset = {'\u25E2', 0x84, '\u25E4', 0x85,
         '\u2551', 0x16, '\u255A', 0x1A, '\u2550', 0x17, '\u255D', 0x1B, '\u2562', 0x16};
     for (int i = 0; i < charset.length; i += 2) font.put((char) charset[i], charset[i + 1]);
