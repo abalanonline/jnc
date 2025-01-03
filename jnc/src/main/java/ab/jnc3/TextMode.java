@@ -111,19 +111,7 @@ public class TextMode {
   }
 
   private static BitmapFont vgaFont(int height) {
-    int srcPos;
-    switch (height) {
-      case 8: srcPos = 0; break;
-      case 14: srcPos = 0x0800; break;
-      case 16: srcPos = 0x172D; break;
-      default: throw new IllegalArgumentException();
-    }
-    BitmapFont font = new BitmapFont(8, height);
-    System.arraycopy(resource("/jnc2/vga.fnt"), srcPos, font.bitmap, 0, height * 0x100);
-    Charset charset = Charset.forName("IBM437");
-    for (int i = 0; i < 0x100; i++) font.put(new String(new byte[]{(byte) i}, charset).charAt(0), i);
-    font.cacheBitmap();
-    return font;
+    return BitmapFont.fromPsf(resource("/jnc3/vga" + height + ".psf"));
   }
 
   public static TextMode cga16() {
