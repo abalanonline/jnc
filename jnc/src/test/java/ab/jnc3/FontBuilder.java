@@ -1,9 +1,9 @@
 package ab.jnc3;
 
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
-import java.math.BigInteger;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.security.MessageDigest;
@@ -32,8 +32,9 @@ public class FontBuilder {
   }
 
   public static BitmapFont c64(byte[] b_901225_01_u5) {
-    BitmapFont font = new BitmapFont(8, 8);
+    // https://github.com/mamedev/mame/blob/master/src/mame/commodore/c64.cpp
     byte[] b = sha1check(b_901225_01_u5, "adc7c31e18c7c7413d54802ef2f4193da14711aa");
+    BitmapFont font = new BitmapFont(8, 8);
     arraycopy8(b, 0x020, font.bitmap, 0x20, 0x20); // 20-3F
     arraycopy8(b, 0x000, font.bitmap, 0x40, 0x20); // 40-5F lower mapped to ascii
     arraycopy8(b, 0x100, font.bitmap, 0x60, 0x20); // 60-7F
@@ -45,9 +46,20 @@ public class FontBuilder {
     return font;
   }
 
+  public static BitmapFont msx(byte[] b_hb10bios_ic12) {
+    // https://github.com/mamedev/mame/blob/master/src/mame/msx/msx1.cpp
+    byte[] b = sha1check(b_hb10bios_ic12, "302afb5d8be26c758309ca3df611ae69cced2821");
+    BitmapFont font = new BitmapFont(6, 8);
+    System.arraycopy(b, 0x1BBF, font.bitmap, 0, 0x800);
+    font.cacheBitmap();
+    return font;
+  }
+
+  @Disabled
   @Test
   void run() throws IOException {
     Files.write(Paths.get("../assets/c64.psf"), c64(Files.readAllBytes(Paths.get("../assets/901225-01.u5"))).toPsf());
+    Files.write(Paths.get("../assets/msx.psf"), msx(Files.readAllBytes(Paths.get("../assets/hb10bios.ic12"))).toPsf());
   }
 
 }

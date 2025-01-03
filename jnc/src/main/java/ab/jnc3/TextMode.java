@@ -153,8 +153,7 @@ public class TextMode {
   }
 
   public static TextMode msx() {
-    BitmapFont font = new BitmapFont(6, 8);
-    System.arraycopy(resource("/jnc2/hb10bios.ic12"), 0x1BBF, font.bitmap, 0, 0x800);
+    BitmapFont font = BitmapFont.fromPsf(resource("/jnc3/msx.psf"));
     int[] charset = {'\u25E2', 0x84, '\u25E4', 0x85,
         '\u2551', 0x16, '\u255A', 0x1A, '\u2550', 0x17, '\u255D', 0x1B, '\u2562', 0x16};
     for (int i = 0; i < charset.length; i += 2) font.put((char) charset[i], charset[i + 1]);
