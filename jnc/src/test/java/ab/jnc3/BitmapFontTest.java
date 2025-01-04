@@ -17,7 +17,6 @@
 
 package ab.jnc3;
 
-import ab.font.DifferentCharsets;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
@@ -29,7 +28,6 @@ import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -71,9 +69,12 @@ class BitmapFontTest {
   @Disabled
   @Test
   void testIbm437() throws IOException {
-    Charset charset = DifferentCharsets.IBM437;
+    Charset charset = Charset.forName("IBM437");
     Map<Character, Set<Character>> map = new LinkedHashMap<>();
-    for (int i = 0; i < 0x100; i++) map.put(new String(new byte[]{(byte) i}, charset).charAt(0), new LinkedHashSet<>());
+    String x0020 =  "\u0000\u263A\u263B\u2665\u2666\u2663\u2660\u2022\u25D8\u25CB\u25D9\u2642\u2640\u266A\u266B\u263C" +
+        "\u25BA\u25C4\u2195\u203C\u00B6\u00A7\u25AC\u21A8\u2191\u2193\u2192\u2190\u221F\u2194\u25B2\u25BC";
+    for (int i = 0; i < 0x20; i++) map.put(x0020.charAt(i), new LinkedHashSet<>());
+    for (int i = 0x20; i < 0x100; i++) map.put(new String(new byte[]{(byte) i}, charset).charAt(0), new LinkedHashSet<>());
     HashSet<Character> exclude = new HashSet<>();
     for (char c = '\uE000'; c < '\uF800'; c++) exclude.add(c);
     List<Path> paths = Files.find(Path.of("/usr/share/kbd/consolefonts/"), 3, (path, attributes) -> {
@@ -210,19 +211,5 @@ class BitmapFontTest {
     }
     //update.run();
     sleep();
-  }
-
-  @Disabled
-  @Test
-  void vga14x3() throws IOException {
-    BitmapFont font = new BitmapFont(8, 14);
-    font.bitmap = ab.jnc2.TextFont.VGA14.get().font;
-    Charset charset = Charset.forName("IBM437");
-    for (int i = 0; i < 0x100; i++) font.put(new String(new byte[]{(byte) i}, charset).charAt(0), i);
-    font.multiply(3, 3);
-    font.cacheBitmap();
-    Files.write(Paths.get("assets/vga14x3.psfu"), font.toPsf());
-    //testFont(new Screen(), font);
-    //sleep();
   }
 }

@@ -121,4 +121,13 @@ public class FontBuilder {
     Files.write(Paths.get("../assets/vga9x16.psf"), fonts[3].toPsf());
   }
 
+  @Disabled
+  @Test
+  void vga9x16x2() throws IOException {
+    BitmapFont font = BitmapFont.fromPsf(filesReadAllBytes("../assets/vga9x16.psf"));
+    font.multiply(2, 2);
+    font.cacheBitmap();
+    Files.write(Paths.get("../assets/vga9x16x2.psf"), font.toPsf());
+    // /etc/vconsole.conf FONT=vga9x16x2 mkinitcpio -p linux luxury time
+  }
 }

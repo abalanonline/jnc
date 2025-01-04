@@ -17,7 +17,6 @@
 
 package ab.jnc3;
 
-import ab.jnc2.GraphicsMode;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -26,10 +25,10 @@ class Basic3Test {
 
   @Test
   void findAnsiColors() {
-    assertArrayEquals(new int[]{0, 15}, Basic3.findAnsiColors(GraphicsMode.COLOR_MAP_BW));
+    assertArrayEquals(new int[]{0, 15}, Basic3.findAnsiColors(TextMode.cgaHigh().colorMap));
     assertArrayEquals(new int[]{0, 4, 1, 5, 2, 6, 3, 7,
-        8, 12, 9, 13, 10, 14, 11, 15}, Basic3.findAnsiColors(GraphicsMode.COLOR_MAP_ZX));
+        8, 12, 9, 13, 10, 14, 11, 15}, Basic3.findAnsiColors(TextMode.zx().colorMap));
     assertArrayEquals(new int[]{0, 4, 2, 6, 1, 5, 3, 7,
-        8, 12, 10, 14, 9, 13, 11, 15}, Basic3.findAnsiColors(GraphicsMode.COLOR_MAP_CGA));
+        8, 12, 10, 14, 9, 13, 11, 15}, Basic3.findAnsiColors(TextMode.ega().colorMap));
   }
 }
