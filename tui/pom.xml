@@ -24,7 +24,7 @@
   <modelVersion>4.0.0</modelVersion>
 
   <groupId>ab.jnc</groupId>
-  <artifactId>screen</artifactId>
+  <artifactId>tui</artifactId>
   <version>3.0</version>
 
   <properties>
@@ -36,6 +36,16 @@
   </properties>
 
   <dependencies>
+    <dependency>
+      <groupId>ab</groupId>
+      <artifactId>tui</artifactId>
+      <version>1.0</version>
+    </dependency>
+    <dependency>
+      <groupId>ab.jnc</groupId>
+      <artifactId>screen</artifactId>
+      <version>3.0</version>
+    </dependency>
     <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter</artifactId>

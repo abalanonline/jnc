@@ -36,20 +36,20 @@ class LauncherTest {
     ZxBasic basic = new ZxBasic(launcher.preferredMode());
     launcher.basic = basic;
     launcher.calculator();
-    byte[] calculator = getClass().getResourceAsStream("/jnc2/calculator.scr").readAllBytes();
+    byte[] calculator = getClass().getResourceAsStream("/jnc3/calculator.scr").readAllBytes();
     calculator[0x1821] = 0x38; // remove blinking cursor
     assertArrayEquals(calculator, basic.getScr());
     basic.cls();
 
     launcher.menu("128", "\u00A9 1986 Sinclair Research Ltd",
         List.of("Tape Loader", "128 BASIC", "Calculator", "48 BASIC", "Tape Tester"), 0);
-    byte[] zx128 = getClass().getResourceAsStream("/jnc2/zx128.scr").readAllBytes();
+    byte[] zx128 = getClass().getResourceAsStream("/jnc3/zx128.scr").readAllBytes();
     assertArrayEquals(zx128, basic.getScr());
     basic.cls();
 
     launcher.menu("128 +3", "\u00A91982, 1986, 1987 Amstrad Plc.\nDrives A:, B: and M: available.",
         List.of("Loader", "+3 BASIC", "Calculator", "48 BASIC"), 3);
-    byte[] zxplus3 = getClass().getResourceAsStream("/jnc2/zxplus3.scr").readAllBytes();
+    byte[] zxplus3 = getClass().getResourceAsStream("/jnc3/zxplus3.scr").readAllBytes();
     assertArrayEquals(zxplus3, basic.getScr());
     basic.cls();
 

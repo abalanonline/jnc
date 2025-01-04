@@ -29,10 +29,11 @@
   <packaging>pom</packaging>
 
   <modules>
-    <module>legacy</module>
     <module>screen</module>
+    <module>tui</module>
     <module>jnc</module>
     <module>demo</module>
+    <module>legacy</module>
   </modules>
 
   <properties>
