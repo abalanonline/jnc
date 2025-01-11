@@ -18,11 +18,15 @@
 package ab.jnc3;
 
 import ab.tui.Tui;
+import ab.tui.TuiUtil;
 
-import java.awt.*;
+import java.awt.Dimension;
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBuffer;
 import java.awt.image.IndexColorModel;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.function.Consumer;
 
 public class Tui3 implements Tui {
@@ -127,6 +131,15 @@ public class Tui3 implements Tui {
   public Tui withInterpolation() {
     if (closeScreen) screen.interpolation = true;
     return this;
+  }
+
+  public static void main(String[] args) throws IOException {
+    BitmapFont font = BitmapFont.fromPsf(Files.readAllBytes(Path.of("/usr/share/kbd/consolefonts/sun12x22.psfu.gz")));
+    try (Tui tui = new Tui3(font, new Dimension(960, 720), new int[]{
+        0x000000, 0xAA0000, 0x00AA00, 0xAA5500, 0x0000AA, 0xAA00AA, 0x00AAAA, 0xAAAAAA,
+        0x555555, 0xFF5555, 0x55FF55, 0xFFFF55, 0x5555FF, 0xFF55FF, 0x55FFFF, 0xFFFFFF}).withInterpolation()) {
+      TuiUtil.testTui(tui);
+    }
   }
 
 }

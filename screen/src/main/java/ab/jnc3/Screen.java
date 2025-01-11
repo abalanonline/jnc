@@ -17,13 +17,25 @@
 
 package ab.jnc3;
 
-import java.awt.*;
+import java.awt.Color;
+import java.awt.Component;
+import java.awt.Cursor;
+import java.awt.Dimension;
+import java.awt.Frame;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.Point;
+import java.awt.Rectangle;
+import java.awt.RenderingHints;
+import java.awt.Window;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.awt.image.BufferedImage;
+import java.util.Set;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 public class Screen implements AutoCloseable {
 
@@ -32,6 +44,7 @@ public class Screen implements AutoCloseable {
   public BufferedImage image = new BufferedImage(320, 240, BufferedImage.TYPE_INT_RGB);
   public Dimension preferredSize = new Dimension(640, 480); // display aspect ratio
   public boolean interpolation;
+  public boolean gameController; // press and release key events
 
   private final Canvas canvas;
   private final Frame frame;
@@ -41,7 +54,7 @@ public class Screen implements AutoCloseable {
 
   public Screen() {
     canvas = new Canvas();
-    windowListener = new WindowListener(this::onEvent);
+    windowListener = new WindowListener(this::onEvent, () -> this.gameController);
     frame = new Frame() {
       @Override
       public void update(Graphics g) {
@@ -155,9 +168,11 @@ public class Screen implements AutoCloseable {
    */
   private static final class WindowListener extends WindowAdapter implements KeyListener {
     private final Consumer<String> eventListener;
+    private final Supplier<Boolean> gameController;
 
-    public WindowListener(Consumer<String> eventListener) {
+    public WindowListener(Consumer<String> eventListener, Supplier<Boolean> gameController) {
       this.eventListener = eventListener;
+      this.gameController = gameController;
     }
 
     @Override
@@ -214,10 +229,9 @@ public class Screen implements AutoCloseable {
 
     private static String fromKeyCode(int keyCode) {
       switch (keyCode) {
-        case KeyEvent.VK_CONTROL:
-        case KeyEvent.VK_ALT:
-        case KeyEvent.VK_SHIFT:
-          return null;
+        case KeyEvent.VK_CONTROL: return "Control";
+        case KeyEvent.VK_ALT: return "Alt";
+        case KeyEvent.VK_SHIFT: return "Shift";
         case KeyEvent.VK_F1: return "F1";
         case KeyEvent.VK_F2: return "F2";
         case KeyEvent.VK_F3: return "F3";
@@ -239,15 +253,23 @@ public class Screen implements AutoCloseable {
         case KeyEvent.VK_PAGE_DOWN: return "PageDown";
         case KeyEvent.VK_END: return "End";
         case KeyEvent.VK_INSERT: return "Insert";
-        default: return String.format("pressed %04X", keyCode);
+        case KeyEvent.VK_ENTER: return "Enter";
+        case KeyEvent.VK_ESCAPE: return "Esc";
+        case KeyEvent.VK_TAB: return "Tab";
+        case KeyEvent.VK_BACK_SPACE: return "Backspace";
+        case KeyEvent.VK_DELETE: return "Delete";
+        case KeyEvent.VK_SPACE: return "Spacebar";
+        default: return Character.toString(keyCode);
       }
     }
 
+    public static final Set<Integer> MODIFIER_KEY = Set.of(KeyEvent.VK_CONTROL, KeyEvent.VK_ALT, KeyEvent.VK_SHIFT);
     @Override
     public void keyPressed(KeyEvent e) {
-      if (e.getKeyChar() != KeyEvent.CHAR_UNDEFINED) return; // handled by keyTyped
-      String key = fromKeyCode(e.getKeyCode());
-      if (key == null) return;
+      int keyCode = e.getKeyCode();
+      if (gameController.get()) eventListener.accept("+" + fromKeyCode(keyCode));
+      if (MODIFIER_KEY.contains(keyCode) || e.getKeyChar() != KeyEvent.CHAR_UNDEFINED) return; // handled by keyTyped
+      String key = fromKeyCode(keyCode);
       StringBuilder keyNotation = new StringBuilder();
       if (e.isControlDown()) keyNotation.append("Ctrl+");
       if (e.isAltDown()) keyNotation.append("Alt+");
@@ -256,7 +278,9 @@ public class Screen implements AutoCloseable {
     }
 
     @Override
-    public void keyReleased(KeyEvent e) {}
+    public void keyReleased(KeyEvent e) {
+      if (gameController.get()) eventListener.accept("-" + fromKeyCode(e.getKeyCode()));
+    }
   }
 
 }
