@@ -27,40 +27,77 @@ import java.awt.image.IndexColorModel;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Arrays;
 import java.util.function.Consumer;
 
 public class Tui3 implements Tui {
 
   private final BitmapFont font;
   private final Dimension size;
-  private final Screen screen;
-  private boolean closeScreen;
+  private Screen screen;
+
+  private boolean controlScreen;
+  private boolean interpolation;
+  private int[] colorMap;
   private boolean update;
-  private boolean close;
+  private boolean open;
   private final int[] frontBuffer;
   private final int[] middleBuffer;
   private final int[] backBuffer;
 
-  private Tui3(BitmapFont font, Dimension pixelSize, Screen screen) {
+  private Tui3(BitmapFont font, Dimension pixelSize) {
     this.font = font;
     size = new Dimension(pixelSize.width / font.width, pixelSize.height / font.height);
-    this.screen = screen;
     frontBuffer = new int[size.height * size.width];
     middleBuffer = new int[size.height * size.width];
     backBuffer = new int[size.height * size.width];
-    new Thread(this::thread, "tui3").start();
   }
 
+  /**
+   * We have a screen with the size, ratio and colors and want to make a text device from it.
+   */
   public Tui3(BitmapFont font, Screen screen) {
-    this(font, new Dimension(screen.image.getWidth(), screen.image.getHeight()), screen);
+    this(font, new Dimension(screen.image.getWidth(), screen.image.getHeight()));
+    this.screen = screen;
   }
 
+  /**
+   * We want Tui3 to do the screen management.
+   */
   public Tui3(BitmapFont font, Dimension pixelSize, int[] colorMap) {
-    this(font, pixelSize, new Screen());
-    closeScreen = true;
-    screen.preferredSize = new Dimension(pixelSize.width, pixelSize.height);
-    screen.image = new BufferedImage(pixelSize.width, pixelSize.height, BufferedImage.TYPE_BYTE_INDEXED,
-        new IndexColorModel(8, colorMap.length, colorMap, 0, false, -1, DataBuffer.TYPE_BYTE));
+    this(font, pixelSize);
+    controlScreen = true;
+    this.colorMap = Arrays.copyOf(colorMap, colorMap.length);
+  }
+
+  @Override
+  public Tui open() {
+    if (open) throw new IllegalStateException("open");
+    open = true;
+    if (controlScreen) {
+      int width = size.width * font.width;
+      int height = size.height * font.height;
+      screen = new Screen();
+      screen.preferredSize = new Dimension(width, height);
+      screen.image = new BufferedImage(width, height, BufferedImage.TYPE_BYTE_INDEXED,
+          new IndexColorModel(8, colorMap.length, colorMap, 0, false, -1, DataBuffer.TYPE_BYTE));
+      screen.interpolation = interpolation;
+    }
+    new Thread(this::thread, "tui3").start();
+    return this;
+  }
+
+  @Override
+  public void close() {
+    if (!open) return;
+    open = false;
+    synchronized (middleBuffer) {
+      middleBuffer.notify();
+    }
+    if (controlScreen) screen.close();
+    Arrays.fill(frontBuffer, 0);
+    Arrays.fill(middleBuffer, 0);
+    Arrays.fill(backBuffer, 0);
   }
 
   @Override
@@ -69,7 +106,7 @@ public class Tui3 implements Tui {
   }
 
   private void thread() {
-    while (!close) {
+    while (open) {
       if (update) {
         update = false;
         int width = screen.image.getWidth();
@@ -92,7 +129,7 @@ public class Tui3 implements Tui {
           middleBuffer.wait(250);
           update = true; // low rate update
         } catch (InterruptedException e) {
-          close = true;
+          open = false;
         }
       }
     }
@@ -119,17 +156,12 @@ public class Tui3 implements Tui {
     screen.keyListener = keyListener;
   }
 
-  @Override
-  public void close() {
-    close = true;
-    synchronized (middleBuffer) {
-      middleBuffer.notify();
-    }
-    if (closeScreen) screen.close();
-  }
-
   public Tui withInterpolation() {
-    if (closeScreen) screen.interpolation = true;
+    if (controlScreen) {
+      interpolation = true;
+      Screen screen = this.screen;
+      if (screen != null) screen.interpolation = true;
+    }
     return this;
   }
 
@@ -137,7 +169,7 @@ public class Tui3 implements Tui {
     BitmapFont font = BitmapFont.fromPsf(Files.readAllBytes(Path.of("/usr/share/kbd/consolefonts/sun12x22.psfu.gz")));
     try (Tui tui = new Tui3(font, new Dimension(960, 720), new int[]{
         0x000000, 0xAA0000, 0x00AA00, 0xAA5500, 0x0000AA, 0xAA00AA, 0x00AAAA, 0xAAAAAA,
-        0x555555, 0xFF5555, 0x55FF55, 0xFFFF55, 0x5555FF, 0xFF55FF, 0x55FFFF, 0xFFFFFF}).withInterpolation()) {
+        0x555555, 0xFF5555, 0x55FF55, 0xFFFF55, 0x5555FF, 0xFF55FF, 0x55FFFF, 0xFFFFFF}).withInterpolation().open()) {
       TuiUtil.testTui(tui);
     }
   }
