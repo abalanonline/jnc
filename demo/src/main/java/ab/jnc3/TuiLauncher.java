@@ -23,7 +23,7 @@ import ab.tui.TuiConsole;
 public class TuiLauncher {
 
   public static void main(String[] args) {
-    Tui tui = new TuiConsole();
+    Tui tui = new TuiConsole().open();
     Basic basic = new Basic3(null, tui);
     Launcher launcher = new Launcher();
     while (!launcher.stop) basic.load(launcher);
