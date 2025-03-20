@@ -3,16 +3,22 @@ package ab.jnc3;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
+import javax.imageio.ImageIO;
+import java.awt.image.BufferedImage;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.Arrays;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-public class FontBuilder {
+import static org.junit.jupiter.api.Assertions.*;
+
+public class FontBuilderTest {
 
   public static byte[] filesReadAllBytes(String path) {
     try {
@@ -129,5 +135,40 @@ public class FontBuilder {
     font.cacheBitmap();
     Files.write(Paths.get("../assets/vga9x16x2.psf"), font.toPsf());
     // /etc/vconsole.conf FONT=vga9x16x2 mkinitcpio -p linux luxury time
+  }
+
+  @Disabled
+  @Test
+  void pico8() throws IOException {
+    BufferedImage png = ImageIO.read(new FileInputStream("../assets/pico-8_font_022.png"));
+    int width = png.getWidth() / 4;
+    int height = png.getHeight() / 4;
+    BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+    image.createGraphics().drawImage(png, 0, 0, width, height, null);
+
+    // test
+    BitmapFont font = BitmapFont.fromImage(image, 16, 16);
+    byte[] fnt = Files.readAllBytes(Paths.get("../legacy/src/main/resources/jnc2/pico-8.fnt"));
+    byte[] fnt8 = Arrays.copyOf(fnt, fnt.length);
+    System.arraycopy(fnt, 'A' * 8, fnt8, 'a' * 8, 26 * 8);
+    System.arraycopy(fnt, 'a' * 8, fnt8, 'A' * 8, 26 * 8);
+    assertArrayEquals(fnt8, font.bitmap);
+
+    // test 8x6
+    byte[] fnt6 = new byte[0x600];
+    for (int i = 0, i8 = 0, i6 = 0; i < 0x100; i++) {
+      for (int y = 0; y < 6; y++) fnt6[i6++] = fnt8[i8++];
+      assertEquals(0, fnt8[i8++]);
+      assertEquals(0, fnt8[i8++]);
+    }
+
+    font = BitmapFont.fromImage(image, 8, 6, 16, 16, 0, 2, 0, 0);
+    font.width = 4;
+    for (int i = 'A'; i <= 'Z'; i++) {
+      font.put((char) i, i | 0x20);
+      font.put((char) (i | 0x20), i);
+    }
+    assertArrayEquals(fnt6, font.bitmap);
+    Files.write(Paths.get("../assets/pico8.psf"), font.toPsf());
   }
 }

@@ -29,6 +29,7 @@ import java.nio.CharBuffer;
 import java.nio.charset.StandardCharsets;
 import java.nio.charset.UnsupportedCharsetException;
 import java.util.Arrays;
+import java.util.function.Predicate;
 import java.util.zip.GZIPInputStream;
 
 public class BitmapFont {
@@ -241,6 +242,42 @@ public class BitmapFont {
       return fromPsf2(b);
     b = Arrays.copyOf(b, 4);
     throw new IllegalStateException(String.format("PSF header %02X %02X %02X %02X", b[0], b[1], b[2], b[3]));
+  }
+
+  public static BitmapFont fromImage(BufferedImage image,
+      int width, int height,
+      int nw, int nh,
+      int dw, int dh,
+      int ow, int oh, Predicate<Integer> pixel) {
+    BitmapFont font = new BitmapFont(width, height);
+    byte[] bytes = font.bitmap;
+    int byteSize = font.byteSize;
+    int byteSizeW = byteSize / font.height;
+    int my = height + Math.min(dh, 0);
+    int mx = width + Math.min(dw, 0);
+    for (int ny = 0; ny < nh; ny++) {
+      for (int nx = 0; nx < nw; nx++) {
+        for (int y = 0; y < my; y++) {
+          for (int x = 0; x < mx; x++) {
+            int rgb = image.getRGB((width + dw) * nx + x + ow, (height + dh) * ny + y + oh);
+            if (pixel.test(rgb)) bytes[(ny * nw + nx) * byteSize + y * byteSizeW + x / 8] |= 1 << (7 - x % 8);
+          }
+        }
+      }
+    }
+    font.cacheBitmap();
+    return font;
+  }
+
+  public static BitmapFont fromImage(BufferedImage image, int width, int height,
+      int nw, int nh, int dw, int dh, int ow, int oh) {
+    int b = image.getRGB(image.getWidth() - 1, image.getHeight() - 1);
+    // TODO: 2025-03-20 improve the predicate function
+    return fromImage(image, width, height, nw, nh, dw, dh, ow, oh, p -> p != b);
+  }
+
+  public static BitmapFont fromImage(BufferedImage image, int nw, int nh) {
+    return fromImage(image, image.getWidth() / nw, image.getHeight() / nh, nw, nh, 0, 0, 0, 0);
   }
 
   public static byte[] gunzip(byte[] bytes) {
