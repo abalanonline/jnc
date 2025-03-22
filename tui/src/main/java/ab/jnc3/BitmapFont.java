@@ -323,7 +323,8 @@ public class BitmapFont {
     for (; y < yn; y++) {
       for (int xi = 0, xx = x; xi < this.width; xi++, xx++, b <<= 1) {
         if ((xi & 7) == 0) b = this.bitmap[i++];
-        if ((b & 0x80) != 0 && xx >= 0 && xx < w) image.setRGB(xx, y, rgb); else if (bg) image.setRGB(xx, y, bgc);
+        if (xx < 0 || xx >= w) continue;
+        if (b < 0) image.setRGB(xx, y, rgb); else if (bg) image.setRGB(xx, y, bgc);
       }
     }
   }
@@ -340,14 +341,13 @@ public class BitmapFont {
     if (x > ww || y > h - this.height || -x > (chars.length - 1) * this.width || y < 0) return;
     DataBuffer buffer = image.getRaster().getDataBuffer();
     int xn = x; // next
-    int xy = x + y * w;
+    y *= w;
     for (char c : chars) {
       x = xn;
       xn += this.width;
       if (x < 0) continue;
       if (xn > w) break;
-      drawCharSimple(getCode(c), xy, ww, buffer, color, bgColor);
-      xy += this.width;
+      drawCharSimple(getCode(c), x + y, ww, buffer, color, bgColor);
     }
   }
 
