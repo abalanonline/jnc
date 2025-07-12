@@ -25,7 +25,7 @@ import java.util.stream.Collectors;
 
 public class Launcher implements BasicApp {
 
-  private static final BasicApp[] APPS = {new Triis(), new Jnc2Clock(), new BasicClock(), new Help()};
+  private static final BasicApp[] APPS = {new Triis(), new Jnc2Clock(), new BasicClock(), new CubicGrid3(), new Help()};
   public static final char LOWER_RIGHT_TRIANGLE = '\u25E2';
   public static final char UPPER_LEFT_TRIANGLE = '\u25E4';
   char slashLeft = LOWER_RIGHT_TRIANGLE;
