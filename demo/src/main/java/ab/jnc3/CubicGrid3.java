@@ -78,8 +78,9 @@ public class CubicGrid3 implements BasicApp {
     int v = get(control);
     if (v == 27) return 0;
     int sign = v > 27 ? 1 : -1;
-    int a = Math.abs(v - 27) - 50;
-    double speed = sign * Math.exp(a * dB / 5);
+    int a = Math.abs(v - 27);
+    double speed = sign * Math.exp((a - 50) * dB / 5);
+    if (a < 20) speed *= a / 20.0;
     return speed;
   }
 
@@ -87,7 +88,7 @@ public class CubicGrid3 implements BasicApp {
    * all values 0-1
    * copy pasted from https://en.wikipedia.org/wiki/HSL_and_HSV#Color_conversion_formulae
    */
-  public static int rgb(double hue, double saturation, double lightness) {
+  public static double[] rgb(double hue, double saturation, double lightness) {
     assert hue >= 0 && hue < 1 && saturation >= 0 && saturation <= 1 && lightness >= 0 && lightness <= 1;
     double c = (1 - Math.abs(2 * lightness - 1)) * saturation;
     double h1 = hue * 6;
@@ -102,10 +103,7 @@ public class CubicGrid3 implements BasicApp {
       case 5: b1 = x; r1 = c; break;
     }
     double m = lightness - c / 2;
-    int r = (int) ((r1 + m) * 255.9);
-    int g = (int) ((g1 + m) * 255.9);
-    int b = (int) ((b1 + m) * 255.9);
-    return (r << 16) | (g << 8) | b;
+    return new double[]{r1 + m, g1 + m, b1 + m};
   }
 
   /**
@@ -119,7 +117,22 @@ public class CubicGrid3 implements BasicApp {
     final Color c0 = v0.color;
     final Color c1 = v1.color;
     return new Dot(mix(v0.x, v1.x, t), mix(v0.y, v1.y, t), mix(v0.z, v1.z, t),
-        new Color(mix(c0.hue, c1.hue, t), mix(c0.saturation, c1.saturation, t), mix(c0.lightness, c1.lightness, t)));
+        new Color(mix(c0.r, c1.r, t), mix(c0.g, c1.g, t), mix(c0.b, c1.b, t)));
+  }
+
+  public Dot rotate(Dot dot, double yaw, double pitch, double roll) {
+    double[] d = {dot.x, dot.y, dot.z};
+    double[] a = {2 * Math.PI * roll, 2 * Math.PI * pitch, 2 * Math.PI * yaw};
+    for (int i = 0; i < 3; i++) {
+      final double s = Math.sin(a[i]);
+      final double c = Math.cos(a[i]);
+      int i1 = (i + 1) % 3;
+      double x = d[i];
+      double y = d[i1];
+      d[i] = x * c - y * s;
+      d[i1] = x * s + y * c;
+    }
+    return new Dot(d[0], d[1], d[2], dot.color);
   }
 
   /**
@@ -153,15 +166,28 @@ public class CubicGrid3 implements BasicApp {
     Random random = ThreadLocalRandom.current();
     for (int i = 0; i < colSize; i++) {
       double[] f = new double[24];
-      for (int j = 0; j < 24; j++) f[j] = random.nextDouble();
+      for (int j = 0; j < 24;) {
+        double h = (random.nextDouble() + random.nextDouble() + 0.1) % 1;
+        double s = 0.75 + random.nextDouble() / 4;
+        double l = 0.50 + random.nextDouble() / 5;
+        double[] rgb = rgb(h, s, l);
+        f[j++] = rgb[0];
+        f[j++] = rgb[1];
+        f[j++] = rgb[2];
+      }
       colFilm[i] = f;
     }
     Sxf colSxf = new Sxf(colFilm);
     Dimension size = basic.getSize();
     Point center = new Point(size.width / 2, size.height / 2);
-    int time = 0; // ms
+    Dimension displayAspectRatio = basic.getDisplayAspectRatio();
+    int displayHeight = Math.min(displayAspectRatio.width, displayAspectRatio.height);
+    Dimension square = new Dimension(size.width * displayHeight / displayAspectRatio.width,
+        size.height * displayHeight / displayAspectRatio.height);
+    double time = 0; // ms
     controller.open();
     while (true) {
+      basic.paper(basic.getColorFromRgb(0));
       basic.cls();
       // cube
       double[] cv = colSxf.get();
@@ -171,23 +197,28 @@ public class CubicGrid3 implements BasicApp {
         Dot dot = new Dot((i & 1) == 0 ? -1 : 1, (i & 2) == 0 ? -1 : 1, (i & 4) == 0 ? -1 : 1, color);
         dots[i] = dot;
       }
-      dots = cube(dots, 11, null);
+      double ay = time / 1200.0;
+      double ap = time / 1400.0;
+      double ar = time / 1000.0; // Amanite FX Daishonin
+      for (int i = 0; i < 8; i++) dots[i] = rotate(dots[i], ay, ap, ar);
+      dots = cube(dots, 16, null);
       Arrays.stream(dots).sorted(Comparator.comparingDouble(a -> a.z)).forEach(dot -> {
-        double z = (6 - dot.z) / 600;
-        int y = (int) Math.round(dot.y / z) + center.y;
+        double z = (6 - dot.z) / 2;
+        int y = (int) Math.round(dot.y / z * square.height) + center.y;
         if (y < 0 || y >= size.height) return;
-        int x = (int) Math.round(dot.x / z) + center.x;
+        int x = (int) Math.round(dot.x / z * square.width) + center.x;
         if (x < 0 || x >= size.width) return;
-        basic.ink(basic.getColorFromRgb(dot.color.rgb()));
+        double brightness = Math.min(Math.max(0, dot.z / 3 + 0.6), 1);
+        basic.ink(basic.getColorFromRgb(dot.color.rgb(brightness)));
         basic.plot(x, y);
       });
       // controller debug
-      basic.ink(basic.getColorFromRgb(0xFFFFFF));
+      basic.ink(basic.getColorFromRgb(0xAAAAAA));
       byte controlChangeLast = controller.controlChangeLast;
       basic.printAt(4, 0, String.format("%3d: %3d", controlChangeLast, controller.controlChange[controlChangeLast]));
-      basic.printAt(4, 1, Long.toString(time));
+      basic.printAt(4, 1, String.format("%.1f", time));
       // time spinner
-      basic.ink(basic.getColorFromRgb(rgb(get(HUE) / 128.0, get(SATURATION) / 128.0, 0.5)));
+      basic.ink(basic.getColorFromRgb(new Color(rgb(get(HUE) / 128.0, get(SATURATION) / 128.0, 0.5)).rgb()));
       double angle = 2 * Math.PI * time / 1000;
       basic.plot(8, size.height - 8);
       basic.draw(8 + (int) Math.round(Math.sin(angle) * 7),
@@ -234,18 +265,29 @@ public class CubicGrid3 implements BasicApp {
   }
 
   public static class Color {
-    public final double hue;
-    public final double saturation;
-    public final double lightness;
+    public final double r;
+    public final double g;
+    public final double b;
 
-    public Color(double hue, double saturation, double lightness) {
-      this.hue = hue;
-      this.saturation = saturation;
-      this.lightness = lightness;
+    public Color(double... rgb) {
+      r = rgb[0];
+      g = rgb[1];
+      b = rgb[2];
+    }
+
+    public static int rgb(double r, double g, double b) {
+      int ir = (int) (r * 255.9);
+      int ig = (int) (g * 255.9);
+      int ib = (int) (b * 255.9);
+      return (ir << 16) | (ig << 8) | ib;
     }
 
     public int rgb() {
-      return CubicGrid3.rgb(hue, saturation, lightness);
+      return rgb(r, g, b);
+    }
+
+    public int rgb(double brightness) {
+      return rgb(r * brightness, g * brightness, b * brightness);
     }
 
   }
@@ -261,6 +303,11 @@ public class CubicGrid3 implements BasicApp {
       this.y = y;
       this.z = z;
       this.color = color;
+    }
+
+    @Override
+    public String toString() {
+      return String.format("%s, %s, %s, #%06X", x, y, z, color.rgb());
     }
   }
 

@@ -26,25 +26,25 @@ class CubicGrid3Test {
   @Test
   void hsl() {
     // saturation 1
-    assertEquals(0xFF0000, CubicGrid3.rgb(0 / 6.0, 1, 0.5));
-    assertEquals(0xFFFF00, CubicGrid3.rgb(1 / 6.0, 1, 0.5));
-    assertEquals(0x00FF00, CubicGrid3.rgb(2 / 6.0, 1, 0.5));
-    assertEquals(0x00FFFF, CubicGrid3.rgb(3 / 6.0, 1, 0.5));
-    assertEquals(0x0000FF, CubicGrid3.rgb(4 / 6.0, 1, 0.5));
-    assertEquals(0xFF00FF, CubicGrid3.rgb(5 / 6.0, 1, 0.5));
+    assertEquals(0xFF0000, new CubicGrid3.Color(CubicGrid3.rgb(0 / 6.0, 1, 0.5)).rgb());
+    assertEquals(0xFFFF00, new CubicGrid3.Color(CubicGrid3.rgb(1 / 6.0, 1, 0.5)).rgb());
+    assertEquals(0x00FF00, new CubicGrid3.Color(CubicGrid3.rgb(2 / 6.0, 1, 0.5)).rgb());
+    assertEquals(0x00FFFF, new CubicGrid3.Color(CubicGrid3.rgb(3 / 6.0, 1, 0.5)).rgb());
+    assertEquals(0x0000FF, new CubicGrid3.Color(CubicGrid3.rgb(4 / 6.0, 1, 0.5)).rgb());
+    assertEquals(0xFF00FF, new CubicGrid3.Color(CubicGrid3.rgb(5 / 6.0, 1, 0.5)).rgb());
     // saturation 0
-    assertEquals(0x000000, CubicGrid3.rgb(0.42, 0.42, 0));
-    assertEquals(0x3F3F3F, CubicGrid3.rgb(0.42, 0, 0.25));
-    assertEquals(0x7F7F7F, CubicGrid3.rgb(0.42, 0, 0.50));
-    assertEquals(0xBFBFBF, CubicGrid3.rgb(0.42, 0, 0.75));
-    assertEquals(0xFFFFFF, CubicGrid3.rgb(0.42, 0.42, 1));
+    assertEquals(0x000000, new CubicGrid3.Color(CubicGrid3.rgb(0.42, 0.42, 0)).rgb());
+    assertEquals(0x3F3F3F, new CubicGrid3.Color(CubicGrid3.rgb(0.42, 0, 0.25)).rgb());
+    assertEquals(0x7F7F7F, new CubicGrid3.Color(CubicGrid3.rgb(0.42, 0, 0.50)).rgb());
+    assertEquals(0xBFBFBF, new CubicGrid3.Color(CubicGrid3.rgb(0.42, 0, 0.75)).rgb());
+    assertEquals(0xFFFFFF, new CubicGrid3.Color(CubicGrid3.rgb(0.42, 0.42, 1)).rgb());
     // saturation 0.5
-    assertEquals(0xBF3F3F, CubicGrid3.rgb(0 / 6.0, 0.5, 0.5));
-    assertEquals(0xBFBF3F, CubicGrid3.rgb(1 / 6.0, 0.5, 0.5));
-    assertEquals(0x3FBF3F, CubicGrid3.rgb(2 / 6.0, 0.5, 0.5));
-    assertEquals(0x3FBFBF, CubicGrid3.rgb(3 / 6.0, 0.5, 0.5));
-    assertEquals(0x3F3FBF, CubicGrid3.rgb(4 / 6.0, 0.5, 0.5));
-    assertEquals(0xBF3FBF, CubicGrid3.rgb(5 / 6.0, 0.5, 0.5));
+    assertEquals(0xBF3F3F, new CubicGrid3.Color(CubicGrid3.rgb(0 / 6.0, 0.5, 0.5)).rgb());
+    assertEquals(0xBFBF3F, new CubicGrid3.Color(CubicGrid3.rgb(1 / 6.0, 0.5, 0.5)).rgb());
+    assertEquals(0x3FBF3F, new CubicGrid3.Color(CubicGrid3.rgb(2 / 6.0, 0.5, 0.5)).rgb());
+    assertEquals(0x3FBFBF, new CubicGrid3.Color(CubicGrid3.rgb(3 / 6.0, 0.5, 0.5)).rgb());
+    assertEquals(0x3F3FBF, new CubicGrid3.Color(CubicGrid3.rgb(4 / 6.0, 0.5, 0.5)).rgb());
+    assertEquals(0xBF3FBF, new CubicGrid3.Color(CubicGrid3.rgb(5 / 6.0, 0.5, 0.5)).rgb());
   }
 
   @Test
