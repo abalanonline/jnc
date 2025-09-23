@@ -88,6 +88,12 @@ public class GeodesicDome implements Runnable {
       vertices[i][2] /= 2.6;
       vertices[i][1] -= 0.6;
     }
+    //System.out.println(Arrays.stream(vertices).mapToDouble(v -> v[0]).min());
+    //System.out.println(Arrays.stream(vertices).mapToDouble(v -> v[0]).max());
+    //System.out.println(Arrays.stream(vertices).mapToDouble(v -> v[1]).min());
+    //System.out.println(Arrays.stream(vertices).mapToDouble(v -> v[1]).max());
+    //System.out.println(Arrays.stream(vertices).mapToDouble(v -> v[2]).min());
+    //System.out.println(Arrays.stream(vertices).mapToDouble(v -> v[2]).max());
     return new Model3d(vertices, faces);
   }
 
@@ -143,9 +149,9 @@ public class GeodesicDome implements Runnable {
         newFaces.toArray(new int[0][]));
   }
 
-  public double[][] rotateVertices(double[][] vertices, double day, double year) {
+  public double[][] rotateVertices(double[][] vertices, double year) {
     double[][] d = Arrays.stream(vertices).map(a -> Arrays.copyOf(a, a.length)).toArray(double[][]::new);
-    day = 2 * Math.PI * day; // belongs to [0,1)
+    double day = 2 * Math.PI * year * 9; // belongs to [0,1)
     for (int i = 0; i < vertices.length; i++) {
       double x = d[i][0];
       double z = d[i][2];
@@ -154,10 +160,10 @@ public class GeodesicDome implements Runnable {
     }
     double tilt = -23.4 / 360 * 2 * Math.PI;
     for (int i = 0; i < vertices.length; i++) {
-      double x = d[i][0];
       double y = d[i][1];
-      d[i][0] = Math.sin(tilt) * y + Math.cos(tilt) * x;
-      d[i][1] = Math.cos(tilt) * y - Math.sin(tilt) * x;
+      double z = d[i][2];
+      d[i][1] = y * Math.cos(tilt) - z * Math.sin(tilt);
+      d[i][2] = y * Math.sin(tilt) + z * Math.cos(tilt);
     }
     year = 2 * Math.PI * year; // belongs to [0,1)
     for (int i = 0; i < vertices.length; i++) {
@@ -174,7 +180,7 @@ public class GeodesicDome implements Runnable {
     double rx = 0.9 * this.rx;
     double ry = 0.9 * this.ry;
     for (int i = 0; i < dots.length; i++) {
-      double z = (dots[i][2] + 4.8) / 5;
+      double z = 7 / (7.25 - dots[i][2]);
       dots[i][0] = dots[i][0] * rx * z + centerx;
       dots[i][1] = dots[i][1] * ry * z + centery;
     }
@@ -195,7 +201,7 @@ public class GeodesicDome implements Runnable {
     double rx = 0.9 * this.rx;
     double ry = 0.9 * this.ry;
     for (int i = 0; i < v.length; i++) {
-      double z = (v[i][2] + 4.8) / 5;
+      double z = 7 / (7.25 - v[i][2]);
       v[i][0] = v[i][0] * rx * z + centerx;
       v[i][1] = v[i][1] * ry * z + centery;
     }
@@ -228,8 +234,8 @@ public class GeodesicDome implements Runnable {
     basic.printAt(0, 2, "solid:");
     basic.printAt(0, 1, "cube");
     basic.printAt(0, 0, "iter: 3");
-//    plotDots(model, v -> rotateVertices(v, instant.toEpochMilli() / 6_000.0, instant.toEpochMilli() / 60_000.0));
-    drawLines(model, v -> rotateVertices(v, instant.toEpochMilli() / 6_000.0, instant.toEpochMilli() / 60_000.0));
+//    plotDots(model, v -> rotateVertices(v, instant.toEpochMilli() / 60_000.0));
+    drawLines(model, v -> rotateVertices(v, instant.toEpochMilli() / 60_000.0));
   }
 
   public static void main(String[] args) {
