@@ -71,6 +71,60 @@ public class GeodesicDome implements Runnable {
     return new Model3d(vertices, faces);
   }
 
+  public Model3d tetrahedron() {
+    double[][] vertices = {{1, 1, 1}, {-1, -1, 1}, {-1, 1, -1}, {1, -1, -1}};
+    int[][] faces = {{0, 2, 1}, {0, 1, 3}, {0, 3, 2}, {1, 2, 3}};
+    normalizeVectors(vertices);
+    return new Model3d(vertices, faces);
+  }
+
+  public Model3d icosahedron() {
+    String icosahedron = "" +
+        "v  0.000000  1.000000  0.000000\n" +
+        "v  0.894427  0.447214  0.000000\n" +
+        "v  0.276393  0.447214  0.850651\n" +
+        "v -0.723607  0.447214  0.525731\n" +
+        "v -0.723607  0.447214 -0.525731\n" +
+        "v  0.276393  0.447214 -0.850651\n" +
+        "v  0.723607 -0.447214  0.525731\n" +
+        "v -0.276393 -0.447214  0.850651\n" +
+        "v -0.894427 -0.447214  0.000000\n" +
+        "v -0.276393 -0.447214 -0.850651\n" +
+        "v  0.723607 -0.447214 -0.525731\n" +
+        "v  0.000000 -1.000000  0.000000\n" +
+        "f 1 3 2\n" +
+        "f 1 4 3\n" +
+        "f 1 5 4\n" +
+        "f 1 6 5\n" +
+        "f 1 2 6\n" +
+        "f 2 3 7\n" +
+        "f 3 4 8\n" +
+        "f 4 5 9\n" +
+        "f 5 6 10\n" +
+        "f 6 11 10\n" +
+        "f 7 8 12\n" +
+        "f 8 9 12\n" +
+        "f 9 10 12\n" +
+        "f 10 11 12\n" +
+        "f 11 7 12\n" +
+        "f 2 11 6\n" +
+        "f 2 7 11\n" +
+        "f 3 8 7\n" +
+        "f 4 9 8\n" +
+        "f 5 10 9\n";
+    double[][] vertices = new double[12][];
+    int[][] faces = new int[20][];
+    int vi = 0, fi = 0;
+    for (String s : icosahedron.split("\n")) {
+      if (s.startsWith("v ")) vertices[vi++] = Arrays.stream(Arrays.copyOfRange(s.split("\\s+"), 1, 4))
+          .mapToDouble(Double::valueOf).toArray();
+      if (s.startsWith("f ")) faces[fi++] = Arrays.stream(Arrays.copyOfRange(s.split("\\s+"), 1, 4))
+          .mapToInt(f -> Integer.parseInt(f) - 1).toArray();
+    }
+    normalizeVectors(vertices);
+    return new Model3d(vertices, faces);
+  }
+
   public Model3d teapot() {
     InputStream resource = getClass().getResourceAsStream("/jnc2/teapot.obj");
     List<String> lines = new BufferedReader(new InputStreamReader(resource)).lines().collect(Collectors.toList());
@@ -223,19 +277,27 @@ public class GeodesicDome implements Runnable {
     }
   }
 
+  public void print(Model3d model) {
+    System.out.println("# geodesic polyhedron");
+    System.out.println("# " + model.vertices.length + " vertices, " + model.faces.length + " triangular faces");
+    for (double[] vertex : model.vertices) System.out.printf("v %f %f %f%n", vertex[0], vertex[1], vertex[2]);
+    for (int[] face : model.faces) System.out.printf("f %d %d %d%n", face[0] + 1, face[1] + 1, face[2] + 1);
+    System.out.println();
+  }
+
   @Override
   public void run() {
     Model3d model = cube();
     for (int i = 0; i < 3; i++) {
       model = subdivision(model);
     }
+    //print(model);
     basic.cls();
-    Instant instant = Instant.now();
     basic.printAt(0, 2, "solid:");
     basic.printAt(0, 1, "cube");
     basic.printAt(0, 0, "iter: 3");
-//    plotDots(model, v -> rotateVertices(v, instant.toEpochMilli() / 60_000.0));
-    drawLines(model, v -> rotateVertices(v, instant.toEpochMilli() / 60_000.0));
+//    plotDots(model, v -> rotateVertices(v, Instant.now().toEpochMilli() / 60_000.0));
+    drawLines(model, v -> rotateVertices(v, Instant.now().toEpochMilli() / 60_000.0));
   }
 
   public static void main(String[] args) {
