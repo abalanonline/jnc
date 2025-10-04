@@ -17,19 +17,28 @@
 
 package ab.jnc3;
 
+import java.awt.AWTException;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Cursor;
 import java.awt.Dimension;
+import java.awt.DisplayMode;
 import java.awt.Frame;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
+import java.awt.GraphicsDevice;
 import java.awt.Point;
 import java.awt.Rectangle;
 import java.awt.RenderingHints;
+import java.awt.Robot;
 import java.awt.Window;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseListener;
+import java.awt.event.MouseMotionListener;
+import java.awt.event.MouseWheelEvent;
+import java.awt.event.MouseWheelListener;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.awt.image.BufferedImage;
@@ -65,6 +74,9 @@ public class Screen implements AutoCloseable {
     frame.addWindowStateListener(windowListener);
     frame.addWindowListener(windowListener);
     frame.addKeyListener(windowListener);
+    frame.addMouseListener(windowListener);
+    frame.addMouseMotionListener(windowListener);
+    frame.addMouseWheelListener(windowListener);
     frame.setFocusTraversalKeysEnabled(false); // enable Tab
     cursor = frame.getCursor();
     frame.setCursor(frame.getToolkit().createCustomCursor(
@@ -166,7 +178,8 @@ public class Screen implements AutoCloseable {
    * Listens to the events of window and keyboard. Creates a sensible text describing the event
    * and sends it to the consumer. Marked final to show that it designed properly and should not be refactored.
    */
-  private static final class WindowListener extends WindowAdapter implements KeyListener {
+  private static final class WindowListener extends WindowAdapter implements KeyListener,
+      MouseListener, MouseMotionListener, MouseWheelListener {
     private final Consumer<String> eventListener;
     private final Supplier<Boolean> gameController;
 
@@ -280,6 +293,76 @@ public class Screen implements AutoCloseable {
     @Override
     public void keyReleased(KeyEvent e) {
       if (gameController.get()) eventListener.accept("-" + fromKeyCode(e.getKeyCode()));
+    }
+
+    private Robot robot;
+    private int mouseX = -1;
+    private int mouseY = -1;
+    private void m(MouseEvent e) {
+      if (mouseX >= 0 && mouseY >= 0) return;
+      mouseX = e.getXOnScreen();
+      mouseY = e.getYOnScreen();
+    }
+
+    @Override
+    public void mouseClicked(MouseEvent e) { m(e); } // clicked does not recognize buttons 4, 5
+
+    @Override
+    public void mousePressed(MouseEvent e) {
+      m(e);
+      eventListener.accept("Mouse+B" + e.getButton());
+    }
+
+    @Override
+    public void mouseReleased(MouseEvent e) {
+      m(e);
+      eventListener.accept("Mouse-B" + e.getButton());
+    }
+
+    @Override
+    public void mouseEntered(MouseEvent e) { m(e); }
+
+    @Override
+    public void mouseExited(MouseEvent e) { m(e); }
+
+    @Override
+    public void mouseDragged(MouseEvent e) { mouseMoved(e); } // dragged does not recognize buttons 4, 5
+
+    @Override
+    public void mouseMoved(MouseEvent e) {
+      m(e);
+      int x = e.getXOnScreen() - mouseX;
+      int y = e.getYOnScreen() - mouseY;
+      int wx = e.getX();
+      int wy = e.getY();
+      mouseX = e.getXOnScreen();
+      mouseY = e.getYOnScreen();
+      if (gameController.get()) {
+        // borderless gaming
+        if (robot == null) try {
+          robot = new Robot();
+        } catch (AWTException ex) {
+          throw new IllegalStateException(ex);
+        }
+        GraphicsDevice device = ((Window) e.getSource()).getGraphicsConfiguration().getDevice();
+        DisplayMode displayMode = device.getDisplayMode();
+        Window fullScreenWindow = device.getFullScreenWindow();
+        int w = fullScreenWindow == null ? displayMode.getWidth() : fullScreenWindow.getWidth();
+        int h = fullScreenWindow == null ? displayMode.getHeight() : fullScreenWindow.getHeight();
+        if (mouseX < w / 4 || mouseX >= w * 3 / 4 || mouseY < h / 4 || mouseY >= h * 3 / 4) {
+          mouseX = w / 2;
+          mouseY = h / 2;
+          robot.mouseMove(mouseX, mouseY);
+        }
+      }
+      eventListener.accept("Mouse" + (x >= 0 ? "+" : "") + x + "," + (y >= 0 ? "+" : "") + y + "," + wx + "," + wy);
+    }
+
+    @Override
+    public void mouseWheelMoved(MouseWheelEvent e) {
+      m(e);
+      int w = e.getWheelRotation();
+      eventListener.accept("Mouse" + (w >= 0 ? "+" : "-") + "W" + Math.abs(w));
     }
   }
 
